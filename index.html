@@ -1371,15 +1371,40 @@ function makeNpc(key, x, z, baseY, h, minPhase, pedestal) {
 /* ---------------- Online: clasificación (Cloudflare Worker) ---------------- */
 var NINI_API = ''; /* Pega aquí la URL de tu Worker, p. ej. 'https://nini-api.tu-usuario.workers.dev' */
 var boardMode = 'story';
-function apiOn() { return /^https:\/\//.test(NINI_API); }
+/* Dentro de claude.ai el juego usa la base de datos compartida del artefacto: colecciones lb_story y
+   lb_survival, un documento por jugador (su id) con su mejor puntuación. Fuera de claude.ai usa el Worker. */
+var NET = { db: null, uid: null, tried: false };
+function netInit() {
+  if (NET.tried || !window.claude || typeof window.claude.use !== 'function') return;
+  NET.tried = true;
+  Promise.all([window.claude.use('db'), window.claude.use('user')]).then(function (r) {
+    NET.db = r[0] || null;
+    if (r[1]) r[1].id().then(function (id) { NET.uid = id || null; }, function () {});
+    if (NET.db && !$('ovBoard').hidden) renderBoard();
+  }, function () {});
+}
+function apiOn() { return !!NET.db || /^https:\/\//.test(NINI_API); }
+function withTimeout(p, ms) { return new Promise(function (ok, ko) { var t = setTimeout(function () { ko(new Error('timeout')); }, ms); p.then(function (v) { clearTimeout(t); ok(v); }, function (e) { clearTimeout(t); ko(e); }); }); }
 function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñü _-]/g, '').slice(0, 14); }
 function loadName() { try { return cleanName(localStorage.getItem('nini-name')).trim(); } catch (e) { return ''; } }
 function saveName(v) { var n = cleanName(v); try { localStorage.setItem('nini-name', n); } catch (e) {} return n; }
 function submitScore(st) {
+  if (NET.db) {
+    if (!NET.uid) return Promise.resolve('denied');
+    var ref = NET.db.doc('lb_' + st.mode + '/' + NET.uid);
+    return withTimeout(ref.get(), 10000).then(function (s) {
+      var old = s.exists ? s.data() : null;
+      if (old && Number(old.score) >= st.score) return 'best';
+      return ref.set({ name: st.name, score: st.score, round: st.round, kills: st.kills, date: Date.now() }).then(function () { return 'ok'; });
+    }).catch(function (e) { return e && e.code === 'invalid_argument' ? 'denied' : 'fail'; });
+  }
   return fetch(NINI_API + '/api/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(st) })
-    .then(function (r) { return r.ok; }).catch(function () { return false; });
+    .then(function (r) { return r.ok ? 'ok' : 'fail'; }).catch(function () { return 'fail'; });
 }
 function fetchTop(mode) {
+  if (NET.db) return withTimeout(NET.db.collection('lb_' + mode).orderBy('score', 'desc').limit(10).get(), 10000).then(function (s) {
+    return s.docs.map(function (d) { var v = d.data() || {}; return { name: cleanName(v.name) || 'NINI ANÓNIMO', score: Math.floor(Number(v.score)) || 0, round: Math.floor(Number(v.round)) || 1, me: d.id === NET.uid }; });
+  });
   return fetch(NINI_API + '/api/top?mode=' + mode).then(function (r) { return r.json(); }).then(function (j) { return j.top || []; });
 }
 function renderBoard() {
@@ -1387,12 +1412,12 @@ function renderBoard() {
   $('bTabStory').setAttribute('aria-pressed', boardMode === 'story' ? 'true' : 'false');
   $('bTabSurv').setAttribute('aria-pressed', boardMode === 'survival' ? 'true' : 'false');
   list.innerHTML = '';
-  if (!apiOn()) { msg.textContent = 'Clasificación online desactivada: falta la URL del Worker (NINI_API).'; return; }
+  if (!apiOn()) { msg.textContent = NET.tried ? 'Conectando con la clasificación…' : 'Clasificación online: abre el juego en claude.ai o configura NINI_API.'; return; }
   msg.textContent = 'Cargando…';
   fetchTop(boardMode).then(function (top) {
     list.innerHTML = '';
     msg.textContent = top.length ? '' : 'Todavía no hay puntuaciones en este modo.';
-    top.forEach(function (r, i) { var li = document.createElement('li'); li.textContent = (i + 1) + '. ' + r.name + ' · ' + r.score + ' pts · ronda ' + r.round; list.appendChild(li); });
+    top.forEach(function (r, i) { var li = document.createElement('li'); li.textContent = (i + 1) + '. ' + r.name + ' · ' + r.score + ' pts · ronda ' + r.round + (r.me ? ' · TÚ' : ''); list.appendChild(li); });
   }).catch(function () { msg.textContent = 'No se pudo conectar con la clasificación.'; });
 }
 function publishScore(st) {
@@ -1401,7 +1426,11 @@ function publishScore(st) {
   if (!st.name) { el.textContent = 'Escribe tu nombre en el menú para aparecer en la clasificación.'; return; }
   if (st.score <= 0) { el.textContent = ''; return; }
   el.textContent = 'Publicando puntuación…';
-  submitScore(st).then(function (ok) { el.textContent = ok ? 'Puntuación publicada en la clasificación online.' : 'No se pudo publicar la puntuación.'; });
+  submitScore(st).then(function (res) {
+    el.textContent = res === 'ok' ? 'Puntuación publicada en la clasificación online.' :
+      res === 'best' ? 'Tu mejor puntuación online sigue siendo más alta.' :
+      res === 'denied' ? 'Para publicar en la clasificación necesitas acceso de colaborador al juego.' : 'No se pudo publicar la puntuación.';
+  });
 }
 
 /* ---------------- Mapas ---------------- */
@@ -4420,7 +4449,7 @@ loop.last = performance.now();
 function init() {
   G.mapId = 0;
   buildWorld(); setMap(G.mapId); buildMenu();
-  $('nameIn').value = loadName();
+  $('nameIn').value = loadName(); netInit();
   applyStats(); initAmmo(); selectGun('grapadora'); renderWList();
   refreshMenu(); showOnly('ovStart'); syncCtrl();
   $('btnStory').disabled = false; $('btnSurv').disabled = false;

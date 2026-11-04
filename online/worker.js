@@ -23,7 +23,7 @@ function cleanName(s) {
 // Filtro de sentido común: evita números imposibles. No es un antitrampas real.
 function plausible(s) {
   const maxScore = s.kills * 2600 + s.round * 1500 + 2000;
-  return s.kills >= 0 && s.round >= 1 && s.round <= 60 && s.score <= maxScore;
+  return s.kills >= 0 && s.round >= 1 && s.round <= 1000 && s.score <= maxScore;
 }
 
 export default {
