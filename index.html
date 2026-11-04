@@ -496,6 +496,18 @@ if (!THREE) { $('loadErr').hidden = false; return; }
 if (window.matchMedia && matchMedia('(pointer: coarse)').matches) $('touchNote').hidden = false;
 
 var HALF = 24;
+/* Mitad del lado del escenario por etapa: cada etapa es más grande (~2× el área de la anterior) */
+var ARENA = [24, 36, 52, 70, 90];
+function rebuildArena(stage) {
+  var h = ARENA[Math.min(stage | 0, ARENA.length - 1)];
+  if (h === HALF) return;
+  HALF = h;
+  scene.remove(MAPS[0].grp);
+  beginMap(0); buildOffice(); officeExtras();
+  var sc = sunL.shadow.camera; sc.left = -HALF * 1.5; sc.right = HALF * 1.5; sc.top = HALF * 1.5; sc.bottom = -HALF * 1.5; sc.updateProjectionMatrix();
+  camera.far = Math.max(120, HALF * 2.4); camera.updateProjectionMatrix();
+  setMap(0);
+}
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -3140,6 +3152,7 @@ function enterPhase(withIntro) {
   if (withIntro) showDialog(PHASES[G.phase].intro, playPhase); else playPhase();
 }
 function playPhase() {
+  rebuildArena(G.phase);
   showOnly(''); $('hud').hidden = false; G.state = 'playing'; G.wip = 1; selectGun(G.wcur);
   startPhaseWave(); requestLock(); toast(MAPS[G.mapId].name + ' · Ronda ' + roundIdx());
 }
