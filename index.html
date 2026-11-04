@@ -208,6 +208,10 @@ body {
 .sens.chk span { min-width: 0; }
 
 /* Estado de Nofal */
+.revive { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--paper); color: var(--ink); padding: 6px 14px 8px; box-shadow: 3px 3px 0 rgba(0,0,0,.65); min-width: 240px; text-align: center; }
+.revive .lab { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #4b5552; display: block; }
+.rbar { height: 12px; background: #c9c6b6; margin-top: 5px; border: 2px solid var(--ink); }
+.rbar > i { display: block; height: 100%; width: 0; background: var(--fluor); }
 .allytag { position: absolute; left: 14px; bottom: 88px; background: var(--paper); color: var(--ink); padding: 5px 12px 7px; box-shadow: 3px 3px 0 rgba(0,0,0,.65); transform: rotate(-.8deg); display: flex; flex-direction: column; min-width: 170px; }
 .allytag .lab { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #4b5552; }
 .allytag b { font-family: var(--disp); font-weight: 400; font-size: 19px; letter-spacing: .05em; color: var(--stamp); line-height: 1.15; }
@@ -315,6 +319,7 @@ body {
       <div class="warn" id="hpWarn"></div>
     </div>
 
+    <div class="revive" id="reviveBox" hidden><span class="lab" id="reviveLab">SANANDO</span><div class="rbar"><i id="reviveFill"></i></div></div>
     <div class="allytag" id="allyTag" hidden><span class="lab">Nofal</span><b id="allySt">Te acompaña</b><div class="am" id="allyAm"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 
     <div class="br">
@@ -1721,7 +1726,7 @@ function buildWorld() {
   flashLight = new THREE.PointLight(0xffc060, 0, 9);
 
   buildDust();
-  buildAlly();
+  buildAlly(); buildMates();
   buildMaps();
 }
 function selectGun(k) {
@@ -1988,6 +1993,7 @@ function updateEProj(dt) {
     var p = G.eproj[i], dead = false;
     if (p.g) p.vy -= p.g * dt;
     p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.life -= dt;
+    if (p.y < 1.9 && hitAllies([ally].concat(MATES), p.x, p.z, p.dmg)) { scene.remove(p.m); G.eproj.splice(i, 1); continue; }
     if (Math.hypot(p.x - P.x, p.z - P.z) < 0.6 && p.y > P.y - 0.1 && p.y < P.y + 1.9) {
       scene.remove(p.m); G.eproj.splice(i, 1);
       hurtPlayer(p.dmg); if (G.state !== 'playing') return;
@@ -2147,6 +2153,11 @@ function updateEnemies(dt) {
     e.paper.position.y = T.h / 2 + 0.35 + Math.sin(G.t * 3 + e.phase) * 0.12;
     e.paper.rotation.z = Math.sin(G.t * 5 + e.phase) * 0.09 + (e.st === 'wind' ? Math.sin(G.t * 70) * 0.12 : 0);
     var sc = Math.min(1, e.age / 0.35); e.g.scale.setScalar(Math.max(0.01, sc));
+    if (e.mAtk > 0) e.mAtk -= dt;
+    if (!T.noMelee && e.mAtk <= 0) {
+      var cl = [ally].concat(MATES);
+      for (var q = 0; q < cl.length; q++) { var mq = cl[q]; if (mq.g && !mq.down && Math.hypot(e.x - mq.x, e.z - mq.z) < T.r + 0.5) { e.mAtk = 0.9; hitMate(mq, T.dmg * 0.5); break; } }
+    }
     if (e.flash > 0) e.flash -= dt;
     e.mat.color.setHex(e.flash > 0 ? 0xff7a7a : e.tint);
     e.atk -= dt;
@@ -2349,6 +2360,103 @@ var ally = { g: null, body: null, plane: null, planeY: 1.4, label: null, emote: 
   emoteT: 0, lookT: 0, lookA: 0, warnBack: -99, pizzaCall: -99, lowCall: false,
   info: { cnt: 0, cx: 0, cz: 0, nearD: 99, nearE: null, nearP: 99, nearPe: null, crowd: 0, pn: 0 } };
 function allyActive() { return G.mode === 'story'; }
+
+/* Compañeros de combate: Andrés chan y Heverton-erome. Nofal ya tiene su propia IA. */
+var REVIVE_T = 6, REVIVE_R = 2.6;
+var MATES = [
+  { key: 'andres', name: 'ANDRÉS CHAN', side: -1, off: 0.3, cdMax: 1.1, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1 },
+  { key: 'heverton', name: 'HEVERTON-EROME', side: 1, off: 0.9, cdMax: 0.9, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1.5 }
+];
+function buildMates() {
+  MATES.forEach(function (m) {
+    var g = new THREE.Group(); g.visible = false; scene.add(g);
+    var sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; sh.scale.setScalar(0.7); g.add(sh);
+    var lc = mkCanvas(256, 72), lx = lc.getContext('2d');
+    lx.fillStyle = '#f1efe6'; lx.fillRect(0, 0, 256, 72); lx.strokeStyle = '#14181a'; lx.lineWidth = 6; lx.strokeRect(3, 3, 250, 66);
+    lx.fillStyle = '#14181a'; lx.textAlign = 'center'; lx.font = (m.name.length > 10 ? '30px' : '42px') + ' Anton, Impact, sans-serif'; lx.fillText(m.name, 128, 50);
+    var label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(lc), transparent: true }));
+    label.scale.set(0.9, 0.253, 1); label.position.y = 2.2; g.add(label);
+    m.g = g;
+    loadCharCanvas(m.key, function (t, aspect) {
+      var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
+      pl.position.y = 0.88 + h / 2; g.add(pl);
+    });
+  });
+}
+function resetMates() {
+  MATES.forEach(function (m, i) {
+    m.x = P.x - 2.5 - i; m.z = P.z + 2.5 + i; m.hp = 100; m.down = false; m.revive = 0; m.cd = 1 + i * 0.4;
+    if (m.g) { m.g.rotation.z = 0; m.g.position.set(m.x, 0, m.z); }
+  });
+}
+function hitMate(m, d) {
+  if (!m.g || m.down || G.state !== 'playing' || !allyActive()) return;
+  m.hp -= d;
+  if (m.hp > 0) return;
+  m.hp = 0; m.down = true; m.revive = 0; m.g.rotation.z = 1.35; sfx.hurt();
+  if (m === ally) allySay('¡Me han derribado! ¡Bilal, sánanme!', 2);
+  else radio(L(m.key, '¡Me han derribado! Bilal, ven a sanarme, por favor.'));
+}
+function mateShoot(m, target) {
+  var a = new THREE.Vector3(m.x, 1.2, m.z), b = new THREE.Vector3(target.x, target.T.h / 2 + 0.35, target.z);
+  var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 1 }));
+  scene.add(line); G.tracers.push({ line: line, life: 0.08 });
+  damageEnemy(target, 1, true);
+}
+function updateMates(dt) {
+  var on = allyActive();
+  for (var i = 0; i < MATES.length; i++) {
+    var m = MATES[i]; if (!m.g) continue;
+    m.g.visible = on;
+    if (!on || m.down) continue;
+    var sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
+    var gx = P.x + sy * (1.8 + m.off) + cy * 2.1 * m.side + Math.sin(G.t * 0.5 + i) * 0.5;
+    var gz = P.z + cy * (1.8 + m.off) - sy * 2.1 * m.side + Math.cos(G.t * 0.4 + i) * 0.5;
+    gx = clamp(gx, -HALF + 1, HALF - 1); gz = clamp(gz, -HALF + 1, HALF - 1);
+    var dx = gx - m.x, dz = gz - m.z, dl = Math.hypot(dx, dz);
+    if (dl > 0.01) { var st = Math.min(dl, 5.5 * dt); m.x += dx / dl * st; m.z += dz / dl * st; }
+    if (Math.hypot(P.x - m.x, P.z - m.z) > 22) { m.x = gx; m.z = gz; }
+    var o = resolve(m.x, m.z, 0.4); m.x = o.x; m.z = o.z;
+    m.g.position.set(m.x, 0, m.z);
+    m.cd -= dt;
+    if (m.cd <= 0) {
+      var best = null, bd = 10.5;
+      for (var k = 0; k < G.enemies.length; k++) {
+        var e = G.enemies[k], dd = Math.hypot(e.x - m.x, e.z - m.z);
+        if (dd < bd) { bd = dd; best = e; }
+      }
+      if (best) { m.cd = m.cdMax * rnd(0.9, 1.1); mateShoot(m, best); } else m.cd = 0.2;
+    }
+  }
+}
+var reviveBoxEl = $('reviveBox'), reviveLabEl = $('reviveLab'), reviveFillEl = $('reviveFill');
+function updateRevive(dt) {
+  var list = [ally].concat(MATES), best = null, bd = REVIVE_R;
+  for (var i = 0; i < list.length; i++) {
+    var m = list[i];
+    if (!m.g || !m.down || !allyActive()) { m.revive = 0; continue; }
+    var d = Math.hypot(P.x - m.x, P.z - m.z);
+    if (d < bd) { bd = d; best = m; }
+  }
+  for (var j = 0; j < list.length; j++) { if (list[j] !== best || !keys['KeyF']) list[j].revive = 0; }
+  if (!best) { reviveBoxEl.hidden = true; return; }
+  var nm = best === ally ? 'NOFAL' : best.name;
+  reviveBoxEl.hidden = false;
+  if (keys['KeyF'] && G.state === 'playing') best.revive = Math.min(REVIVE_T, best.revive + dt);
+  reviveLabEl.textContent = keys['KeyF'] ? 'SANANDO A ' + nm + ' · ' + Math.ceil(REVIVE_T - best.revive) + ' s' : 'MANTÉN F PARA SANAR A ' + nm;
+  reviveFillEl.style.width = (best.revive / REVIVE_T * 100) + '%';
+  if (best.revive >= REVIVE_T) {
+    best.down = false; best.hp = 45; best.revive = 0; best.g.rotation.z = 0; sfx.pickup();
+    if (best === ally) allySay('¡Vuelvo! Aún puedo disparar.', 2);
+    else radio(L(best.key, '¡Gracias, Bilal! Vuelvo a la oficina.'));
+    reviveBoxEl.hidden = true;
+  }
+}
+function hitAllies(list, x, z, dmg) {
+  for (var i = 0; i < list.length; i++) { var m = list[i]; if (m.g && !m.down && Math.hypot(x - m.x, z - m.z) < 0.6) { hitMate(m, dmg); return m; } }
+  return null;
+}
+
 function buildAlly() {
   var g = new THREE.Group(); g.visible = false; scene.add(g);
   var body = new THREE.Group(); body.rotation.order = 'YXZ'; g.add(body);
@@ -2371,7 +2479,7 @@ function buildAlly() {
   ally.emoteCv = mkCanvas(64, 64); ally.emoteTex = tex(ally.emoteCv);
   var em = new THREE.Sprite(new THREE.SpriteMaterial({ map: ally.emoteTex, transparent: true }));
   em.scale.set(0.62, 0.62, 1); em.position.y = 2.78; em.visible = false; g.add(em); ally.emote = em;
-  ally.g = g; ally.body = body; ally.label = label;
+  ally.g = g; ally.body = body; ally.label = label; ally.hp = 100; ally.down = false; ally.revive = 0; ally.name = 'NOFAL';
   loadCharCanvas('aliado', function (t, aspect) {
     var h = 1.0, m = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
     ally.planeY = 0.88 + h / 2; m.position.y = ally.planeY; g.add(m); ally.plane = m;
@@ -2383,6 +2491,8 @@ function resetAlly() {
   ally.mode = 'follow'; ally.modeAt = G.t; ally.ammo = ALLY_MAG; ally.rel = 0; ally.relCall = false; ally.dodgeT = 0; ally.dodgeCd = 0; ally.stagger = 0; ally.hopT = 0;
   ally.tgt = null; ally.cover = null; ally.fetch = null; ally.pending = null; ally.emoteT = 0; ally.lowCall = false; ally.think = 0; ally.lean = 0;
   ally.g.position.set(ally.x, 0, ally.z);
+  ally.hp = 100; ally.down = false; ally.revive = 0; ally.g.rotation.z = 0;
+  resetMates();
 }
 function allyLOS(e) {
   var cy = e.T.h / 2 + 0.35;
@@ -2580,7 +2690,7 @@ function allyThink() {
 }
 
 function updateAlly(dt) {
-  var A = ally; if (!A.g || !allyActive()) return;
+  var A = ally; if (!A.g || !allyActive() || A.down) return;
   A.cd -= dt; A.dodgeCd -= dt; A.stagger = Math.max(0, A.stagger - dt); A.emoteT -= dt; A.hopT = Math.max(0, A.hopT - dt);
   A.sideT -= dt; if (A.sideT <= 0) { A.side = -A.side; A.sideT = rnd(5, 9); }
   A.strafeT -= dt; if (A.strafeT <= 0) { A.strafe = -A.strafe; A.strafeT = rnd(1.2, 2.8); }
@@ -3037,7 +3147,7 @@ function update(dt) {
   if (G.state !== 'playing') return;
   updateWaves(dt); if (G.state !== 'playing') return;
   updateEnemies(dt); if (G.state !== 'playing') return;
-  updateProj(dt); updateEProj(dt); if (G.state !== 'playing') return; updateAlly(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud();
+  updateProj(dt); updateEProj(dt); if (G.state !== 'playing') return; updateAlly(dt); updateMates(dt); updateRevive(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud();
 }
 
 /* ---------------- Entrada ---------------- */
