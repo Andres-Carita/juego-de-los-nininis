@@ -1477,7 +1477,15 @@ function buildHouse() {
   wx.fillStyle = '#b5542c'; wx.fillRect(0, 200, 256, 56);
   wx.strokeStyle = '#d9a33b'; wx.lineWidth = 6;
   for (var k = 0; k < 4; k++) { wx.beginPath(); wx.arc(32 + k * 64, 120, 26, Math.PI, 0); wx.stroke(); }
-  walls(new THREE.MeshLambertMaterial({ map: tex(wc, [14, 1]) }), 4.2);
+  var wallMat = new THREE.MeshLambertMaterial({ color: 0xe9d9b8 });
+  walls(wallMat, 4.2);
+  /* Paredes con la textura de azulejos generada con Canva (zellige.png); si no carga, queda el color liso */
+  var zim = new Image();
+  zim.onload = function () {
+    var zc2 = mkCanvas(zim.naturalWidth, zim.naturalHeight); zc2.getContext('2d').drawImage(zim, 0, 0);
+    wallMat.map = tex(zc2, [14, 1]); wallMat.color.setHex(0xffffff); wallMat.needsUpdate = true;
+  };
+  zim.src = 'zellige.png';
   ceilPlane(0x3a2a1a);
   decal(7.5, function (x) {
     x.fillStyle = '#8c2b1d'; x.beginPath(); for (var a = 0; a < 8; a++) { var r = a % 2 ? 180 : 240; x.lineTo(Math.cos(a * 0.785) * r, Math.sin(a * 0.785) * r); } x.closePath(); x.fill();
@@ -2283,6 +2291,9 @@ function damageEnemy(e, d, byAlly) {
 function killEnemy(e, byAlly) {
   var T = e.T;
   burst(e.x, T.h / 2 + 0.35, e.z, T.boss ? 70 : (e.kind === 'requisito' ? 14 : 26), T.boss);
+  /* La hoja abatida sale volando, gira y cae antes de desaparecer */
+  var fm = new THREE.Mesh(T.geo, e.mat); fm.position.set(e.x, T.h / 2 + 0.35, e.z); fm.rotation.y = Math.atan2(P.x - e.x, P.z - e.z);
+  scene.add(fm); G.fx.push({ m: fm, vx: rnd(-2.5, 2.5), vy: rnd(2.5, 4.5), vz: rnd(-2.5, 2.5), grav: 9, spin: rnd(-9, 9), life: 0.9, base: 1 });
   removeEnemy(e);
   G.kills++; G.combo = G.comboT > 0 ? Math.min(5, G.combo + 1) : 1; G.comboT = 2.5;
   G.score += Math.round(T.score * G.combo * DF().score); if (G.mode === 'story') G.euros += Math.round(T.eur * DF().eur);
@@ -2425,6 +2436,13 @@ function bossAttacks(e, dt) {
   sfx.efire();
 }
 /* Devuelve 'dead' si el enemigo ha desaparecido en este fotograma */
+/* Disparo a distancia reutilizable por los enemigos con arma */
+function gunTick(e, dt, d) {
+  var T = e.T;
+  if (!T.gun || e.age <= 0.6 || d >= 20) return;
+  e.cd -= dt; if (e.cd < 0.4 && e.cd > 0) e.tint = 0xffe27a;
+  if (e.cd <= 0) { shootAtPlayer(e, rnd(-T.gun.spread, T.gun.spread), T.gun.dmg, T.gun.speed); sfx.efire(); e.cd = T.gun.every * rnd(0.85, 1.15); }
+}
 function enemyMove(e, dt, dx, dz, d) {
   var T = e.T, nx = d > 0.01 ? dx / d : 0, nz = d > 0.01 ? dz / d : 0, sp = e.speed * (e.boost > 0 ? 1.45 : 1);
   if (e.boost > 0) e.boost -= dt;
@@ -2541,6 +2559,30 @@ function enemyMove(e, dt, dx, dz, d) {
       e.cd -= dt;
       if (e.cd <= 0 && e.boost <= 0) { e.boost = 0.45; e.cd = rnd(2.2, 3.0); }
       enemyStep(e, dt, nx, nz, sp * (e.boost > 0 ? 2.2 : 0.6));
+      break; }
+    case 'maquina':
+    case 'powerpoint': {
+      /* Torreta: se planta a distancia y dispara sin acercarse demasiado */
+      if (d < 7.5) enemyStep(e, dt, -nx, -nz, sp * 0.8);
+      else if (d > 9) enemyStep(e, dt, nx, nz, sp * 0.8);
+      else enemyStep(e, dt, nz * 0.5, -nx * 0.5, sp * 0.3);
+      gunTick(e, dt, d);
+      break; }
+    case 'coach':
+    case 'baja': {
+      /* Mantiene unos 5 metros de distancia: nunca te deja acercarte */
+      if (d < 4.5) enemyStep(e, dt, -nx, -nz, sp * 1.1);
+      else if (d > 6) enemyStep(e, dt, nx, nz, sp);
+      else enemyStep(e, dt, nz, -nx, sp * 0.5);
+      gunTick(e, dt, d);
+      break; }
+    case 'encuesta':
+    case 'webinar': {
+      /* Da vueltas a unos 6 metros disparando */
+      e.dirT -= dt; if (e.dirT <= 0) { e.dir = -e.dir; e.dirT = rnd(2, 3.5); }
+      var rr = d > 7 ? 1 : (d < 5 ? -1 : 0);
+      enemyStep(e, dt, nx * rr * 0.7 - nz * e.dir * 0.8, nz * rr * 0.7 + nx * e.dir * 0.8, sp * 0.9);
+      gunTick(e, dt, d);
       break; }
     default:
       if (d > 0.01) enemyStep(e, dt, nx, nz, sp);
