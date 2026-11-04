@@ -498,16 +498,22 @@ if (window.matchMedia && matchMedia('(pointer: coarse)').matches) $('touchNote')
 var HALF = 24;
 /* Mitad del lado del escenario por etapa: cada etapa es más grande (~2× el área de la anterior) */
 var ARENA = [24, 36, 52, 70, 90];
+var LOC_OF_STAGE = [0, 4, 0, 4, 0];
+var arenaStage = -1;
 function rebuildArena(stage) {
-  var h = ARENA[Math.min(stage | 0, ARENA.length - 1)];
-  if (h === HALF) return;
-  HALF = h;
-  scene.remove(MAPS[0].grp);
-  beginMap(0); buildOffice(); officeExtras();
+  stage = Math.min(stage | 0, ARENA.length - 1);
+  if (stage === arenaStage) return;
+  arenaStage = stage;
+  var loc = LOC_OF_STAGE[stage];
+  HALF = ARENA[stage];
+  if (MAPS[loc].grp) scene.remove(MAPS[loc].grp);
+  beginMap(loc);
+  if (loc === 0) { buildOffice(); officeExtras(); } else buildHouse();
   var sc = sunL.shadow.camera; sc.left = -HALF * 1.5; sc.right = HALF * 1.5; sc.top = HALF * 1.5; sc.bottom = -HALF * 1.5; sc.updateProjectionMatrix();
   camera.far = Math.max(120, HALF * 2.4); camera.updateProjectionMatrix();
-  setMap(0);
+  setMap(loc);
 }
+
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -641,7 +647,7 @@ function zombiesMenu() { showDialog(ZOMBIE_INTRO, startSurvival); }
 var ROUND_LINES = {
   1: [L('andres', 'Bilal, soy Andrés chan, de Bolivia. Si acabas la ronda, te invito una salteña. Si no, también.'), L('aliado', 'Bilal, sin ChatGPT no hay currículum. Recoge los globos de ChatGPT: son tu catalizador.')],
   2: [L('heverton', 'Bilal, meu amigo! Entra en mi canal de Telegram, hay ofertas y mucha gente que quiere conocerte. Vai dar certo!'), L('lefillas', 'No entres en esos canales, Bilal. Eso no es un plan de futuro.')],
-  3: [L('andres', 'Las horas extra son lo peor. Yo me como una salteña y las ignoro. Tú también puedes.'), L('aliado', 'Ojo con las horas extra, Bilal. Te piden quedarte hasta tarde por un café.'), L('gato', 'Miau. En mi tienda tengo a Bao, un panda que escupe leche. Se alimenta de bambú.')],
+  3: [L('andres', 'Las horas extra son lo peor. Yo me como una salteña y las ignoro. Tú también puedes.'), L('aliado', 'Ojo con las horas extra, Bilal. Te piden quedarte hasta tarde por un café.'), L('gato', 'Miau. En mi tienda tengo a Bao, un panda que escupe leche. Se alimenta de bambú.'), L('gato', 'Miau. Bienvenidos a mi casa de Tetuán, Bilal. El sofá es mío.')],
   4: [L('lefillas', 'Bilal, en la ronda 5 aparecen las citas a ciegas. Son lo que más miedo te da, así que no te distraigas.'), L('heverton', 'Y cuidado con el canal de Telegram: te lleva a otro canal, y a otro canal.'), L('andres', 'Dicen en Bolivia: primero se come, después se piensa. Aquí se dispara primero.')],
   5: [L('lefillas', 'Bilal, a las citas a ciegas no se las rechaza con grapas. Pero las grapas te ayudan a pensar.'), L('andres', 'Si te da miedo, cómete una salteña y apunta.'), L('aliado', 'Recoge ChatGPT antes de la cita. Te escribe la respuesta perfecta.')],
   6: [L('andres', 'Bilal, en Bolivia el pan con queso se come a cualquier hora. Las horas extra también, pero por pena.'), L('heverton', 'Bilal, cuidado: en el canal ya hablan de tu CV. Vai dar certo... ou não.')],
@@ -1269,6 +1275,78 @@ function officeExtras() {
 }
 
 /* ---- Mapa 2: Almacén de envíos ---- */
+
+/* Casa de Bilal: zellige en el suelo, faroles, alfombra, sofás bajos y el gato */
+function makeArt() {
+  var c = mkCanvas(256, 320), x = c.getContext('2d');
+  var g = x.createLinearGradient(0, 0, 0, 320); g.addColorStop(0, '#e7b86a'); g.addColorStop(1, '#b8542f');
+  x.fillStyle = g; x.fillRect(0, 0, 256, 320);
+  x.fillStyle = 'rgba(255,240,200,.25)'; for (var i = 0; i < 5; i++) { x.beginPath(); x.arc(40 + i * 45, 40, 18, 0, 6.283); x.fill(); }
+  x.fillStyle = '#2b1b4a'; x.beginPath(); x.moveTo(30, 320); x.quadraticCurveTo(55, 200, 128, 186); x.quadraticCurveTo(201, 200, 226, 320); x.fill();
+  x.fillStyle = '#c68a5e'; x.beginPath(); x.ellipse(128, 210, 30, 38, 0, 0, 6.283); x.fill();
+  x.fillStyle = '#f4eedc'; x.beginPath(); x.ellipse(128, 160, 54, 40, 0, 0, 6.283); x.fill();
+  x.strokeStyle = '#e0b050'; x.lineWidth = 8; x.beginPath(); x.arc(128, 172, 48, 0.2, Math.PI - 0.2); x.stroke();
+  x.fillStyle = '#2b1b1b'; x.beginPath(); x.ellipse(116, 212, 4, 3, 0, 0, 6.283); x.ellipse(140, 212, 4, 3, 0, 0, 6.283); x.fill();
+  x.strokeStyle = '#e0b050'; x.lineWidth = 4; x.beginPath(); x.arc(96, 226, 6, 0, 6.283); x.arc(160, 226, 6, 0, 6.283); x.stroke();
+  x.strokeStyle = '#d9a33b'; x.lineWidth = 12; x.strokeRect(6, 6, 244, 308);
+  return c;
+}
+function buildHouse() {
+  var zc = mkCanvas(256, 256), zx = zc.getContext('2d'), pal = ['#e8c15a', '#c2412d', '#f1e7cf', '#1f5f73'];
+  zx.fillStyle = '#1f5f73'; zx.fillRect(0, 0, 256, 256);
+  for (var ty = 0; ty < 4; ty++) for (var tx = 0; tx < 4; tx++) {
+    var cx = tx * 64 + 32, cy = ty * 64 + 32, col = pal[(tx + ty) % 4];
+    zx.fillStyle = col; zx.beginPath(); zx.moveTo(cx, cy - 26); zx.lineTo(cx + 26, cy); zx.lineTo(cx, cy + 26); zx.lineTo(cx - 26, cy); zx.closePath(); zx.fill();
+    zx.fillStyle = pal[(tx + ty + 2) % 4]; zx.beginPath(); zx.arc(cx, cy, 6, 0, 6.283); zx.fill();
+  }
+  floorPlane(zc, [6, 6]);
+  var wc = mkCanvas(256, 256), wx = wc.getContext('2d');
+  wx.fillStyle = '#e9d9b8'; wx.fillRect(0, 0, 256, 256);
+  wx.fillStyle = '#b5542c'; wx.fillRect(0, 200, 256, 56);
+  wx.strokeStyle = '#d9a33b'; wx.lineWidth = 6;
+  for (var k = 0; k < 4; k++) { wx.beginPath(); wx.arc(32 + k * 64, 120, 26, Math.PI, 0); wx.stroke(); }
+  walls(new THREE.MeshLambertMaterial({ map: tex(wc, [14, 1]) }), 4.2);
+  ceilPlane(0x3a2a1a);
+  decal(7.5, function (x) {
+    x.fillStyle = '#8c2b1d'; x.beginPath(); for (var a = 0; a < 8; a++) { var r = a % 2 ? 180 : 240; x.lineTo(Math.cos(a * 0.785) * r, Math.sin(a * 0.785) * r); } x.closePath(); x.fill();
+    x.fillStyle = '#e0b050'; x.beginPath(); for (var b = 0; b < 8; b++) { var rr = b % 2 ? 120 : 170; x.lineTo(Math.cos(b * 0.785) * rr, Math.sin(b * 0.785) * rr); } x.closePath(); x.fill();
+    x.fillStyle = '#1f5f73'; x.beginPath(); x.arc(0, 0, 60, 0, 6.283); x.fill();
+  });
+  /* Sofás bajos con cojines */
+  solid(new THREE.Mesh(BG(4.2, 0.55, 1.2), LM(0x7a2e1b)), -5.5, 0.28, -HALF + 4.5, 4.2, 1.2, 0.55);
+  solid(new THREE.Mesh(BG(4.2, 0.55, 1.2), LM(0x7a2e1b)), 5.5, 0.28, -HALF + 4.5, 4.2, 1.2, 0.55);
+  /* Mesas bajas de bandeja de latón con tetera */
+  [[-3.2, -1.5], [3.2, -1.5], [0, 4]].forEach(function (p) {
+    solid(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.45, 0.5, 14), LM(0xc9a24a)), p[0], 0.25, p[1], 1.2, 1.2, 0.5);
+    put(new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.2, 12), LM(0xb3832a)), p[0], 0.6, p[1]);
+  });
+  /* Pufs de colores */
+  [[-6, 2, 0xb83a2a], [6, 2, 0x2f7a8a], [-2, 7, 0xe0b050], [2, -7, 0x6a2d7a]].forEach(function (p) {
+    solid(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.45, 14), LM(p[2])), p[0], 0.22, p[1], 1, 1, 0.45);
+  });
+  /* Plantas en macetas de barro */
+  [[-HALF + 2, -HALF + 2], [HALF - 2, -HALF + 2], [-HALF + 2, HALF - 2], [HALF - 2, HALF - 2]].forEach(function (p) {
+    solid(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.6, 12), LM(0xa8552c)), p[0], 0.3, p[1], 0.8, 0.8, 0.6);
+    put(new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), LM(0x2f7a3a)), p[0], 1.1, p[1]);
+  });
+  /* Faroles colgantes que parpadean */
+  [[-3.2, 3.2, -1.5], [3.2, 3.2, -1.5], [0, 3.2, 4]].forEach(function (p, i) {
+    put(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 1.2, 4), LM(0x2b2f31)), p[0], 4.7, p[2]);
+    put(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 0.5, 8), new THREE.MeshBasicMaterial({ color: 0xffc35a, transparent: true, opacity: 0.85 })), p[0], p[1], p[2]);
+    var gl = glow('255,190,90', p[0], p[1], p[2], 2.2, 2.2, 0.7);
+    var ph = i * 1.7; anim(function (t) { gl.material.opacity = 0.5 + 0.25 * Math.sin(t * 7 + ph); });
+  });
+  /* Cuadro decorativo en la pared del fondo */
+  var art = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 2.4), new THREE.MeshBasicMaterial({ map: tex(makeArt()) }));
+  put(art, 0, 2.3, -HALF + 0.06);
+  /* El gato de Bilal, sobre el puf */
+  var catG = CUR, catA = CURM.anim;
+  loadCharCanvas('gato', function (t, aspect) {
+    var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
+    pl.position.set(-6, 0.45 + h / 2, 2); catG.add(pl);
+    catA.push(function (tt) { pl.position.y = 0.45 + h / 2 + Math.sin(tt * 2) * 0.03; });
+  });
+}
 function buildWarehouse() {
   var fc = mkCanvas(256, 256), fx = fc.getContext('2d'), i;
   fx.fillStyle = '#4b4c48'; fx.fillRect(0, 0, 256, 256);
@@ -1587,6 +1665,9 @@ function buildRooftop() {
 }
 
 MAPS = [
+  { key: 'casa', name: 'CASA DE BILAL', sub: 'Tetuán · su sofá y su gato', accent: '#d9a33b', build: 'buildHouse',
+    desc: 'Alfombras, faroles, mesas de bandeja de latón, cojines y plantas. El gato manda, y el sofá es suyo.',
+    tone: { bg: 0x1a0f08, hemi: 0xffd9a8, gnd: 0x3a2418, hI: 0.7, sun: 0xffc878, sI: 0.45, sp: [6, 24, 6], pl: 0xffb35a, pI: 0.8, pY: 4, fog: [8, 44], pk: 0.5 } },
   { key: 'oficina', name: 'OFICINA CENTRAL', sub: 'Planta 3 · el clásico', accent: '#e0382d', build: 'buildOffice',
     desc: 'Mesas, cubículos y tubos fluorescentes. Ventiladores, plantas, impresoras y papeles flotando: el campo de batalla de siempre.',
     tone: { bg: 0x0a100e, hemi: 0xcfe8d8, gnd: 0x1b2622, hI: 0.72, sun: 0xfff1dc, sI: 0.55, sp: [10, 24, 8], pl: 0xdff5e8, pI: 0.55, pY: 5, fog: [10, 52], pk: 1 } },
@@ -1608,7 +1689,7 @@ function buildMaps() {
   MAPS.forEach(function (m, i) {
     beginMap(i);
     if (i === 0) { buildOffice(); officeExtras(); }
-    else if (i === 1) buildWarehouse(); else if (i === 2) buildServers(); else buildRooftop();
+    else if (i === 1) buildWarehouse(); else if (i === 2) buildServers(); else if (i === 3) buildRooftop(); else buildHouse();
   });
 }
 function setMap(i) {
@@ -3132,6 +3213,7 @@ function startSurvival() {
   seenKinds = {}; G.mode = 'survival'; G.owned = { grapadora: 1, leche: 1, trituradora: 1, pizza: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
+  arenaStage = -1; rebuildArena(0);
   buildPerks(); buildBox(); boxG.position.set(0, 0, 0); var bo = resolve(-8, -8, 1.2); boxG.position.set(bo.x, 0, bo.z); boxG.visible = true;
   startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
 }
