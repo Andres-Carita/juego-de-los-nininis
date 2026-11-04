@@ -546,8 +546,67 @@ function loadZombieMap(round) {
   var loc = ZOMBIE_ORDER[Math.floor((round - 1) / 8) % ZOMBIE_ORDER.length];
   loadLoc(loc, ZOMBIE_HALF);
   buildPerks(); buildBox(); setPerkVis(true);
-  moveBoxTo(0);
+  moveBoxTo(0); placeBarri();
   if (!weaponAllowed(G.wcur)) selectGun('grapadora');
+}
+
+/* Barricadas (Zombies): los enemigos que llegan por ese lado se paran a romperlas. Mantén G cerca para reparar. */
+var BARRI = [];
+var BARRI_SPOTS = [[7, 0], [-7, 0], [0, 7], [0, -7]];
+var BARRI_MAX = 6;
+function buildBarri() {
+  if (BARRI.length) return;
+  for (var i = 0; i < BARRI_SPOTS.length; i++) {
+    var b = { x: 0, z: 0, hp: BARRI_MAX, ob: null, g: new THREE.Group(), planks: [] };
+    for (var k = 0; k < BARRI_MAX; k++) {
+      var pl = new THREE.Mesh(BG(1.8, 0.16, 0.08), LM(0x8a5a2b));
+      pl.position.set(0, 0.25 + k * 0.22, 0); b.g.add(pl); b.planks.push(pl);
+    }
+    var post1 = new THREE.Mesh(BG(0.1, 1.6, 0.12), LM(0x5a3a1c)); post1.position.set(-0.85, 0.8, 0); b.g.add(post1);
+    var post2 = new THREE.Mesh(BG(0.1, 1.6, 0.12), LM(0x5a3a1c)); post2.position.set(0.85, 0.8, 0); b.g.add(post2);
+    scene.add(b.g); BARRI.push(b);
+  }
+}
+function barriVis(b) {
+  for (var k = 0; k < b.planks.length; k++) b.planks[k].visible = k < Math.ceil(b.hp);
+}
+function unbarri() {
+  BARRI.forEach(function (b) {
+    if (b.ob) { var i = OB.indexOf(b.ob); if (i >= 0) OB.splice(i, 1); b.ob = null; }
+    b.g.visible = false;
+  });
+}
+function placeBarri() {
+  buildBarri(); unbarri();
+  BARRI.forEach(function (b, i) {
+    var o = resolve(BARRI_SPOTS[i][0], BARRI_SPOTS[i][1], 0.9);
+    b.x = o.x; b.z = o.z; b.hp = BARRI_MAX; b.g.position.set(o.x, 0, o.z); b.g.rotation.y = 0; b.g.visible = true;
+    b.ob = { x0: o.x - 0.9, x1: o.x + 0.9, z0: o.z - 0.25, z1: o.z + 0.25, h: 1.6 }; OB.push(b.ob);
+    barriVis(b);
+  });
+}
+function barriBlock(e, dt) {
+  if (G.mode !== 'survival') return false;
+  for (var i = 0; i < BARRI.length; i++) {
+    var b = BARRI[i];
+    if (b.hp <= 0 || Math.hypot(e.x - b.x, e.z - b.z) > 1.9 || Math.hypot(P.x - e.x, P.z - e.z) < 2.5) continue;
+    b.hp -= dt * (e.T.dmg || 5) * 0.12;
+    if (b.hp <= 0) { b.hp = 0; if (b.ob) { var j = OB.indexOf(b.ob); if (j >= 0) OB.splice(j, 1); b.ob = null; } toast('BARRICADA ROTA'); }
+    barriVis(b);
+    return true;
+  }
+  return false;
+}
+function updateBarri(dt) {
+  if (G.mode !== 'survival' || !keys['KeyG']) return;
+  for (var i = 0; i < BARRI.length; i++) {
+    var b = BARRI[i];
+    if (Math.hypot(P.x - b.x, P.z - b.z) > 2.4 || b.hp >= BARRI_MAX) continue;
+    b.hp = Math.min(BARRI_MAX, b.hp + dt * 2);
+    if (!b.ob && b.hp >= 1) { b.ob = { x0: b.x - 0.9, x1: b.x + 0.9, z0: b.z - 0.25, z1: b.z + 0.25, h: 1.6 }; OB.push(b.ob); }
+    barriVis(b);
+    return;
+  }
 }
 function moveBoxTo(i) {
   var sp = BOX_SPOTS[curLoc]; boxSpot = i;
@@ -2387,7 +2446,7 @@ function updateEnemies(dt) {
   for (var i = G.enemies.length - 1; i >= 0; i--) {
     var e = G.enemies[i]; e.age += dt;
     var T = e.T, dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
-    var r = enemyMove(e, dt, dx, dz, d);
+    var r = barriBlock(e, dt) ? null : enemyMove(e, dt, dx, dz, d);
     if (G.state !== 'playing') return;
     if (r === 'dead') continue;
     dx = P.x - e.x; dz = P.z - e.z; d = Math.hypot(dx, dz);
@@ -3294,7 +3353,7 @@ function startSurvival() {
   startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
 }
 function startStory(fresh) {
-  initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false);
+  initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
   if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = s.owned || { grapadora: 1 }; G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
@@ -3536,7 +3595,7 @@ function update(dt) {
   if (G.state !== 'playing') return;
   updateWaves(dt); if (G.state !== 'playing') return;
   updateEnemies(dt); if (G.state !== 'playing') return;
-  updateProj(dt); updateEProj(dt); if (G.state !== 'playing') return; updateAlly(dt); updateMates(dt); updateRevive(dt); updateSquad(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud();
+  updateProj(dt); updateEProj(dt); if (G.state !== 'playing') return; updateAlly(dt); updateMates(dt); updateRevive(dt); updateSquad(dt); updateBarri(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud();
 }
 
 /* ---------------- Entrada ---------------- */
