@@ -663,7 +663,7 @@ var UPGRADES = [
 
 /* ---------------- Estado ---------------- */
 var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0, scoreSnap: 0, killSnap: 0,
-  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, bambu: 0, owned: { grapadora: 1 }, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
+  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1 }, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
   reload: 0, reloadT: 1, fireCd: 0, rapid: 0, shield: 0, combo: 0, comboT: 0, toSpawn: [], spawnT: 0, waveDone: false, waveBreak: 0,
   enemies: [], pickups: [], fx: [], tracers: [], proj: [], eproj: [], radioAt: -99, hurtT: 0, shake: 0, recoil: 0, flash: 0, t: 0, lowWarn: false };
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
@@ -683,8 +683,8 @@ try { best = parseInt(localStorage.getItem('nini-best') || '0', 10) || 0; } catc
 
 function magSize(k) { return Math.ceil(WEAPONS[k].mag * (1 + 0.25 * G.upg.mag)); }
 function dmgMult() { return 1 + 0.25 * G.upg.dmg; }
-function reloadTime() { return WEAPONS[G.wcur].reload * (1 - 0.2 * G.upg.rel); }
-function applyStats() { G.maxHp = 100 + 20 * G.upg.hp; }
+function reloadTime() { return WEAPONS[G.wcur].reload * (1 - 0.2 * G.upg.rel) * (G.perks.recarga ? 0.7 : 1); }
+function applyStats() { G.maxHp = 100 + 20 * G.upg.hp + (G.perks.vida ? 40 : 0); }
 function initAmmo() { WORDER.forEach(function (k) { G.ammoMap[k] = magSize(k); }); }
 
 /* ---------------- Audio ---------------- */
@@ -2373,11 +2373,11 @@ function shoot() {
   var w = WEAPONS[G.wcur];
   if (G.reload > 0 || G.fireCd > 0) return;
   if (G.ammoMap[G.wcur] <= 0) { sfx.empty(); startReload(); return; }
-  G.ammoMap[G.wcur]--; G.fireCd = w.rate * (G.rapid > 0 ? 0.5 : 1); G.recoil = 1; G.flash = 0.05; sfx[w.sfx]();
+  G.ammoMap[G.wcur]--; G.fireCd = w.rate * (G.rapid > 0 ? 0.5 : 1) * (G.perks.cadencia ? 0.8 : 1); G.recoil = 1; G.flash = 0.05; sfx[w.sfx]();
   camera.updateMatrixWorld(true);
   camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
   curMuzzle.getWorldPosition(tmpV);
-  var dm = dmgMult();
+  var dm = dmgMult() * (G.pap[G.wcur] ? 1.8 : 1);
   if (w.type === 'hitscan' || w.type === 'spray') {
     var targets = occluders.slice(); for (var i = 0; i < G.enemies.length; i++) targets.push(G.enemies[i].paper);
     if (w.type === 'hitscan') { raycaster.setFromCamera({ x: 0, y: 0 }, camera); raycaster.far = 90; }
@@ -3054,25 +3054,65 @@ function buildBox() {
   if (!boxG.parent) scene.add(boxG);
   boxG.visible = false;
 }
+var PERKM = [
+  { k: 'vida', name: 'VIDA', sub: '+40 de nini · 2000', cost: 2000, c: 0x2f9e5a, x: 8, z: -8 },
+  { k: 'recarga', name: 'RECARGA', sub: 'Recargas 30% más rápidas · 2000', cost: 2000, c: 0x2d6fb8, x: 8, z: 8 },
+  { k: 'cadencia', name: 'CADENCIA', sub: 'Disparas 20% más rápido · 2000', cost: 2000, c: 0xc9851b, x: -8, z: 8 },
+  { k: 'pap', name: 'MEJORA', sub: 'Arma actual x1.8 daño · 1500', cost: 1500, c: 0x8a2a8a, x: 0, z: -12 }
+];
+function buildPerks() {
+  PERKM.forEach(function (m) {
+    if (!m.g) {
+      m.g = new THREE.Group();
+      var body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.8, 0.7), new THREE.MeshLambertMaterial({ color: m.c })); body.position.y = 0.9; m.g.add(body);
+      var pl = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: tex(posterCanvas(m.name, m.sub, '#14181a')) }));
+      pl.position.set(0, 1.2, 0.36); m.g.add(pl);
+    }
+    if (!m.g.parent) scene.add(m.g);
+    var o = resolve(m.x, m.z, 0.8); m.g.position.set(o.x, 0, o.z);
+    m.g.visible = true;
+  });
+}
+function setPerkVis(v) { PERKM.forEach(function (m) { if (m.g) m.g.visible = v; }); }
+function buyPerk(m) {
+  if (m.k === 'pap') {
+    if (G.pap[G.wcur]) { toast('ESTA ARMA YA ESTÁ MEJORADA'); sfx.empty(); return; }
+    if (G.score < m.cost) { toast('MEJORA · NECESITAS ' + m.cost + ' PUNTOS'); sfx.empty(); return; }
+    G.score -= m.cost; G.pap[G.wcur] = true; sfx.pickup(); toast('MEJORA · ' + WEAPONS[G.wcur].short.toUpperCase() + ' x1.8 DAÑO');
+    return;
+  }
+  if (G.perks[m.k]) { toast('YA TIENES ' + m.name); sfx.empty(); return; }
+  if (G.score < m.cost) { toast(m.name + ' · NECESITAS ' + m.cost + ' PUNTOS'); sfx.empty(); return; }
+  G.score -= m.cost; G.perks[m.k] = true; sfx.pickup();
+  if (m.k === 'vida') { applyStats(); G.hp = G.maxHp; }
+  toast('PERK · ' + m.name);
+}
 function useBox() {
-  if (!boxG || !boxG.visible || G.mode !== 'survival' || G.state !== 'playing') return;
-  if (Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) > 2.4) return;
-  if (G.score < 950) { toast('CAJA · NECESITAS 950 PUNTOS'); sfx.empty(); return; }
-  G.score -= 950;
-  var k = pick(WORDER.filter(function (w) { return w !== G.wcur; }));
-  G.owned[k] = 1; G.ammoMap[k] = magSize(k); trySelect(k); sfx.pickup();
-  toast('CAJA · ' + WEAPONS[k].name.toUpperCase());
+  if (G.mode !== 'survival' || G.state !== 'playing') return;
+  if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) {
+    if (G.score < 950) { toast('CAJA · NECESITAS 950 PUNTOS'); sfx.empty(); return; }
+    G.score -= 950;
+    var k = pick(WORDER.filter(function (w) { return w !== G.wcur; }));
+    G.owned[k] = 1; G.ammoMap[k] = magSize(k); trySelect(k); sfx.pickup();
+    toast('CAJA · ' + WEAPONS[k].name.toUpperCase());
+    return;
+  }
+  for (var i = 0; i < PERKM.length; i++) {
+    var m = PERKM[i];
+    if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4) { buyPerk(m); return; }
+  }
 }
 function startSurvival() {
   initAudio(); startHum(); clearWorld();
+  G.perks = {}; G.pap = {};
   seenKinds = {}; G.mode = 'survival'; G.owned = { grapadora: 1, leche: 1, trituradora: 1, pizza: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
-  buildBox(); boxG.position.set(0, 0, 0); var bo = resolve(-8, -8, 1.2); boxG.position.set(bo.x, 0, bo.z); boxG.visible = true;
+  buildPerks(); buildBox(); boxG.position.set(0, 0, 0); var bo = resolve(-8, -8, 1.2); boxG.position.set(bo.x, 0, bo.z); boxG.visible = true;
   startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
 }
 function startStory(fresh) {
-  initAudio(); startHum(); if (boxG) boxG.visible = false;
+  initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false);
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
   if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = s.owned || { grapadora: 1 }; G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
