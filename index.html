@@ -551,6 +551,12 @@ function buildLoc(loc) {
 function ambientGlow(loc) {
   var hex = MAPS[loc].accent.replace('#', ''), rgb = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)].join(',');
   var k = HALF * 0.55;
+  var lc = parseInt(hex, 16);
+  [[-k, -k], [k, k]].forEach(function (p, i) {
+    var pl = new THREE.PointLight(lc, 0.9, 26, 1.6); put(pl, p[0], 3.4, p[1]);
+    var ph2 = i * 2.1;
+    anim(function (t) { pl.intensity = 0.7 + 0.35 * Math.sin(t * 2.6 + ph2) + 0.1 * Math.sin(t * 11 + ph2); });
+  });
   [[-k, -k], [k, -k], [-k, k], [k, k]].forEach(function (p, i) {
     var gl = glow(rgb, p[0], 3.4, p[1], 5, 5, 0.55);
     var ph = i * 1.57;
@@ -2510,6 +2516,32 @@ function enemyMove(e, dt, dx, dz, d) {
       if (e.cd < 0.6 && e.cd > 0) e.tint = 0xff8a8a;
       if (e.cd <= 0 && e.age > 0.5) { lobShot(e, T.dmg); sfx.efire(); e.cd = rnd(2.2, 3.0) * Math.max(0.6, 1 - 0.03 * roundIdx()); }
       break; }
+    case 'mosca': {
+      /* Errática: cambia de dirección cada poco */
+      e.dirT -= dt; if (e.dirT <= 0) { e.dir = Math.random() < 0.5 ? 1 : -1; e.dirT = rnd(0.25, 0.6); }
+      var jx = nx * 0.5 - nz * e.dir * 0.9, jz = nz * 0.5 + nx * e.dir * 0.9, jl = Math.hypot(jx, jz) || 1;
+      enemyStep(e, dt, jx / jl, jz / jl, sp * 1.1);
+      break; }
+    case 'stagiario': {
+      /* Corre en zigzag hacia Bilal */
+      var zz = Math.sin(e.age * 7 + e.phase) * 0.9, zx = nx - nz * zz, zy = nz + nx * zz, zl = Math.hypot(zx, zy) || 1;
+      enemyStep(e, dt, zx / zl, zy / zl, sp * 1.15);
+      break; }
+    case 'pulpo': {
+      /* Rodea a Bilal a unos 3 metros y se lanza de golpe cuando el contador llega a cero */
+      e.cd -= dt;
+      if (e.cd <= 0) { enemyStep(e, dt, nx, nz, sp * 2.6); if (d < 1.5) e.cd = rnd(2.5, 3.5); }
+      else {
+        var rad = d > 3.4 ? 1 : (d < 2.6 ? -1 : 0);
+        enemyStep(e, dt, nx * rad * 0.8 - nz * e.dir * 0.6, nz * rad * 0.8 + nx * e.dir * 0.6, sp * 0.9);
+      }
+      break; }
+    case 'lunes': {
+      /* Se queda quieto un momento y luego sale disparado en ráfagas */
+      e.cd -= dt;
+      if (e.cd <= 0 && e.boost <= 0) { e.boost = 0.45; e.cd = rnd(2.2, 3.0); }
+      enemyStep(e, dt, nx, nz, sp * (e.boost > 0 ? 2.2 : 0.6));
+      break; }
     default:
       if (d > 0.01) enemyStep(e, dt, nx, nz, sp);
       if (T.gun && e.age > 0.6 && d < 20) {
@@ -2754,8 +2786,8 @@ function allyActive() { return true; }
 /* Compañeros de combate: Andrés chan y Heverton-erome. Nofal ya tiene su propia IA. */
 var REVIVE_T = 6, REVIVE_R = 2.6;
 var MATES = [
-  { key: 'andres', name: 'ANDRÉS CHAN', short: 'ANDRÉS', join: 0, side: -1, off: 0.3, cdMax: 1.1, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1 },
-  { key: 'heverton', name: 'HEVERTON-EROME', short: 'HEVERTON', join: 0, side: 1, off: 0.9, cdMax: 0.9, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1.5 }
+  { key: 'andres', name: 'ANDRÉS CHAN', short: 'ANDRÉS', role: 'guardia', join: 0, side: -1, off: 0.3, cdMax: 1.1, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1 },
+  { key: 'heverton', name: 'HEVERTON-EROME', short: 'HEVERTON', role: 'explorador', join: 0, side: 1, off: 0.9, cdMax: 0.9, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1.5 }
 ];
 function buildMates() {
   MATES.forEach(function (m) {
@@ -2812,12 +2844,12 @@ function updateMates(dt) {
       for (var q = 0; q < G.pickups.length; q++) {
         var p = G.pickups[q]; if (p.t < 1 || p.life < 3) continue;
         var dp = Math.hypot(p.x - m.x, p.z - m.z);
-        if (dp < pd && Math.hypot(p.x - P.x, p.z - P.z) < 13) { pd = dp; pk = p; }
+        if (dp < pd && Math.hypot(p.x - P.x, p.z - P.z) < (m.role === 'guardia' ? 6 : 18)) { pd = dp; pk = p; }
       }
       var en = null, ed = 14;
       for (var k = 0; k < G.enemies.length; k++) {
         var e = G.enemies[k], de = Math.hypot(e.x - m.x, e.z - m.z);
-        if (de < ed && Math.hypot(e.x - P.x, e.z - P.z) < 17) { ed = de; en = e; }
+        if (de < ed && Math.hypot(e.x - P.x, e.z - P.z) < (m.role === 'guardia' ? 9 : 22)) { ed = de; en = e; }
       }
       if (pk && (!en || ed > 6)) { m.mode = 'loot'; m.tgt = pk; }
       else if (en) { m.mode = 'hunt'; m.tgt = en; }
@@ -2833,7 +2865,7 @@ function updateMates(dt) {
       gx = ex + Math.cos(ang) * rr; gz = ez + Math.sin(ang) * rr;
     } else {
       var spread = G.enemies.length ? 1 : 1.9;
-      var fwd = (4.6 + m.off * 2) * spread, lat = (2.6 + 0.6 * i) * m.side * spread;
+      var fwd = (m.role === 'guardia' ? 3.2 + m.off : 4.6 + m.off * 2) * spread, lat = (m.role === 'guardia' ? 1.5 : 2.6 + 0.6 * i) * m.side * spread;
       gx = P.x + sy * fwd + cy * lat + Math.sin(G.t * 0.5 + i * 2) * 0.9 * spread;
       gz = P.z + cy * fwd - sy * lat + Math.cos(G.t * 0.4 + i * 2) * 0.9 * spread;
     }
