@@ -1,0 +1,21 @@
+# Operación Nini en Cloudflare: un Worker sirve el juego, la clasificación y las salas online.
+# Despliegue: npx wrangler login  y luego  npx wrangler deploy
+name = "operacion-nini"
+main = "online/worker.js"
+compatibility_date = "2026-01-01"
+
+[assets]
+directory = "."
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "NiniRoom"
+
+[[durable_objects.bindings]]
+name = "BOARD"
+class_name = "NiniBoard"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["NiniRoom", "NiniBoard"]
