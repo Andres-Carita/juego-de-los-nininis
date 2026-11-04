@@ -499,21 +499,61 @@ var HALF = 24;
 /* Mitad del lado del escenario por etapa: cada etapa es más grande (~2× el área de la anterior) */
 var ARENA = [24, 36, 52, 70, 90];
 var LOC_OF_STAGE = [0, 4, 0, 4, 0];
-var arenaStage = -1;
-function rebuildArena(stage) {
-  stage = Math.min(stage | 0, ARENA.length - 1);
-  if (stage === arenaStage) return;
-  arenaStage = stage;
-  var loc = LOC_OF_STAGE[stage];
-  HALF = ARENA[stage];
+var curLoc = -1;
+/* Zombies: cada 8 rondas cambia de mapa (índices de MAPS) */
+var ZOMBIE_ORDER = [0, 4, 1, 2, 3];
+var ZOMBIE_HALF = 36;
+/* Cajas misteriosas: cada mapa tiene varios puntos; la caja se mueve tras cada compra */
+var BOX_SPOTS = [
+  [[-8, -8], [8, -6], [-6, 10]],
+  [[-10, 0], [10, 4], [0, -10]],
+  [[-8, -6], [8, 6], [0, 9]],
+  [[-9, -9], [9, 9], [0, 0]],
+  [[-8, 6], [8, -6], [0, -10]]
+];
+/* Armas que salen en cada mapa (Zombies). La grapadora está en todos */
+var WEAPON_MAP = {
+  0: ['grapadora', 'leche', 'trituradora', 'pizza'],
+  1: ['grapadora', 'trituradora', 'pizza'],
+  2: ['grapadora', 'leche', 'bao'],
+  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao'],
+  4: ['grapadora', 'leche', 'bao']
+};
+function weaponAllowed(k) { return G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
+function buildLoc(loc) {
+  if (loc === 0) { buildOffice(); officeExtras(); }
+  else if (loc === 1) buildWarehouse();
+  else if (loc === 2) buildServers();
+  else if (loc === 3) buildRooftop();
+  else buildHouse();
+}
+function loadLoc(loc, half) {
+  if (loc === curLoc && half === HALF) return;
+  curLoc = loc; HALF = half;
   if (MAPS[loc].grp) scene.remove(MAPS[loc].grp);
-  beginMap(loc);
-  if (loc === 0) { buildOffice(); officeExtras(); } else buildHouse();
+  beginMap(loc); buildLoc(loc);
   var sc = sunL.shadow.camera; sc.left = -HALF * 1.5; sc.right = HALF * 1.5; sc.top = HALF * 1.5; sc.bottom = -HALF * 1.5; sc.updateProjectionMatrix();
   camera.far = Math.max(120, HALF * 2.4); camera.updateProjectionMatrix();
   setMap(loc);
 }
-
+/* Story: cada etapa tiene su ubicación y tamaño */
+function rebuildArena(stage) {
+  stage = Math.min(stage | 0, ARENA.length - 1);
+  loadLoc(LOC_OF_STAGE[stage], ARENA[stage]);
+}
+/* Zombies: carga el mapa de la ronda, coloca cajas y perks, y limpia armas no permitidas */
+function loadZombieMap(round) {
+  var loc = ZOMBIE_ORDER[Math.floor((round - 1) / 8) % ZOMBIE_ORDER.length];
+  loadLoc(loc, ZOMBIE_HALF);
+  buildPerks(); buildBox(); setPerkVis(true);
+  moveBoxTo(0);
+  if (!weaponAllowed(G.wcur)) selectGun('grapadora');
+}
+function moveBoxTo(i) {
+  var sp = BOX_SPOTS[curLoc]; boxSpot = i;
+  var o = resolve(sp[i][0], sp[i][1], 1.2); boxG.position.set(o.x, 0, o.z); boxG.visible = true;
+}
+var boxSpot = 0;
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -2513,6 +2553,7 @@ function shoot() {
 }
 function trySelect(k) {
   if (!G.owned[k]) { toast('TODAVÍA NO TIENES ESA ARMA'); return; }
+  if (!weaponAllowed(k)) { toast('ESA ARMA NO SALE EN ESTE MAPA'); return; }
   if (k === G.wcur) return;
   G.reload = 0; G.fireCd = 0.25; selectGun(k);
 }
@@ -3047,6 +3088,10 @@ function updateAlly(dt) {
 
 /* ---------------- Oleadas ---------------- */
 function startWave(n) {
+  if (G.mode === 'survival') {
+    var zl = ZOMBIE_ORDER[Math.floor((n - 1) / 8) % ZOMBIE_ORDER.length];
+    if (zl !== curLoc) { loadZombieMap(n); toast('CAMBIO DE MAPA · ' + MAPS[zl].name); }
+  }
   G.wave = n; var q = [], ns = 4 + n * 3, nr = n >= 2 ? Math.floor(n * 1.5) : 0, nc = n >= 4 ? Math.floor((n - 3) * 1.2) : 0;
   var extra = { correo: n >= 3 ? Math.floor((n - 1) * 0.8) : 0, reunion: n >= 4 ? Math.floor((n - 2) * 0.7) : 0, factura: n >= 5 ? Math.floor((n - 3) * 0.9) : 0,
     cazatalentos: n >= 6 ? Math.floor((n - 4) * 0.7) : 0, agencia: n >= 8 ? Math.floor((n - 6) / 2) : 0 };
@@ -3197,9 +3242,12 @@ function useBox() {
   if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) {
     if (G.score < 950) { toast('CAJA · NECESITAS 950 PUNTOS'); sfx.empty(); return; }
     G.score -= 950;
-    var k = pick(WORDER.filter(function (w) { return w !== G.wcur; }));
+    var pool = WORDER.filter(function (w) { return w !== G.wcur && weaponAllowed(w); });
+    var k = pool.length ? pick(pool) : 'grapadora';
     G.owned[k] = 1; G.ammoMap[k] = magSize(k); trySelect(k); sfx.pickup();
     toast('CAJA · ' + WEAPONS[k].name.toUpperCase());
+    var nxt = boxSpot; while (nxt === boxSpot && BOX_SPOTS[curLoc].length > 1) nxt = Math.floor(Math.random() * BOX_SPOTS[curLoc].length);
+    moveBoxTo(nxt);
     return;
   }
   for (var i = 0; i < PERKM.length; i++) {
@@ -3213,8 +3261,7 @@ function startSurvival() {
   seenKinds = {}; G.mode = 'survival'; G.owned = { grapadora: 1, leche: 1, trituradora: 1, pizza: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
-  arenaStage = -1; rebuildArena(0);
-  buildPerks(); buildBox(); boxG.position.set(0, 0, 0); var bo = resolve(-8, -8, 1.2); boxG.position.set(bo.x, 0, bo.z); boxG.visible = true;
+  loadZombieMap(1);
   startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
 }
 function startStory(fresh) {
