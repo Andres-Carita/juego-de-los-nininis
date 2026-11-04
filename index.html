@@ -356,7 +356,8 @@ body {
       <dl class="keys">
         <dt>W A S D · Ratón</dt><dd>Moverte · Apuntar</dd>
         <dt>Clic</dt><dd>Disparar</dd>
-        <dt>1 2 3 4 · Rueda</dt><dd>Cambiar de arma</dd>
+        <dt>1–7 · Rueda</dt><dd>Cambiar de arma</dd>
+        <dt>C</dt><dd>Agacharse (esquiva lo que vuela alto)</dd>
         <dt>Shift · Espacio</dt><dd>Correr · Saltar</dd>
         <dt>R · M · Esc</dt><dd>Recargar · Sonido · Pausa</dd>
       </dl>
@@ -496,9 +497,13 @@ if (!THREE) { $('loadErr').hidden = false; return; }
 if (window.matchMedia && matchMedia('(pointer: coarse)').matches) $('touchNote').hidden = false;
 
 var HALF = 24;
-/* Mitad del lado del escenario por etapa: cada etapa es más grande (~2× el área de la anterior) */
-var ARENA = [24, 36, 52, 70, 90];
-var LOC_OF_STAGE = [0, 4, 0, 4, 0];
+/* Mitad del lado del escenario por etapa. Lado de 50 m; el área se multiplica ×8 y luego ×5
+   (lado 50 → 141 → 316 m). Desde la etapa 3 el tamaño no cambia, pero sí el mapa y la ambientación. */
+var ARENA = [25, Math.sqrt(2500 * 8) / 2, Math.sqrt(2500 * 40) / 2, Math.sqrt(2500 * 40) / 2, Math.sqrt(2500 * 40) / 2];
+/* Mapa de cada etapa: oficina, casa de Bilal, almacén, servidores y azotea */
+var LOC_OF_STAGE = [0, 4, 1, 2, 3];
+/* Rondas por etapa de la historia */
+var ROUNDS = 8;
 var curLoc = -1;
 /* Zombies: cada 8 rondas cambia de mapa (índices de MAPS) */
 var ZOMBIE_ORDER = [0, 4, 1, 2, 3, 5];
@@ -552,11 +557,7 @@ function ambientGlow(loc) {
   var hex = MAPS[loc].accent.replace('#', ''), rgb = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)].join(',');
   var k = HALF * 0.55;
   var lc = parseInt(hex, 16);
-  [[-k, -k], [k, k]].forEach(function (p, i) {
-    var pl = new THREE.PointLight(lc, 0.9, 26, 1.6); put(pl, p[0], 3.4, p[1]);
-    var ph2 = i * 2.1;
-    anim(function (t) { pl.intensity = 0.7 + 0.35 * Math.sin(t * 2.6 + ph2) + 0.1 * Math.sin(t * 11 + ph2); });
-  });
+  [[-k, -k], [k, k]].forEach(function (p) { lightAt(p[0], 3.4, p[1], lc, 0.9, 2.6); });
   [[-k, -k], [k, -k], [-k, k], [k, k]].forEach(function (p, i) {
     var gl = glow(rgb, p[0], 3.4, p[1], 5, 5, 0.55);
     var ph = i * 1.57;
@@ -567,10 +568,11 @@ function loadLoc(loc, half) {
   if (loc === curLoc && half === HALF) return;
   curLoc = loc; HALF = half;
   if (MAPS[loc].grp) scene.remove(MAPS[loc].grp);
-  beginMap(loc); buildLoc(loc); ambientGlow(loc);
-  var sc = sunL.shadow.camera; sc.left = -HALF * 1.5; sc.right = HALF * 1.5; sc.top = HALF * 1.5; sc.bottom = -HALF * 1.5; sc.updateProjectionMatrix();
-  camera.far = Math.max(120, HALF * 2.4); camera.updateProjectionMatrix();
-  setMap(loc);
+  beginMap(loc); buildLoc(loc); ambientGlow(loc); finishMap(MAPS[loc]);
+  /* La sombra del sol sigue al jugador: el área cubierta no depende del tamaño del mapa */
+  var sc = sunL.shadow.camera, se = Math.min(HALF * 1.5, 40); sc.left = -se; sc.right = se; sc.top = se; sc.bottom = -se; sc.updateProjectionMatrix();
+  camera.far = 160; camera.updateProjectionMatrix();
+  setMap(loc); updateCells(true);
 }
 /* Story: cada etapa tiene su ubicación y tamaño */
 function rebuildArena(stage) {
@@ -712,7 +714,7 @@ var PHASES = [
       L('aliado', '¡Eso mismo! Bilal, no vas a rechazar ofertas tú solo. Soy Nofal y vengo a ayudarte.'),
       L('bilal', '¡Nofal! ¿Has traído grapadora?'),
       L('aliado', 'Mejor: he traído buena puntería.'),
-      L('lefillas', 'Está bien. Si aguantas dos rondas, hablamos. Y después te pones a estudiar.')],
+      L('lefillas', 'Está bien. Si aguantas ocho rondas, hablamos. Y después te pones a estudiar.')],
     outro: [
       L('lefillas', 'No ha estado mal. Pero rechazar ofertas no es un plan de futuro.'),
       L('aliado', 'Se nos da bien esto de rechazar. Deberíamos cobrar por ello.'),
@@ -792,8 +794,55 @@ var ROUND_LINES = {
   9: [L('andres', 'Antes de la presentación de 97 diapositivas, cómete una salteña. Te da fuerzas.'), L('lefillas', 'La presentación no se rechaza con grapas, Bilal. Se rechaza con silencio.')],
   10: [L('heverton', 'Última ronda, meu amigo. Si ganamos, hay fiesta en el canal de Telegram.'), L('andres', 'Y si perdemos, hay salteñas igual.'), L('lefillas', 'Bien. Veo que el equipo funciona.')]
 };
+/* Consejo al empezar cada etapa (mecánicas nuevas) */
+var STAGE_TIPS = [
+  L('lefillas', 'Bilal, salta con Espacio y agáchate con C. Lo que vuela bajo se salta; lo que vuela alto se esquiva agachado.'),
+  L('gato', 'Miau. Mi casa ahora es enorme: salones y más salones. Si te pierdes, el sofá está en el centro.'),
+  L('lefillas', 'En el almacén los auditores lanzan anillos a la altura de la cabeza. Agáchate con C y pasarán por encima.'),
+  L('bucle', 'Los servidores son un laberinto. Repite: muévete, agáchate, dispara. Repite.'),
+  L('aliado', 'Bilal, en la azotea sopla el viento. Salta los anillos bajos y agáchate con los altos.')
+];
+/* Diálogo al terminar cada ronda (de la 1 a la 7; la 8 cierra con el final de la etapa) */
+var ROUND_TALK = [
+  [ [L('andres', '¡Primera ronda fuera! En Bolivia esto se celebra con una salteña.'), L('bilal', 'Yo lo celebro sentándome. ¿Hay silla?'), L('aliado', 'No hay silla, Bilal. Hay otra ronda.')],
+    [L('heverton', 'Meu amigo, ya hay doscientas personas en el canal viendo cómo rechazas ofertas.'), L('lefillas', 'Heverton, deja el móvil y vigila la espalda de Bilal.')],
+    [L('bilal', 'Nofal, ¿cuántas rondas quedan?'), L('aliado', 'Cinco. Y luego otra etapa. Y luego otra.'), L('bilal', 'Esto es peor que trabajar.')],
+    [L('lefillas', 'Vas por la mitad, Bilal. Fíjate: ya no disparas a lo loco.'), L('gato', 'Miau. No dispara a lo loco. Dispara a lo nini.')],
+    [L('andres', 'Me queda media salteña. Es para el que acabe la ronda siete.'), L('heverton', 'Yo acabo la siete, la ocho y la salteña.')],
+    [L('aliado', 'Bilal, ¿has visto que las ofertas llegan cada vez más rápido?'), L('bilal', 'Es que me quieren mucho. Es un problema de popularidad.')],
+    [L('lefillas', 'Última ronda del lunes. Si la superas, el martes empieza igual de mal.'), L('bilal', 'Gracias por los ánimos, sensei.'), L('andres', '¡Vamos, Bilal! ¡Por la salteña!')] ],
+  [ [L('gato', 'Miau. Bienvenidos a mi casa. Bueno, a la de Bilal. Bueno, a la mía.'), L('heverton', 'Esta casa es enorme, meu amigo. ¿Cuántos salones tiene?'), L('bilal', 'Ni idea. Nunca he pasado del sofá.')],
+    [L('bucle', 'Ronda dos de prácticas. Repite conmigo: café, fotocopia, café.'), L('aliado', 'Bucle-sama, aquí no hay fotocopiadora. Hay un gato.')],
+    [L('andres', 'Bilal, hay té en la mesa de latón. ¿Puedo?'), L('bilal', 'Si no se lo bebe el gato primero, sí.'), L('gato', 'Miau. Ya me lo he bebido.')],
+    [L('lefillas', 'Mitad de etapa. Las prácticas también tienen mitad, Bilal. Y final.'), L('bucle', 'Final. Final. Final. Repite.')],
+    [L('heverton', 'En el canal dicen que tu casa es la mejor oficina de Tetuán.'), L('bilal', 'Normal. No hay jefe, solo un gato.')],
+    [L('aliado', 'Cuidado con las alfombras, Bilal: los requisitos se esconden debajo.'), L('andres', 'Yo he encontrado uno que pedía diez años de experiencia en salteñas. Lo he rechazado.')],
+    [L('bucle', 'Última ronda de prácticas. Si la superas, te firmo el certificado.'), L('bilal', '¿Certificado de qué?'), L('bucle', 'De haber repetido. Repite.')] ],
+  [ [L('nomina', 'Bienvenido al almacén. Aquí guardamos los contratos que nadie ha leído.'), L('aliado', 'Son miles de cajas, Bilal. Y todas tienen letra pequeña.')],
+    [L('lefillas', '¿Has probado a agacharte, Bilal? Los anillos de los auditores pasan por encima.'), L('bilal', 'Agacharme se me da bien. Es casi tumbarse.')],
+    [L('heverton', 'He leído un contrato entero. Cláusula 14: ver cláusula 1.'), L('andres', 'Y la cláusula 1 dice: no quejarse. Qué casualidad.')],
+    [L('nomina', 'Has llegado a la mitad. Tengo una oferta de media jornada. Y medio sueldo.'), L('bilal', '¿Y medio trabajo?'), L('nomina', 'No.')],
+    [L('gato', 'Miau. Este almacén huele a cartón. Me encanta. Me quedo a vivir.'), L('aliado', 'El gato ya ha elegido caja, Bilal. Tú elige ronda: la sexta.')],
+    [L('andres', 'Bilal, la grúa se mueve sola. ¿Eso es normal?'), L('heverton', 'En Brasil eso es una señal. De que hay que correr.')],
+    [L('lefillas', 'Última ronda del almacén. Lee siempre antes de firmar, Bilal. Y dispara antes de leer.'), L('bilal', 'Ese consejo sí lo entiendo.')] ],
+  [ [L('nomina', 'Recursos Humanos te espera en la sala de servidores. Aquí guardamos tu historial.'), L('bilal', '¿Mi historial de qué?'), L('nomina', 'De rechazos. Ocupa tres servidores.')],
+    [L('heverton', 'Hace frío aquí, meu amigo. Dieciocho grados y cero ganas.'), L('andres', 'Una salteña caliente lo arregla todo.')],
+    [L('bucle', 'Pregunta de entrevista: ¿por qué quieres este trabajo? Respuesta correcta: no lo quiero.'), L('lefillas', 'Bucle-sama, no le enseñes eso.')],
+    [L('aliado', 'Ya ha pasado la entrevista de siete rondas. Y esto sigue.'), L('bilal', 'Siete rondas dentro de una ronda. Esto es un bucle.'), L('bucle', 'Por fin lo entiendes.')],
+    [L('lefillas', 'Bien hecho. Una entrevista no da miedo si la miras a los ojos.'), L('gato', 'Miau. Y si no, le disparas a los ojos.')],
+    [L('nomina', 'Error 404: empleo no encontrado. Vuelve a intentarlo.'), L('heverton', 'En el canal ya hay un sticker de ese error con tu cara, Bilal.')],
+    [L('andres', 'Última ronda en el frío. Después, azotea y atardecer.'), L('aliado', 'Y un contrato final, Andrés. No te olvides.')] ],
+  [ [L('heverton', '¡Qué vistas, meu amigo! Desde aquí se ven todas las ofertas de la ciudad.'), L('bilal', 'Prefiero no verlas.')],
+    [L('nomina', 'El CEO te invita a su jacuzzi. Solo tienes que firmar aquí.'), L('aliado', 'Bilal, ni el jacuzzi ni el contrato.')],
+    [L('gato', 'Miau. Hay barbacoa. No pienso trabajar, pero pienso comer.'), L('andres', 'En eso estoy de acuerdo con el gato.')],
+    [L('lefillas', 'Bilal, estás a mitad del final. Piensa qué harás cuando acabe.'), L('bilal', 'Dormir.'), L('lefillas', '¿Y después?'), L('bilal', 'Estudiar. El lunes.')],
+    [L('bucle', 'Repite conmigo: una ronda más. Una ronda más. Una ronda más.'), L('heverton', 'Bucle-sama, ya vamos por la sexta.')],
+    [L('aliado', 'Bilal, pase lo que pase con el contrato final, estoy contigo.'), L('andres', 'Y yo. Y la salteña también.')],
+    [L('nomina', 'Última oportunidad, Bilal. El contrato final te espera en la próxima ronda.'), L('lefillas', 'Esta vez léelo, Bilal. Y luego decide tú.'), L('bilal', 'Vale. Primero lo leo. Luego lo destrozo.')] ]
+];
 function scheduleRoundLines() {
-  var list = ROUND_LINES[G.wave]; if (!list || G.mode !== 'story') return;
+  if (G.mode !== 'story' || (G.wip !== 1 && G.wip !== 5)) return;
+  var list = ROUND_LINES[G.phase * 2 + (G.wip <= 4 ? 1 : 2)]; if (!list) return;
   list.forEach(function (line, k) { setTimeout(function () { if (G.state === 'playing' && G.wave === roundIdx()) radio(line); }, 9000 + k * 6500); });
 }
 var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los requisitos, Bilal.', 'Tú apunta. Yo grapo.', '¡Otra menos! Y sin currículum.', 'Nofal al rescate. Sin nómina.', 'Si me ofrecen contrato, lo grapo.'];
@@ -832,6 +881,8 @@ var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0,
   reload: 0, reloadT: 1, fireCd: 0, rapid: 0, shield: 0, combo: 0, comboT: 0, toSpawn: [], spawnT: 0, waveDone: false, waveBreak: 0,
   enemies: [], pickups: [], fx: [], tracers: [], proj: [], eproj: [], radioAt: -99, hurtT: 0, shake: 0, recoil: 0, flash: 0, t: 0, lowWarn: false };
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
+/* Punto al que apuntan los enemigos: Bilal, o el señuelo de Heverton cuando está activo */
+var AIM = P;
 var keys = {}, mouseDown = false, locked = false, lockFailed = false, lockErrors = 0, muted = false;
 /* Ajustes de control: sensibilidad con escala exponencial (pasos finos), suavizado de cámara e inversión del eje Y */
 var CTRL = { sens: 40, smooth: 3, invY: false };
@@ -1096,7 +1147,7 @@ function makeAgencia() {
 var FUNNY = [
   { k: 'impresora', name: 'IMPRESORA', t: 'IMPRESORA', l: ['Atasco de papel en la bandeja 2.', 'Imprime 400 copias de nada.', 'Te dispara hojas en zigzag.'], bg: '#e4e4e0', fg: '#2b2f31', s: 'SIN TÓNER', w: 1.1, h: 1.3, r: 0.6, hp: 3, sp: 2.0, dmg: 6, sc: 35, eu: 16, gun: { every: 2.2, dmg: 4, speed: 12, spread: 0.12 }, intro: '¡Una impresora! Dispara hojas en zigzag. Acércate y apágala a golpes.' },
   { k: 'cafetera', name: 'CAFETERA', t: 'CAFETERA', l: ['Solo queda café de ayer.', 'Lanza cápsulas a presión.', 'Nadie la limpia desde 2019.'], bg: '#f3d9b1', fg: '#5a3a1a', s: 'DESCALCIFICAR', w: 1.2, h: 1.5, r: 0.6, hp: 4, sp: 1.9, dmg: 8, sc: 40, eu: 20, gun: { every: 2.6, dmg: 6, speed: 10, spread: 0.05 }, intro: '¡La cafetera! Escupe café hirviendo. Mantente en movimiento.' },
-  { k: 'webinar', name: 'WEBINAR', t: 'WEBINAR', l: ['3 horas. Cámara apagada.', 'Preguntas: ninguna.', 'Te envía enlaces de 40 caracteres.'], bg: '#d7e6ff', fg: '#1d3a8a', s: 'SILENCIADO', w: 1.1, h: 1.5, r: 0.55, hp: 3, sp: 2.4, dmg: 6, sc: 35, eu: 16, gun: { every: 1.4, dmg: 2, speed: 16, spread: 0.2 }, intro: '¡Un webinar! Dispara enlaces sin parar. No pinches ninguno.' },
+  { k: 'webinar', name: 'WEBINAR', t: 'WEBINAR', l: ['3 horas. Cámara apagada.', 'Preguntas: ninguna.', 'Te envía enlaces de 40 caracteres.'], bg: '#d7e6ff', fg: '#1d3a8a', s: 'SILENCIADO', w: 1.1, h: 1.5, r: 0.55, hp: 3, sp: 2.4, dmg: 6, sc: 35, eu: 16, gun: { every: 1.4, dmg: 2, speed: 16, spread: 0.2, hi: true }, intro: '¡Un webinar! Dispara enlaces sin parar. No pinches ninguno.' },
   { k: 'lunes', name: 'LUNES 8:00', t: 'LUNES 8:00', l: ['Ya es lunes.', 'Tu café se ha enfriado.', 'No hay vuelta atrás.'], bg: '#f0f0f0', fg: '#8a1d1d', s: 'DE NUEVO', w: 1.0, h: 1.3, r: 0.5, hp: 2, sp: 4.2, dmg: 9, sc: 30, eu: 14, intro: '¡Lunes a las ocho! Viene corriendo. No se le puede escapar, solo esquivar.' },
   { k: 'powerpoint', name: 'PRESENTACIÓN', t: 'PRESENTACIÓN', l: ['Diapositiva 1 de 97.', 'Animación de texto que vuela.', 'Tú no tienes nada que decir.'], bg: '#fbe3d0', fg: '#b8431a', s: 'OTRA MÁS', w: 1.4, h: 1.8, r: 0.7, hp: 7, sp: 1.6, dmg: 10, sc: 55, eu: 28, gun: { every: 3.2, dmg: 9, speed: 8, spread: 0.02 }, intro: '¡La presentación de 97 diapositivas! Lanza una cada vez. Rodéala.' },
   { k: 'pulpo', name: 'PULPO DE OFICINA', t: 'PULPO DE OFICINA', l: ['Tiene 8 cafés en marcha.', 'Abraza. No suelta.', 'Quiere que lo llames "tentáculo".'], bg: '#e2c8f2', fg: '#4d1f73', s: 'AL FONDO', w: 1.2, h: 1.4, r: 0.6, hp: 4, sp: 3.2, dmg: 9, sc: 35, eu: 16, intro: '¡Un pulpo de oficina! Abraza de cerca y no suelta. Mantén distancia.' },
@@ -1343,10 +1394,12 @@ function publishScore(st) {
 
 /* ---------------- Mapas ---------------- */
 var CUR = null, CURM = null, CURID = 0, sunL = null, pLights = [], MAPS = [], GEOC = {}, MATC = {}, GLOWC = {};
-function roundIdx() { return G.mode === 'story' ? G.phase * 2 + (G.wip || 1) : (G.wave || 1); }
+function roundIdx() { return G.mode === 'story' ? G.phase * ROUNDS + (G.wip || 1) : (G.wave || 1); }
+/* Nivel de dificultad equivalente: en la historia sube 2 por etapa y un poco con cada ronda */
+function lvl() { return G.mode === 'story' ? G.phase * 2 + Math.ceil((G.wip || 1) / 4) : (G.wave || 1); }
 /* La dificultad sube sola con la ronda: más vida, más velocidad, más enemigos y más ritmo */
 function DF() {
-  var L = Math.max(0, roundIdx() - 1);
+  var L = Math.max(0, G.mode === 'story' ? G.phase * 2 + ((G.wip || 1) - 1) / 4 : roundIdx() - 1);
   return { hp: 1 + 0.07 * L, spd: Math.min(1.45, 1 + 0.025 * L), cnt: Math.min(2.2, 1 + 0.05 * L), rate: Math.min(1.8, 1 + 0.03 * L), drop: Math.max(0.55, 1 - 0.03 * L), score: 1, eur: 1 };
 }
 function BG(w, h, d) { var k = w + '|' + h + '|' + d; return GEOC[k] || (GEOC[k] = new THREE.BoxGeometry(w, h, d)); }
@@ -1360,6 +1413,205 @@ function solid(mesh, x, y, z, w, d, h) {
   OB.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h: h }); return mesh;
 }
 function anim(fn) { CURM.anim.push(fn); }
+
+/* ---------------- Luces: anclas por mapa y un grupo fijo de luces que se reparte entre las más cercanas ----------------
+   El número de luces de la escena no cambia nunca (three.js no recompila shaders al cambiar de mapa). */
+var LPOOL = [], LCELL = null, lpT = 0;
+function lightAt(x, y, z, color, inten, flick) {
+  var a = { x: x, y: y, z: z, c: color, i: inten || 0.8, f: flick || 0, ph: Math.random() * 6.283 };
+  (LCELL ? LCELL.lamps : CURM.lamps).push(a); return a;
+}
+function buildLightPool() {
+  for (var i = 0; i < 5; i++) { var l = new THREE.PointLight(0xffffff, 0, 15, 1.6); l.userData.a = null; scene.add(l); LPOOL.push(l); }
+}
+function updateLights(t, dt) {
+  var m = MAPS[G.mapId]; if (!m || !LPOOL.length) return;
+  var px = camera.position.x, pz = camera.position.z, j;
+  lpT -= dt;
+  if (lpT <= 0) {
+    lpT = 0.3;
+    var list = (m.lamps || []).slice();
+    if (m.cells) for (var k in m.cells) { var c = m.cells[k]; if (c.on) list.push.apply(list, c.lamps); }
+    for (j = 0; j < list.length; j++) list[j].d = Math.hypot(list[j].x - px, list[j].z - pz);
+    list.sort(function (a, b) { return a.d - b.d; });
+    for (j = 0; j < LPOOL.length; j++) {
+      var a = list[j] && list[j].d < 30 ? list[j] : null, pl = LPOOL[j];
+      if (a !== pl.userData.a) { pl.userData.a = a; pl.intensity = 0; if (a) { pl.position.set(a.x, a.y, a.z); pl.color.setHex(a.c); } }
+    }
+  }
+  for (j = 0; j < LPOOL.length; j++) {
+    var L2 = LPOOL[j], an = L2.userData.a, want = 0;
+    if (an) want = an.i * (an.f ? 0.8 + 0.2 * Math.sin(t * an.f + an.ph) + 0.06 * Math.sin(t * an.f * 4.3 + an.ph) : 1);
+    L2.intensity += (want - L2.intensity) * Math.min(1, dt * 8);
+  }
+}
+
+/* ---------------- Mapas grandes: relleno por zonas de 24 m que solo existe cerca del jugador ----------------
+   El decorado del centro (48 × 48 m) es el de siempre; el resto se genera con una semilla por zona, así
+   cada zona sale igual cada vez que vuelves. Las colisiones solo incluyen las zonas activas. */
+var CELL = 24, CELL_R = 44, cellT = 0;
+function srnd(seed) { var s = (seed >>> 0) || 1; return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
+function finishMap(m) { m.coreOb = m.ob.slice(); m.coreOcc = m.occ.slice(); m.cells = {}; m.half = HALF; }
+function rebuildOB(m) {
+  var ob = m.coreOb.slice(), oc = m.coreOcc.slice();
+  for (var k in m.cells) { var c = m.cells[k]; if (c.on) { ob.push.apply(ob, c.ob); oc.push.apply(oc, c.occ); } }
+  BARRI.forEach(function (b) { if (b.ob && b.g.visible) ob.push(b.ob); });
+  m.ob = ob; m.occ = oc; if (MAPS[G.mapId] === m) { OB = ob; occluders = oc; }
+}
+function buildCell(m, loc, i, j) {
+  var cell = { g: new THREE.Group(), ob: [], occ: [], lamps: [], on: false };
+  var sC = CUR, sM = CURM, sO = OB, sOc = occluders;
+  CUR = cell.g; CURM = m; OB = cell.ob; occluders = cell.occ; LCELL = cell;
+  m.grp.add(cell.g);
+  var cx = (i + 0.5) * CELL, cz = (j + 0.5) * CELL, R = srnd((i * 73856093) ^ (j * 19349663) ^ ((loc + 1) * 83492791));
+  try { if (FILL[loc]) FILL[loc](cx, cz, R, m); } catch (e) { if (window.console) console.warn(e); }
+  CUR = sC; CURM = sM; OB = sO; occluders = sOc; LCELL = null;
+  return cell;
+}
+function updateCells(force) {
+  var m = MAPS[G.mapId]; if (!m || !m.cells) return;
+  var changed = !!force, N = Math.floor((m.half - 1) / CELL);
+  if (N >= 2) {
+    for (var i = -N; i < N; i++) for (var j = -N; j < N; j++) {
+      var cx = (i + 0.5) * CELL, cz = (j + 0.5) * CELL;
+      if (Math.abs(cx) < CELL && Math.abs(cz) < CELL) continue;
+      var near = Math.max(Math.abs(cx - P.x), Math.abs(cz - P.z)) < CELL_R, key = i + ',' + j, c = m.cells[key];
+      if (near && !c) c = m.cells[key] = buildCell(m, G.mapId, i, j);
+      if (c && c.on !== near) { c.on = near; c.g.visible = near; changed = true; }
+    }
+  }
+  if (changed) rebuildOB(m);
+}
+/* Sol, luces de relleno y polvo siguen al jugador (en saltos de rejilla para que no "naden") */
+function followRig() {
+  var t = MAPS[G.mapId || 0].tone, sx = Math.round(P.x / 4) * 4, sz = Math.round(P.z / 4) * 4;
+  sunL.position.set(sx + t.sp[0], t.sp[1], sz + t.sp[2]); sunL.target.position.set(sx, 0, sz);
+  var gx = Math.round(P.x / 18) * 18, gz = Math.round(P.z / 18) * 18, off = [[-9, -9], [9, -9], [-9, 9], [9, 9]];
+  for (var i = 0; i < pLights.length; i++) { pLights[i].position.x = gx + off[i][0]; pLights[i].position.z = gz + off[i][1]; }
+  if (dust) dust.pts.position.set(gx, 0, gz);
+}
+
+/* Piezas sueltas para el relleno */
+function pot(x, z, col) {
+  solid(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.6, 10), LM(col || 0xa8552c)), x, 0.3, z, 0.8, 0.8, 0.6);
+  put(new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 6), LM(0x2f7a3a)), x, 1.1, z);
+}
+function crateStack(x, z, R, cols) {
+  var n = 1 + Math.floor(R() * 3), s = 1.4;
+  solid(new THREE.Mesh(BG(s, s, s), LM(cols[Math.floor(R() * cols.length)])), x, s / 2, z, s, s, n > 1 ? s * 2 : s);
+  if (n > 1) dbox(s * 0.9, s * 0.9, s * 0.9, cols[Math.floor(R() * cols.length)], x + (R() - 0.5) * 0.2, s * 1.45, z);
+  if (n > 2) solid(new THREE.Mesh(BG(s, s, s), LM(cols[Math.floor(R() * cols.length)])), x + s + 0.1, s / 2, z, s, s, s);
+}
+var FILL = {};
+/* Oficina: islas de cubículos, salas de reuniones o zonas de archivo */
+FILL[0] = function (cx, cz, R) {
+  var p = Math.floor(R() * 3);
+  if (p === 0) {
+    [[-4.5, -4], [4.5, -4], [-4.5, 4], [4.5, 4]].forEach(function (d) { addDesk(cx + d[0], cz + d[1], 0); });
+    solid(new THREE.Mesh(BG(11, 1.3, 0.12), LM(0x6c7a76)), cx, 0.65, cz, 11, 0.12, 1.3);
+    solid(new THREE.Mesh(BG(0.12, 1.3, 5), LM(0x6c7a76)), cx, 0.65, cz - 4, 0.12, 5, 1.3);
+  } else if (p === 1) {
+    solid(new THREE.Mesh(BG(6, 0.85, 2.2), LM(0x6f5d49)), cx, 0.425, cz, 6, 2.2, 0.85);
+    for (var k = -2; k <= 2; k++) [-1, 1].forEach(function (s) { solid(new THREE.Mesh(BG(0.5, 0.5, 0.5), LM(0x2b3a4a)), cx + k * 1.2, 0.25, cz + s * 1.75, 0.5, 0.5, 0.5); });
+    solid(new THREE.Mesh(BG(3.4, 2.0, 0.12), LM(0xf4f4ee)), cx, 1.5, cz - 4.2, 3.4, 0.12, 2.6);
+    dbox(0.08, 1.0, 0.08, 0x333a38, cx - 1.4, 0.5, cz - 4.2); dbox(0.08, 1.0, 0.08, 0x333a38, cx + 1.4, 0.5, cz - 4.2);
+    pot(cx + 5, cz + 5); pot(cx - 5, cz + 5);
+  } else {
+    addBox(cx - 6, cz - 6, 1, 6, 1, 0x4d5a55); addBox(cx + 6, cz + 6, 1, 6, 1, 0x4d5a55);
+    for (var q = 0; q < 4; q++) addBox(cx - 3 + q * 0.9, cz - 7.5, 0.8, 1.8, 0.8, 0x7d8a88);
+    addDesk(cx + 2, cz + 2, R() < 0.5 ? 0 : 1); pot(cx - 6, cz + 6);
+  }
+  put(new THREE.Mesh(BG(3.2, 0.1, 1.1), panelMat), cx, 5.94, cz);
+  lightAt(cx, 5, cz, 0xdff5e8, 0.6, 0);
+};
+/* Almacén: estanterías con cajas, palés y bidones */
+FILL[1] = function (cx, cz, R) {
+  var cols = [0xb08a5a, 0xa17448, 0x8f6a3f, 0xc29a62, 0x4a6fa5, 0xb5473a], along = R() < 0.5, w = along ? 9 : 1.3, d = along ? 1.3 : 9;
+  [-4, 4].forEach(function (o) {
+    var x = cx + (along ? 0 : o), z = cz + (along ? o : 0);
+    solid(new THREE.Mesh(BG(w, 3.8, d), LM(0x2b3b4a)), x, 1.9, z, w, d, 3.8);
+    [0.9, 1.8, 2.7, 3.6].forEach(function (y) { dbox(w + (along ? 0.1 : 0.24), 0.1, d + (along ? 0.24 : 0.1), 0xe07a1f, x, y, z); });
+    for (var q = 0; q < 6; q++) if (R() < 0.7) {
+      var off = -3.6 + q * 1.45, y2 = [0.9, 1.8, 2.7][q % 3] + 0.35, col = cols[Math.floor(R() * cols.length)];
+      if (along) dbox(1.0, 0.6, 0.4, col, x + off, y2, z + 0.65); else dbox(0.4, 0.6, 1.0, col, x + 0.65, y2, z + off);
+    }
+  });
+  crateStack(cx + (R() - 0.5) * 6, cz + (R() - 0.5) * 6, R, cols);
+  if (R() < 0.6) { solid(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.1, 12), LM(R() < 0.5 ? 0x2f5f9a : 0xb5301f)), cx + 8, 0.55, cz - 8, 0.84, 0.84, 1.1); }
+  lightAt(cx, 4.4, cz, 0xffd296, 0.85, 0);
+  glow('255,214,150', cx, 4.6, cz, 3.4, 2.2, 0.45);
+};
+/* Servidores: pasillos de racks con luces */
+FILL[2] = function (cx, cz, R, m) {
+  var f = R() < 0.5 ? 1 : -1;
+  [-3.5, 3.5].forEach(function (oz, row) {
+    for (var q = 0; q < 6; q++) {
+      var x = cx - 3 + q * 1.02, z = cz + oz, ff = row ? -f : f;
+      solid(new THREE.Mesh(BG(1.0, 2.5, 1.1), LM(0x161c26)), x, 1.25, z, 1.02, 1.1, 2.5);
+      if (m.led) { var fr = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 2.3), m.led[(q + row) % 3]); put(fr, x, 1.25, z + ff * 0.56); fr.rotation.y = ff > 0 ? 0 : Math.PI; if (m.fronts) m.fronts.push({ m: fr, i: q + row * 7 }); }
+    }
+    bbox(6.2, 0.012, 0.1, 0x2fd0ff, cx, 0.014, cz + oz + (row ? -1 : 1) * 0.9);
+  });
+  if (R() < 0.5) solid(new THREE.Mesh(BG(1.2, 2.0, 2.4), LM(0xcfd6dc)), cx + 8, 1.0, cz + 8, 1.2, 2.4, 2.0);
+  lightAt(cx, 3.2, cz, 0x6fb4ff, 0.9, 0);
+};
+/* Azotea: jardineras, aires acondicionados, tumbonas y guirnaldas */
+FILL[3] = function (cx, cz, R, m) {
+  var p = Math.floor(R() * 3);
+  if (p === 0) {
+    [[-5, -5], [5, 5], [-5, 5]].forEach(function (q) {
+      solid(new THREE.Mesh(BG(1.8, 0.7, 1.8), LM(0x6b6258)), cx + q[0], 0.35, cz + q[1], 1.8, 1.8, 0.7);
+      dbox(0.2, 1.5, 0.2, 0x5a4030, cx + q[0], 1.45, cz + q[1]);
+      put(new THREE.Mesh(new THREE.SphereGeometry(0.85, 8, 6), LM(0x2f7a46)), cx + q[0], 2.6, cz + q[1]);
+    });
+  } else if (p === 1) {
+    var fan = new THREE.Group();
+    solid(new THREE.Mesh(BG(2.2, 1.3, 1.4), LM(0xbfc4c6)), cx, 0.65, cz, 2.2, 1.4, 1.3);
+    put(fan, cx, 1.38, cz); dbox(1.0, 0.03, 0.14, 0x9aa5ad, 0, 0, 0, fan); dbox(0.14, 0.03, 1.0, 0x9aa5ad, 0, 0, 0, fan);
+    m.anim.push(function (t) { if (fan.parent && fan.parent.visible) fan.rotation.y = t * 10; });
+    solid(new THREE.Mesh(BG(1.6, 1.0, 1.6), LM(0x8f8b82)), cx + 6, 0.5, cz - 5, 1.6, 1.6, 1.0);
+  } else {
+    [-1, 1].forEach(function (s) {
+      solid(new THREE.Mesh(BG(2.6, 0.5, 1.0), LM(0x6a3b52)), cx, 0.25, cz + s * 2.6, 2.6, 1.0, 0.5);
+      dbox(2.6, 0.6, 0.25, 0x7c4863, cx, 0.8, cz + s * 3.0);
+    });
+    solid(new THREE.Mesh(BG(1.1, 0.5, 1.1), LM(0xd8d2c4)), cx, 0.25, cz, 1.1, 1.1, 0.5);
+    dbox(0.06, 2.9, 0.06, 0xcfcfcf, cx, 1.95, cz);
+    put(new THREE.Mesh(new THREE.ConeGeometry(2.6, 0.7, 10), LM(R() < 0.5 ? 0xe9a93b : 0xd9524a)), cx, 3.35, cz);
+  }
+  for (var k = 0; k < 6; k++) glow('255,214,140', cx - 7 + k * 2.8, 3.6, cz + 9, 0.5, 0.5, 0.7);
+  lightAt(cx, 3.2, cz + 7, 0xffd9a0, 0.7, 1.7);
+};
+/* Casa de Bilal: tabiques con arco, alfombras, sofás bajos, pufs, mesas de latón y faroles */
+FILL[4] = function (cx, cz, R) {
+  var wc = 0xe9d9b8, vert = R() < 0.5;
+  if (R() < 0.75) {
+    [-1, 1].forEach(function (s) {
+      if (vert) { solid(new THREE.Mesh(BG(0.4, 4.2, 8), LM(wc)), cx - 11, 2.1, cz + s * 6, 0.4, 8, 4.2); dbox(0.44, 0.6, 8, 0xb5542c, cx - 11, 0.3, cz + s * 6); }
+      else { solid(new THREE.Mesh(BG(8, 4.2, 0.4), LM(wc)), cx + s * 6, 2.1, cz - 11, 8, 0.4, 4.2); dbox(8, 0.6, 0.44, 0xb5542c, cx + s * 6, 0.3, cz - 11); }
+    });
+    if (vert) dbox(0.4, 0.7, 4, 0xd9a33b, cx - 11, 3.85, cz); else dbox(4, 0.7, 0.4, 0xd9a33b, cx, 3.85, cz - 11);
+  }
+  var rug = new THREE.Mesh(new THREE.PlaneGeometry(6, 4), LM([0x8c2b1d, 0x1f5f73, 0x6a2d7a][Math.floor(R() * 3)])); rug.rotation.x = -Math.PI / 2; put(rug, cx, 0.015, cz);
+  var rb = new THREE.Mesh(new THREE.PlaneGeometry(5, 3), LM(0xe0b050)); rb.rotation.x = -Math.PI / 2; put(rb, cx, 0.02, cz);
+  solid(new THREE.Mesh(BG(4, 0.55, 1.1), LM(0x7a2e1b)), cx, 0.28, cz - 3.4, 4, 1.1, 0.55);
+  dbox(4, 0.5, 0.25, 0x9a3e25, cx, 0.75, cz - 3.85);
+  solid(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.45, 0.5, 12), LM(0xc9a24a)), cx, 0.25, cz, 1.2, 1.2, 0.5);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.2, 10), LM(0xb3832a)), cx, 0.6, cz);
+  [[3, 2, 0xb83a2a], [-3, 2, 0x2f7a8a]].forEach(function (q) { solid(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.45, 12), LM(q[2])), cx + q[0], 0.22, cz + q[1], 1, 1, 0.45); });
+  pot(cx + 8, cz + 8); pot(cx - 8, cz + 8);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 0.5, 8), new THREE.MeshBasicMaterial({ color: 0xffc35a, transparent: true, opacity: 0.85 })), cx, 3.2, cz);
+  glow('255,190,90', cx, 3.2, cz, 2.2, 2.2, 0.65);
+  lightAt(cx, 3.1, cz, 0xffb35a, 1.0, 7);
+};
+/* Cocina: islas con encimera y mesas redondas */
+FILL[5] = function (cx, cz, R) {
+  solid(new THREE.Mesh(BG(5.6, 1, 1.4), LM(0xd9dde0)), cx, 0.5, cz - 4, 5.6, 1.4, 1);
+  solid(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.12, 14), LM(0xf1efe6)), cx, 0.9, cz + 3, 2.4, 2.4, 0.9);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.9, 8), LM(0x9aa3a8)), cx, 0.45, cz + 3);
+  if (R() < 0.5) solid(new THREE.Mesh(BG(1.6, 2.6, 1.3), LM(0xe8eef2)), cx + 8, 1.3, cz - 8, 1.6, 1.3, 2.6);
+  lightAt(cx, 4, cz, 0xe8f4ff, 0.7, 0);
+};
 function radialTex(c0, c1) { var c = mkCanvas(128, 128), x = c.getContext('2d'); var g = x.createRadialGradient(64, 64, 2, 64, 64, 62); g.addColorStop(0, c0); g.addColorStop(1, c1); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return tex(c); }
 function glow(rgb, x, y, z, sx, sy, op, parent) {
   var base = GLOWC[rgb] || (GLOWC[rgb] = new THREE.SpriteMaterial({ map: radialTex('rgba(' + rgb + ',.95)', 'rgba(' + rgb + ',0)'), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.6 }));
@@ -1367,6 +1619,7 @@ function glow(rgb, x, y, z, sx, sy, op, parent) {
   var s = new THREE.Sprite(mat); s.scale.set(sx, sy, 1); return put(s, x, y, z, parent);
 }
 function floorPlane(canvas, rep) {
+  if (rep) rep = [rep[0] * HALF / 24, rep[1] * HALF / 24];
   var f = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), new THREE.MeshLambertMaterial({ map: tex(canvas, rep) }));
   f.rotation.x = -Math.PI / 2; f.receiveShadow = true; CUR.add(f); occluders.push(f); return f;
 }
@@ -1375,6 +1628,7 @@ function walls(mat, H) {
   var T = 1, Lw = HALF * 2 + 2;
   [[0, -HALF - T / 2, Lw, T], [0, HALF + T / 2, Lw, T], [-HALF - T / 2, 0, T, Lw], [HALF + T / 2, 0, T, Lw]].forEach(function (w) {
     var m = new THREE.Mesh(new THREE.BoxGeometry(w[2], H, w[3]), mat); put(m, w[0], H / 2, w[1]); occluders.push(m);
+    if (mat.map && !mat.userData.scaled) { mat.userData.scaled = true; mat.map.repeat.x *= HALF / 24; }
   });
 }
 function decal(size, draw) {
@@ -1480,10 +1734,10 @@ function buildHouse() {
   var wallMat = new THREE.MeshLambertMaterial({ color: 0xe9d9b8 });
   walls(wallMat, 4.2);
   /* Paredes con la textura de azulejos generada con Canva (zellige.png); si no carga, queda el color liso */
-  var zim = new Image();
+  var zk = HALF / 24, zim = new Image();
   zim.onload = function () {
     var zc2 = mkCanvas(zim.naturalWidth, zim.naturalHeight); zc2.getContext('2d').drawImage(zim, 0, 0);
-    wallMat.map = tex(zc2, [14, 1]); wallMat.color.setHex(0xffffff); wallMat.needsUpdate = true;
+    wallMat.map = tex(zc2, [14 * zk, 1]); wallMat.color.setHex(0xffffff); wallMat.needsUpdate = true;
   };
   zim.src = 'zellige.png';
   ceilPlane(0x3a2a1a);
@@ -1513,7 +1767,7 @@ function buildHouse() {
   [[-3.2, 3.2, -1.5], [3.2, 3.2, -1.5], [0, 3.2, 4]].forEach(function (p, i) {
     put(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 1.2, 4), LM(0x2b2f31)), p[0], 4.7, p[2]);
     put(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 0.5, 8), new THREE.MeshBasicMaterial({ color: 0xffc35a, transparent: true, opacity: 0.85 })), p[0], p[1], p[2]);
-    var gl = glow('255,190,90', p[0], p[1], p[2], 2.2, 2.2, 0.7);
+    var gl = glow('255,190,90', p[0], p[1], p[2], 2.2, 2.2, 0.7); lightAt(p[0], p[1], p[2], 0xffb35a, 1.1, 7);
     var ph = i * 1.7; anim(function (t) { gl.material.opacity = 0.5 + 0.25 * Math.sin(t * 7 + ph); });
   });
   /* Cuadro decorativo en la pared del fondo */
@@ -1557,7 +1811,8 @@ function buildKitchen() {
   });
   /* Microondas que pulsa cuando calienta */
   var mo = dbox(0.8, 0.5, 0.6, 0x2b2f31, -2, 1.25, HALF - 1.4);
-  var mg = glow('255,170,80', -2, 1.25, HALF - 1.05, 1.0, 1.0, 0.5);
+  var mg = glow('255,170,80', -2, 1.25, HALF - 1.05, 1.0, 1.0, 0.5); lightAt(-2, 1.6, HALF - 1.6, 0xffaa50, 0.9, 4);
+  [[-6, 6], [6, 6], [0, -2], [-12, -12], [12, 12]].forEach(function (p) { lightAt(p[0], 4.2, p[1], 0xe8f4ff, 0.55, 0); });
   anim(function (t) { mg.material.opacity = 0.25 + 0.3 * Math.abs(Math.sin(t * 4)); });
   wallSign('NO TOCAR EL CAFÉ', 'Ni el de Raúl Becas', '#8a2a2a', -HALF + 0.1, -6, Math.PI / 2, 2.4);
   wallSign('COCINA', 'Lava tu taza', '#2b6a8a', HALF - 0.1, 6, -Math.PI / 2, 2.4);
@@ -1591,7 +1846,7 @@ function buildWarehouse() {
     dbox(0.05, 0.9, 0.05, 0x333333, 0, -0.45, 0, lamp);
     put(new THREE.Mesh(shadeG, shadeM), 0, -1.0, 0, lamp);
     put(new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), BM(0xffe3b0)), 0, -1.06, 0, lamp);
-    glow('255,214,150', 0, -1.15, 0, 3.4, 2.2, 0.5, lamp);
+    glow('255,214,150', 0, -1.15, 0, 3.4, 2.2, 0.5, lamp); lightAt(x, 4.3, z, 0xffd296, 0.9, 0);
     var pool = new THREE.Mesh(poolG, poolMat); pool.rotation.x = -Math.PI / 2; put(pool, x, 0.02, z);
     anim(function (t) { lamp.rotation.z = Math.sin(t * 0.8 + n) * 0.045; lamp.rotation.x = Math.cos(t * 0.7 + n * 1.3) * 0.035; });
   }); });
@@ -1707,6 +1962,8 @@ function buildServers() {
   [[-HALF + 0.05, 0], [HALF - 0.05, Math.PI]].forEach(function (m) { var z = m[0], ry = m[1];
     var p = new THREE.Mesh(new THREE.PlaneGeometry(20, 2.5), new THREE.MeshBasicMaterial({ map: mt })); put(p, 0, 3.9, z); p.rotation.y = ry; });
   var LED = [0, 1, 2].map(function () { return new THREE.MeshBasicMaterial({ map: tex(ledCanvas()) }); }), fronts = [], idx = 0;
+  CURM.led = LED; CURM.fronts = fronts;
+  lightAt(0, 3.1, 0, 0x4ad0ff, 1.2, 2); lightAt(-22, 2.2, -5, 0x9fe8ff, 0.6, 0); lightAt(22, 2.2, 5, 0x9fe8ff, 0.6, 0);
   [[-19, 5, -10, 1], [19, 5, -10, 1], [-19, 5, 10, -1], [19, 5, 10, -1], [-8, 4, -18, 1], [8, 4, -18, 1], [-8, 4, 18, -1], [8, 4, 18, -1], [-10, 3, 0, 1], [10, 3, 0, -1]].forEach(function (sg) {
     var cx = sg[0], n = sg[1], z = sg[2], f = sg[3];
     for (var q = 0; q < n; q++) {
@@ -1765,24 +2022,26 @@ function buildRooftop() {
   var sc = mkCanvas(8, 256), sx = sc.getContext('2d'), gr = sx.createLinearGradient(0, 0, 0, 256);
   gr.addColorStop(0, '#080a24'); gr.addColorStop(0.35, '#2b1a55'); gr.addColorStop(0.5, '#8a3f6e'); gr.addColorStop(0.58, '#ff9a5a'); gr.addColorStop(0.66, '#3a2048'); gr.addColorStop(1, '#120a1e');
   sx.fillStyle = gr; sx.fillRect(0, 0, 8, 256);
-  var dome = new THREE.Mesh(new THREE.SphereGeometry(90, 24, 16), new THREE.MeshBasicMaterial({ map: tex(sc), side: THREE.BackSide, fog: false, depthWrite: false })); dome.renderOrder = -10; CUR.add(dome);
+  var sky = new THREE.Group(); CUR.add(sky); anim(function () { sky.position.set(camera.position.x, 0, camera.position.z); });
+  var dome = new THREE.Mesh(new THREE.SphereGeometry(90, 24, 16), new THREE.MeshBasicMaterial({ map: tex(sc), side: THREE.BackSide, fog: false, depthWrite: false })); dome.renderOrder = -10; sky.add(dome);
   var sp = new Float32Array(300 * 3);
   for (i = 0; i < 300; i++) { var a = rnd(0, 6.283), e = rnd(0.12, 1.3); sp[i * 3] = Math.cos(a) * Math.cos(e) * 85; sp[i * 3 + 1] = Math.sin(e) * 85; sp[i * 3 + 2] = Math.sin(a) * Math.cos(e) * 85; }
   var sgeo = new THREE.BufferGeometry(); sgeo.setAttribute('position', new THREE.BufferAttribute(sp, 3));
-  var smat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.85 }); CUR.add(new THREE.Points(sgeo, smat));
+  var smat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.85 }); sky.add(new THREE.Points(sgeo, smat));
   var mc = mkCanvas(128, 128), mx = mc.getContext('2d'); mx.fillStyle = '#f4efe0'; mx.beginPath(); mx.arc(64, 64, 52, 0, 6.283); mx.fill();
   mx.fillStyle = 'rgba(160,150,130,.5)'; [[44, 50, 10], [76, 70, 14], [60, 36, 7], [48, 86, 8]].forEach(function (c) { mx.beginPath(); mx.arc(c[0], c[1], c[2], 0, 6.283); mx.fill(); });
-  var moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(mc), fog: false })); moon.scale.set(11, 11, 1); put(moon, -48, 42, -58);
+  var moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(mc), fog: false })); moon.scale.set(11, 11, 1); put(moon, -48, 42, -58, sky);
   var clouds = [], cm = new THREE.SpriteMaterial({ map: radialTex('rgba(255,190,200,.55)', 'rgba(255,190,200,0)'), transparent: true, fog: false, depthWrite: false, opacity: 0.45 });
-  for (i = 0; i < 7; i++) { var cl = new THREE.Sprite(cm); cl.scale.set(rnd(26, 40), rnd(7, 11), 1); put(cl, rnd(-80, 80), rnd(24, 42), -rnd(40, 70)); clouds.push(cl); }
+  for (i = 0; i < 7; i++) { var cl = new THREE.Sprite(cm); cl.scale.set(rnd(26, 40), rnd(7, 11), 1); put(cl, rnd(-80, 80), rnd(24, 42), -rnd(40, 70), sky); clouds.push(cl); }
   var wins = [0, 1, 2, 3].map(function () {
     var c = mkCanvas(64, 128), x = c.getContext('2d'); x.fillStyle = '#0d1020'; x.fillRect(0, 0, 64, 128);
     for (var r = 0; r < 16; r++) for (var q = 0; q < 6; q++) { if (Math.random() < 0.38) { x.fillStyle = pick(['#ffd98a', '#fff2c4', '#ffbf6a', '#8fd0ff']); x.fillRect(4 + q * 10, 4 + r * 7.6, 6, 4); } }
     return new THREE.MeshBasicMaterial({ map: tex(c) });
   });
   var tall = [];
-  for (i = 0; i < 44; i++) {
-    var side = i % 4, u = -54 + (Math.floor(i / 4) * 10) + rnd(-2, 2), dist = rnd(33, 46), bw = rnd(5, 9), bh = rnd(10, 36);
+  var perSide = Math.ceil((HALF * 2 + 20) / 11);
+  for (i = 0; i < perSide * 4; i++) {
+    var side = i % 4, u = -HALF - 10 + (Math.floor(i / 4) * 11) + rnd(-2, 2), dist = HALF + rnd(9, 22), bw = rnd(5, 9), bh = rnd(10, 36);
     var bx = side === 0 ? u : side === 1 ? u : (side === 2 ? -dist : dist), bz = side === 0 ? -dist : side === 1 ? dist : u;
     var bld = new THREE.Mesh(new THREE.BoxGeometry(bw, bh + 30, bw), wins[i % 4]); put(bld, bx, (bh - 30) / 2, bz);
     if (bh > 26) tall.push({ x: bx, y: bh + 0.6, z: bz });
@@ -1793,7 +2052,8 @@ function buildRooftop() {
   var wc = mkCanvas(128, 128), wx = wc.getContext('2d'), wg = wx.createLinearGradient(0, 0, 128, 128); wg.addColorStop(0, '#2b8fd0'); wg.addColorStop(1, '#52c8e8'); wx.fillStyle = wg; wx.fillRect(0, 0, 128, 128);
   wx.strokeStyle = 'rgba(255,255,255,.35)'; wx.lineWidth = 3; for (i = 0; i < 9; i++) { wx.beginPath(); wx.arc(Math.random() * 128, Math.random() * 128, 8 + Math.random() * 18, 0, 3.4); wx.stroke(); }
   var wt = tex(wc, [3, 2]), water = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 3.6), new THREE.MeshBasicMaterial({ map: wt })); water.rotation.x = -Math.PI / 2; put(water, -12.5, 0.72, 12);
-  var wglow = glow('90,200,255', -12.5, 1.3, 12, 8, 3.2, 0.5);
+  var wglow = glow('90,200,255', -12.5, 1.3, 12, 8, 3.2, 0.5); lightAt(-12.5, 1.6, 12, 0x5ac8ff, 1.0, 1.6);
+  lightAt(18, 1.6, 13, 0xff7a30, 1.0, 9); lightAt(-15, 2.8, 0, 0xffdc96, 0.9, 2.1); lightAt(12, 3.4, -22, 0xff3fa4, 0.9, 0); lightAt(-12, 3.4, 22, 0x3fdcff, 0.9, 0);
   /* Sofás, mesas y sombrillas */
   function sofa(x, z, dir) {
     solid(new THREE.Mesh(BG(2.6, 0.5, 1.0), LM(0x6a3b52)), x, 0.25, z, 2.6, 1.0, 0.5);
@@ -1901,12 +2161,12 @@ MAPS = [
 ];
 function beginMap(i) {
   var m = MAPS[i]; CUR = new THREE.Group(); CUR.visible = false; scene.add(CUR);
-  OB = m.ob = []; occluders = m.occ = []; m.anim = []; m.screens = []; m.grp = CUR; CURM = m; CURID = i;
+  OB = m.ob = []; occluders = m.occ = []; m.anim = []; m.screens = []; m.lamps = []; m.cells = null; m.grp = CUR; CURM = m; CURID = i;
 }
 function buildMaps() {
   MAPS.forEach(function (m, i) {
     beginMap(i);
-    buildLoc(i);
+    buildLoc(i); finishMap(m);
   });
 }
 function setMap(i) {
@@ -1973,7 +2233,7 @@ function buildOffice() {
   fx.fillStyle = '#2d3834'; fx.fillRect(0, 0, 256, 256);
   for (var i = 0; i < 2600; i++) { var g = 40 + Math.floor(Math.random() * 30); fx.fillStyle = 'rgba(' + g + ',' + (g + 12) + ',' + (g + 6) + ',.55)'; fx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
   fx.strokeStyle = '#1b2421'; fx.lineWidth = 4; fx.strokeRect(0, 0, 256, 256);
-  var floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), new THREE.MeshLambertMaterial({ map: tex(fc, [24, 24]) }));
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), new THREE.MeshLambertMaterial({ map: tex(fc, [HALF, HALF]) }));
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; CUR.add(floor); occluders.push(floor);
   var dc = mkCanvas(512, 512), dxx = dc.getContext('2d'); dxx.translate(256, 256);
   dxx.strokeStyle = 'rgba(224,56,45,.85)'; dxx.lineWidth = 14; dxx.beginPath(); dxx.arc(0, 0, 228, 0, 6.283); dxx.stroke();
@@ -1991,7 +2251,7 @@ function buildOffice() {
   [-16, -8, 0, 8, 16].forEach(function (x) { [-16, -8, 0, 8, 16].forEach(function (z) {
     var p = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 1.1), panelMat); p.position.set(x, 5.94, z); CUR.add(p);
     var pool = new THREE.Mesh(poolGeo, poolMat); pool.rotation.x = -Math.PI / 2; pool.position.set(x, 0.02, z); CUR.add(pool);
-    var gl = new THREE.Sprite(glowMat); gl.scale.set(5.5, 2.8, 1); gl.position.set(x, 5.65, z); CUR.add(gl);
+    var gl = new THREE.Sprite(glowMat); gl.scale.set(5.5, 2.8, 1); gl.position.set(x, 5.65, z); CUR.add(gl); lightAt(x, 5, z, 0xdff5e8, 0.55, 0);
   }); });
 
   var wc = mkCanvas(256, 256), wx = wc.getContext('2d');
@@ -1999,7 +2259,7 @@ function buildOffice() {
   wx.fillStyle = '#272d2b'; wx.fillRect(0, 168, 256, 88);
   wx.fillStyle = '#1b1f1d'; wx.fillRect(0, 164, 256, 6);
   wx.fillStyle = 'rgba(0,0,0,.18)'; wx.fillRect(0, 0, 4, 256);
-  var wmat = new THREE.MeshLambertMaterial({ map: tex(wc, [12, 1]) });
+  var wmat = new THREE.MeshLambertMaterial({ map: tex(wc, [HALF / 2, 1]) });
   var T = 1, H = 6, Lw = HALF * 2 + 2;
   var bbMat = new THREE.MeshLambertMaterial({ color: 0x151a18 });
   [[0, -HALF + 0.07, HALF * 2, 0.14], [0, HALF - 0.07, HALF * 2, 0.14], [-HALF + 0.07, 0, 0.14, HALF * 2], [HALF - 0.07, 0, 0.14, HALF * 2]].forEach(function (b) {
@@ -2107,7 +2367,7 @@ function buildWorld() {
   flashSprite.scale.set(0.34, 0.34, 1); flashSprite.renderOrder = 1100; flashSprite.visible = false;
   flashLight = new THREE.PointLight(0xffc060, 0, 9);
 
-  buildDust();
+  buildDust(); buildLightPool();
   buildAlly(); buildMates();
   buildMaps();
 }
@@ -2198,7 +2458,7 @@ function updateHud() {
   var story = G.mode === 'story';
   setText('lab', el.lab, story ? 'Fase' : 'Oleada');
   setText('wave', el.wave, String(story ? G.phase + 1 : G.wave));
-  setText('sub', el.sub, story ? 'Ronda ' + G.wip + '/2 · Rechazadas: ' + G.kills : 'Rechazadas: ' + G.kills);
+  setText('sub', el.sub, story ? 'Ronda ' + G.wip + '/' + ROUNDS + ' · Rechazadas: ' + G.kills : 'Rechazadas: ' + G.kills);
   setText('score', $('hScore'), String(G.score));
   setText('combo', el.combo, G.combo > 1 ? 'x' + G.combo + ' COMBO' : '');
   el.eurWrap.hidden = !story; if (story) setText('eur', el.eur, String(G.euros));
@@ -2267,7 +2527,7 @@ function spawnEnemy(kind, x, z) {
   g.add(paper); g.add(sh);
   if (T.boss) { var aura = new THREE.Sprite(auraMat); aura.scale.set(T.w * 2.4, T.h * 1.7, 1); aura.position.set(0, T.h / 2 + 0.35, -0.3); g.add(aura); }
   g.position.set(x, 0, z); g.scale.setScalar(0.01); scene.add(g);
-  var dfc = DF(), hs = (T.boss ? 1 : 1 + 0.05 * Math.max(0, G.wave - 3)) * dfc.hp, ss = (1 + Math.min(0.3, 0.02 * G.wave)) * dfc.spd;
+  var dfc = DF(), hs = (T.boss ? 1 : 1 + 0.05 * Math.max(0, lvl() - 3)) * dfc.hp, ss = (1 + Math.min(0.3, 0.02 * lvl())) * dfc.spd;
   var e = { kind: kind, T: T, g: g, paper: paper, mat: mat, x: x, z: z, hp: T.hp * hs, maxHp: T.hp * hs, atk: 0.5, flash: 0, age: 0, phase: rnd(0, 6), speed: T.speed * rnd(0.9, 1.12) * ss * (G.mode === 'survival' ? evSpeed : 1), bossT: 5,
     tint: 0xffffff, st: '', stT: 0, cd: rnd(1.2, 2.8) + ((kind === 'cazatalentos' || kind === 'agencia') ? 2 : 0), dir: Math.random() < 0.5 ? 1 : -1, dirT: rnd(1, 3), ax: 0, az: 0, hit: false, fuse: 0, boost: 0, shotT: rnd(2.5, 4) };
   paper.userData.enemy = e; G.enemies.push(e); introEnemy(kind); tmpV.set(x, 0.4, z); sparkBurst(tmpV, sparkMat, 6, 2.2, 1); return e;
@@ -2321,7 +2581,7 @@ var INTRO_CALL = {
   entrevista: '¡La entrevista de siete rondas! Sus preguntas vuelan en abanico.',
   final: '¡El contrato final! Cuando lance el anillo de cláusulas, salta.',
   becario: '¡Becarios! Van en grupo y disparan ráfagas de tres. Muévete en zigzag.',
-  auditor: '¡Un auditor! Lento, pero cuando se detiene lanza un anillo de multas. Salta por encima.',
+  auditor: '¡Un auditor! Lento, pero cuando se detiene lanza un anillo de multas a la altura de la cabeza. Agáchate con C.',
   mensajero: '¡Mensajeros! Lanzan bombas en parábola que explotan al caer. Mira el suelo y corre.',
   cv: 'Un CV de cuarenta páginas. Ninguna empresa lo leerá entero. Dispárale sin piedad.',
   carta: 'Cartas de motivación. Son rápidas y dicen que te apasiona la oficina. Esquívalas en zigzag.',
@@ -2375,8 +2635,9 @@ function enemyShot(x, y, z, dx, dy, dz, speed, dmg) {
   glow.scale.set(1, 1, 1); m.add(glow); m.position.set(x, y, z); scene.add(m);
   G.eproj.push({ m: m, x: x, y: y, z: z, vx: dx * speed, vy: dy * speed, vz: dz * speed, dmg: dmg, life: 6 });
 }
-function shootAtPlayer(e, spread, dmg, speed) {
-  var cy = e.T.h / 2 + 0.35, dx = P.x - e.x, dy = P.y + 1.15 - cy, dz = P.z - e.z;
+/* hi = disparo a la altura de la cabeza: se esquiva agachándose (C) */
+function shootAtPlayer(e, spread, dmg, speed, hi) {
+  var cy = e.T.h / 2 + 0.35, dx = AIM.x - e.x, dy = (hi ? 1.55 : AIM.y + 1.15 - 0.6 * (P.ch || 0)) - cy, dz = AIM.z - e.z;
   var hz = Math.hypot(dx, dz) || 0.01, l = Math.hypot(hz, dy), a = Math.atan2(dx, dz) + spread;
   enemyShot(e.x, cy, e.z, Math.sin(a) * hz / l, dy / l, Math.cos(a) * hz / l, speed, dmg);
 }
@@ -2386,7 +2647,7 @@ function updateEProj(dt) {
     if (p.g) p.vy -= p.g * dt;
     p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.life -= dt;
     if (p.y < 1.9 && hitAllies([ally].concat(MATES), p.x, p.z, p.dmg)) { scene.remove(p.m); G.eproj.splice(i, 1); continue; }
-    if (Math.hypot(p.x - P.x, p.z - P.z) < 0.6 && p.y > P.y - 0.1 && p.y < P.y + 1.9) {
+    if (Math.hypot(p.x - P.x, p.z - P.z) < 0.6 && p.y > P.y - 0.1 && p.y < P.y + 1.9 - 0.85 * (P.ch || 0)) {
       scene.remove(p.m); G.eproj.splice(i, 1);
       hurtPlayer(p.dmg); if (G.state !== 'playing') return;
       continue;
@@ -2413,7 +2674,7 @@ function facturaBoom(e) {
 }
 function agencySummon(e) {
   if (G.enemies.length > 22) return;
-  var n = G.wave >= 7 ? 3 : 2;
+  var n = lvl() >= 7 ? 3 : 2;
   for (var k = 0; k < n; k++) {
     var a = rnd(0, 6.283), o = resolve(e.x + Math.cos(a) * 2.2, e.z + Math.sin(a) * 2.2, 0.7);
     spawnEnemy(k === 2 ? 'requisito' : 'solicitud', o.x, o.z);
@@ -2441,7 +2702,7 @@ function gunTick(e, dt, d) {
   var T = e.T;
   if (!T.gun || e.age <= 0.6 || d >= 20) return;
   e.cd -= dt; if (e.cd < 0.4 && e.cd > 0) e.tint = 0xffe27a;
-  if (e.cd <= 0) { shootAtPlayer(e, rnd(-T.gun.spread, T.gun.spread), T.gun.dmg, T.gun.speed); sfx.efire(); e.cd = T.gun.every * rnd(0.85, 1.15); }
+  if (e.cd <= 0) { shootAtPlayer(e, rnd(-T.gun.spread, T.gun.spread), T.gun.dmg, T.gun.speed, T.gun.hi); sfx.efire(); e.cd = T.gun.every * rnd(0.85, 1.15); }
 }
 function enemyMove(e, dt, dx, dz, d) {
   var T = e.T, nx = d > 0.01 ? dx / d : 0, nz = d > 0.01 ? dz / d : 0, sp = e.speed * (e.boost > 0 ? 1.45 : 1);
@@ -2457,7 +2718,7 @@ function enemyMove(e, dt, dx, dz, d) {
       e.cd -= dt;
       if (e.age > 0.6) {
         if (e.cd < 0.5 && e.cd > 0) e.tint = 0xffe27a;
-        if (e.cd <= 0) { shootAtPlayer(e, rnd(-0.05, 0.05), T.dmg, 11); sfx.efire(); e.cd = rnd(2.0, 3.0) * Math.max(0.55, 1 - 0.04 * G.wave); }
+        if (e.cd <= 0) { shootAtPlayer(e, rnd(-0.05, 0.05), T.dmg, 11); sfx.efire(); e.cd = rnd(2.0, 3.0) * Math.max(0.55, 1 - 0.04 * lvl()); }
       }
       break; }
     case 'reunion': {
@@ -2506,7 +2767,7 @@ function enemyMove(e, dt, dx, dz, d) {
       if (d > 14) enemyStep(e, dt, nx, nz, sp); else if (d < 8) enemyStep(e, dt, -nx, -nz, sp);
       e.cd -= dt;
       if (e.cd < 0.7 && e.cd > 0) e.tint = 0xa8ffb8;
-      if (e.cd <= 0 && e.age > 0.5) { agencySummon(e); e.cd = Math.max(4.5, 8 - G.wave * 0.2); }
+      if (e.cd <= 0 && e.age > 0.5) { agencySummon(e); e.cd = Math.max(4.5, 8 - lvl() * 0.2); }
       break; }
     case 'becario': {
       /* Da vueltas a media distancia y dispara ráfagas de tres disparos */
@@ -2517,7 +2778,7 @@ function enemyMove(e, dt, dx, dz, d) {
       if (e.burstN > 0) { e.bT -= dt; if (e.bT <= 0) { shootAtPlayer(e, rnd(-0.06, 0.06), T.dmg, 14); sfx.efire(); e.burstN--; e.bT = 0.16; } }
       else if (e.age > 0.6) {
         e.cd -= dt; if (e.cd < 0.4 && e.cd > 0) e.tint = 0xffe27a;
-        if (e.cd <= 0) { e.burstN = 3; e.bT = 0; e.cd = rnd(2.4, 3.4) * Math.max(0.6, 1 - 0.03 * roundIdx()); }
+        if (e.cd <= 0) { e.burstN = 3; e.bT = 0; e.cd = rnd(2.4, 3.4) * Math.max(0.6, 1 - 0.03 * lvl()); }
       }
       break; }
     case 'auditor': {
@@ -2525,14 +2786,14 @@ function enemyMove(e, dt, dx, dz, d) {
       if (d > 3) enemyStep(e, dt, nx, nz, sp);
       e.cd -= dt;
       if (e.cd < 0.7 && e.cd > 0) e.tint = 0xffa060;
-      if (e.cd <= 0 && e.age > 0.5) { ringShot(e, 10, T.dmg, 6); sfx.efire(); e.cd = Math.max(2.6, 4.2 - 0.1 * roundIdx()); }
+      if (e.cd <= 0 && e.age > 0.5) { ringShot(e, 10, T.dmg, 6); sfx.efire(); e.cd = Math.max(2.6, 4.2 - 0.1 * lvl()); }
       break; }
     case 'mensajero': {
       /* Mantiene distancia y lanza bombas en parábola que explotan al caer */
       if (d > 10) enemyStep(e, dt, nx, nz, sp); else if (d < 6) enemyStep(e, dt, -nx, -nz, sp); else enemyStep(e, dt, nz, -nx, sp * 0.6);
       e.cd -= dt;
       if (e.cd < 0.6 && e.cd > 0) e.tint = 0xff8a8a;
-      if (e.cd <= 0 && e.age > 0.5) { lobShot(e, T.dmg); sfx.efire(); e.cd = rnd(2.2, 3.0) * Math.max(0.6, 1 - 0.03 * roundIdx()); }
+      if (e.cd <= 0 && e.age > 0.5) { lobShot(e, T.dmg); sfx.efire(); e.cd = rnd(2.2, 3.0) * Math.max(0.6, 1 - 0.03 * lvl()); }
       break; }
     case 'mosca': {
       /* Errática: cambia de dirección cada poco */
@@ -3346,7 +3607,13 @@ function startWave(n) {
   banner((G.mode === 'survival' ? 'CONTRATOS · ' : '') + 'OLEADA ' + n, n % 9 === 0 ? 'Llega el contrato final' : (n % 3 === 0 ? 'Llega la entrevista de 7 rondas' : 'Rechaza todas las ofertas')); sfx.wave();
 }
 function startPhaseWave() {
-  var ph = PHASES[G.phase], c = ph.w[G.wip - 1], q = [], i;
+  var ph = PHASES[G.phase], last = G.wip >= ROUNDS, tpl = ph.w[G.wip > ROUNDS / 2 ? 1 : 0], q = [], i;
+  /* Cada ronda escala la plantilla: de ×0,6 en la primera a ×1,2 en la última */
+  var mul = 0.6 + 0.6 * (G.wip - 1) / (ROUNDS - 1), c = {};
+  Object.keys(tpl).forEach(function (k) { if (k !== 'boss') c[k] = Math.max(tpl[k] ? 1 : 0, Math.round(tpl[k] * mul)); });
+  if (last && tpl.boss) c.boss = tpl.boss;
+  else if (G.wip === ROUNDS / 2 && G.phase >= 2) c.boss = 'entrevista';
+  G.rSnap = { euros: G.euros, score: G.score, kills: G.kills, wip: G.wip }; saveGame(G.phase, G.wip);
   for (i = 0; i < (c.sol || 0); i++) q.push('solicitud');
   for (i = 0; i < (c.req || 0); i++) q.push('requisito');
   for (i = 0; i < (c.con || 0); i++) q.push('contrato');
@@ -3355,24 +3622,26 @@ function startPhaseWave() {
   for (i = 0; i < (c.fac || 0); i++) q.push('factura');
   for (i = 0; i < (c.caz || 0); i++) q.push('cazatalentos');
   for (i = 0; i < (c.age || 0); i++) q.push('agencia');
-  var nk2 = newKinds(G.phase * 2 + G.wip); Object.keys(nk2).forEach(function (kind) { for (var m3 = 0; m3 < nk2[kind]; m3++) q.push(kind); });
+  var nk2 = newKinds(lvl()); Object.keys(nk2).forEach(function (kind) { for (var m3 = 0; m3 < nk2[kind]; m3++) q.push(kind); });
   shuffle(q); q = scaleQ(q); if (c.boss) q.splice(Math.floor(q.length / 2), 0, c.boss);
-  G.wave = G.phase * 2 + G.wip; G.toSpawn = q; G.spawnT = 1.8; G.waveDone = false; G.waveBreak = 0;
-  banner(G.wip === 1 ? ph.name : 'RONDA FINAL', 'Fase ' + (G.phase + 1) + ' · ronda ' + G.wip + ' de 2'); sfx.wave();
-  setTimeout(function () { if (G.state === 'playing') radio(ph.radio[G.wip - 1]); }, 2600);
+  G.wave = roundIdx(); G.toSpawn = q; G.spawnT = 1.8; G.waveDone = false; G.waveBreak = 0;
+  banner(G.wip === 1 ? ph.name : (last ? 'RONDA FINAL' : 'RONDA ' + G.wip), 'Fase ' + (G.phase + 1) + ' · ronda ' + G.wip + ' de ' + ROUNDS); sfx.wave();
+  var rl = G.wip === 1 ? ph.radio[0] : (last ? ph.radio[1] : null);
+  if (rl) setTimeout(function () { if (G.state === 'playing') radio(rl); }, 2600);
+  if (G.wip === 1 && STAGE_TIPS[G.phase]) setTimeout(function () { if (G.state === 'playing') radio(STAGE_TIPS[G.phase]); }, 7000);
   scheduleRoundLines();
 }
 function updateWaves(dt) {
   var story = G.mode === 'story';
   if (G.toSpawn.length) {
     G.spawnT -= dt;
-    if (G.spawnT <= 0 && G.enemies.length < 26) { spawnAtEdge(G.toSpawn.shift()); G.spawnT = Math.max(0.25, (1.1 - G.wave * 0.07) / DF().rate); }
+    if (G.spawnT <= 0 && G.enemies.length < 26) { spawnAtEdge(G.toSpawn.shift()); G.spawnT = Math.max(0.25, (1.1 - lvl() * 0.07) / DF().rate); }
   } else if (!G.enemies.length && !G.waveDone) {
     G.waveDone = true;
     if (story) {
-      G.euros += 30;
-      if (G.wip >= 2) { G.waveBreak = 2.8; banner('FASE COMPLETADA', '+130 € de bonificación'); }
-      else { G.waveBreak = 4; banner('RONDA ' + G.wip + ' RECHAZADA', '+30 € · recoge la pizza'); var a = rnd(0, 6.283); dropPickup('pizza', P.x + Math.cos(a) * 5, P.z + Math.sin(a) * 5); }
+      G.euros += 15;
+      if (G.wip >= ROUNDS) { G.waveBreak = 2.8; banner('FASE COMPLETADA', '+115 € de bonificación'); }
+      else { G.waveBreak = 3; banner('RONDA ' + G.wip + ' RECHAZADA', '+15 € · recoge la pizza'); var a = rnd(0, 6.283); dropPickup('pizza', P.x + Math.cos(a) * 3, P.z + Math.sin(a) * 3); }
     } else {
       G.waveBreak = 4; G.score += G.wave * 50;
       banner((G.mode === 'survival' ? 'CONTRATOS ' : '') + 'OLEADA ' + G.wave + ' RECHAZADA', '+' + (G.wave * 50) + ' puntos · recoge la pizza');
@@ -3382,7 +3651,7 @@ function updateWaves(dt) {
   if (G.waveDone) {
     G.waveBreak -= dt;
     if (G.waveBreak <= 0) {
-      if (story) { if (G.wip >= 2) phaseComplete(); else { G.wip++; startPhaseWave(); } }
+      if (story) { if (G.wip >= ROUNDS) phaseComplete(); else roundTalk(); }
       else startWave(G.wave + 1);
     }
   }
@@ -3422,11 +3691,11 @@ function clearWorld() {
 }
 function resetPlayerState() {
   G.hp = G.maxHp; G.reload = 0; G.fireCd = 0; G.rapid = 0; G.shield = 0; G.combo = 0; G.comboT = 0; G.hurtT = 0; G.shake = 0; G.lowWarn = false;
-  P.x = 0; P.z = 0; P.y = 0; P.vx = 0; P.vz = 0; P.vy = 0; P.yaw = 0; P.pitch = 0; P.yawT = 0; P.pitchT = 0; P.lookVx = 0; P.lookVy = 0; P.swayX = 0; P.swayY = 0; P.bobAmp = 0;
+  P.ch = 0; P.x = 0; P.z = 0; P.y = 0; P.vx = 0; P.vz = 0; P.vy = 0; P.yaw = 0; P.pitch = 0; P.yawT = 0; P.pitchT = 0; P.lookVx = 0; P.lookVy = 0; P.swayX = 0; P.swayY = 0; P.bobAmp = 0;
   resetAlly(); canvas.classList.remove('dead');
 }
-function saveGame(phase) {
-  try { localStorage.setItem('nini-save', JSON.stringify({ phase: phase, euros: G.euros, owned: G.owned, upg: G.upg, score: G.score, kills: G.kills })); } catch (e) {}
+function saveGame(phase, wip) {
+  try { localStorage.setItem('nini-save', JSON.stringify({ phase: phase, wip: wip || 1, euros: G.euros, owned: G.owned, upg: G.upg, score: G.score, kills: G.kills })); } catch (e) {}
 }
 function loadSave() {
   try { var s = JSON.parse(localStorage.getItem('nini-save') || 'null'); if (s && typeof s.phase === 'number' && s.phase >= 0 && s.phase < PHASES.length) return s; } catch (e) {}
@@ -3511,22 +3780,29 @@ function startStory(fresh) {
   initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
+  G.startWip = s && s.wip > 1 && s.wip <= ROUNDS ? s.wip : 1;
   if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = s.owned || { grapadora: 1 }; G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
   else { G.phase = 0; G.euros = 0; G.owned = { grapadora: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = 0; G.kills = 0; clearSave(); }
-  enterPhase(true);
+  enterPhase(G.startWip === 1);
 }
 function enterPhase(withIntro) {
   clearWorld(); applyStats(); initAmmo();
   if (!G.owned[G.wcur]) G.wcur = 'grapadora';
   resetPlayerState(); applyTheme(G.phase);
-  if (withIntro) { G.euroSnap = G.euros; G.scoreSnap = G.score; G.killSnap = G.kills; saveGame(G.phase); }
+  if (withIntro) { G.euroSnap = G.euros; G.scoreSnap = G.score; G.killSnap = G.kills; saveGame(G.phase, 1); }
   G.state = 'dialog'; selectGun(G.wcur); updateNpcs();
   if (withIntro) showDialog(PHASES[G.phase].intro, playPhase); else playPhase();
 }
 function playPhase() {
   rebuildArena(G.phase);
-  showOnly(''); $('hud').hidden = false; G.state = 'playing'; G.wip = 1; selectGun(G.wcur);
+  showOnly(''); $('hud').hidden = false; G.state = 'playing'; G.wip = G.startWip || 1; G.startWip = 1; selectGun(G.wcur);
   startPhaseWave(); requestLock(); toast(MAPS[G.mapId].name + ' · Ronda ' + roundIdx());
+}
+function roundTalk() {
+  var lines = (ROUND_TALK[G.phase] || [])[G.wip - 1];
+  function next() { G.wip++; showOnly(''); $('hud').hidden = false; G.state = 'playing'; selectGun(G.wcur); startPhaseWave(); requestLock(); }
+  if (!lines) { next(); return; }
+  mouseDown = false; showDialog(lines, next);
 }
 function phaseComplete() {
   G.state = 'dialog'; G.euros += 100; mouseDown = false; clearWorld();
@@ -3587,10 +3863,10 @@ function gameOver() {
   $('oKills').textContent = G.kills; $('oWave').textContent = story ? (G.phase + 1) : G.wave; $('oScore').textContent = G.score; $('oBest').textContent = best;
   $('oWaveLab').textContent = story ? 'Fase alcanzada' : 'Oleada alcanzada';
   $('oRank').textContent = rankFor(G.score); $('oNew').hidden = !isNew;
-  publishScore({ name: loadName(), score: G.score, kills: G.kills, round: story ? G.phase * 2 + G.wip : G.wave, mode: story ? 'story' : 'survival' });
+  publishScore({ name: loadName(), score: G.score, kills: G.kills, round: story ? roundIdx() : G.wave, mode: story ? 'story' : 'survival' });
   $('dthImg').src = c.img; $('dthImg').alt = c.name; $('dthName').textContent = c.name; $('dthText').textContent = q.t;
-  $('btnAgain').textContent = story ? 'REINTENTAR FASE' : 'VOLVER A SER NINI';
-  $('overMsg').textContent = story ? 'Una oferta te ha alcanzado. Recuperas el dinero de antes de la fase y vuelves a intentarlo.' : 'Una oferta te ha alcanzado. Vuelves a la oficina el lunes a las 8:00.';
+  $('btnAgain').textContent = story ? 'REINTENTAR RONDA' : 'VOLVER A SER NINI';
+  $('overMsg').textContent = story ? 'Una oferta te ha alcanzado. Recuperas el dinero de antes de la ronda ' + G.wip + ' y vuelves a intentarla.' : 'Una oferta te ha alcanzado. Vuelves a la oficina el lunes a las 8:00.';
   el.bossBar.hidden = true; canvas.classList.add('dead');
   WORDER.forEach(function (n) { guns[n].visible = false; });
   setTimeout(function () {
@@ -3602,12 +3878,15 @@ function gameOver() {
   }, 1300);
 }
 function retry() {
-  if (G.mode === 'story') { G.euros = G.euroSnap; G.score = G.scoreSnap; G.kills = G.killSnap; enterPhase(false); }
+  if (G.mode === 'story') {
+    var rs = G.rSnap || { euros: G.euroSnap, score: G.scoreSnap, kills: G.killSnap, wip: 1 };
+    G.euros = rs.euros; G.score = rs.score; G.kills = rs.kills; G.startWip = rs.wip; enterPhase(false);
+  }
   else startSurvival();
 }
 function refreshMenu() {
   var s = loadSave();
-  $('btnStory').textContent = s ? 'CONTINUAR · FASE ' + (s.phase + 1) : 'MODO HISTORIA';
+  $('btnStory').textContent = s ? 'CONTINUAR · FASE ' + (s.phase + 1) + (s.wip > 1 ? ' · RONDA ' + s.wip : '') : 'MODO HISTORIA';
   $('btnNew').hidden = !s;
   $('bestLine').textContent = best ? 'Mejor puntuación: ' + best : 'Todavía no has rechazado ninguna oferta.';
 }
@@ -3681,7 +3960,7 @@ $('ovShop').addEventListener('click', function (e) {
 /* ---------------- Cámara y jugador ---------------- */
 function applyCamera() {
   var bobY = Math.sin(P.bob) * 0.045 * P.bobAmp, bobR = Math.sin(P.bob * 0.5) * 0.004 * P.bobAmp;
-  camera.position.set(P.x, 1.7 + P.y + bobY - (P.dip || 0), P.z);
+  camera.position.set(P.x, 1.7 + P.y + bobY - (P.dip || 0) - 0.72 * (P.ch || 0), P.z);
   /* Temblor continuo (ondas superpuestas) en lugar de valores aleatorios en cada fotograma */
   var sh = G.shake > 0 ? Math.min(G.shake, 0.6) * 0.05 : 0, t = G.t;
   var sx = sh ? (Math.sin(t * 41) + Math.sin(t * 67 + 1.3) * 0.5) * sh : 0;
@@ -3697,14 +3976,17 @@ function updatePlayer(dt) {
   var fw = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), rt = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
   var len = Math.hypot(fw, rt) || 1; fw /= len; rt /= len;
   var sprint = keys.ShiftLeft || keys.ShiftRight;
-  var speed = (sprint ? 8 : 5.2) * (1 + 0.08 * G.upg.speed);
+  var crouch = !!keys.KeyC && P.onGround;
+  P.ch = (P.ch || 0) + ((crouch ? 1 : 0) - (P.ch || 0)) * (1 - Math.exp(-dt * 14));
+  if (crouch) sprint = false;
+  var speed = (sprint ? 8 : 5.2) * (1 + 0.08 * G.upg.speed) * (1 - 0.45 * P.ch);
   var sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
   var tx = (-sy * fw + cy * rt) * speed, tz = (-cy * fw - sy * rt) * speed;
   /* Aceleración independiente de los FPS: arranque ágil, frenado suave y menos control en el aire */
   var input = fw !== 0 || rt !== 0, rate = P.onGround ? (input ? 13 : 9) : 3;
   var k = 1 - Math.exp(-dt * rate); P.vx += (tx - P.vx) * k; P.vz += (tz - P.vz) * k;
   var o = resolve(P.x + P.vx * dt, P.z + P.vz * dt, 0.42); P.x = o.x; P.z = o.z;
-  if (keys.Space && P.onGround) { P.vy = 6.4; P.onGround = false; }
+  if (keys.Space && P.onGround && !crouch) { P.vy = 6.4; P.onGround = false; }
   P.vy -= 18 * dt; P.y += P.vy * dt; P.dip = (P.dip || 0) * Math.exp(-dt * 9);
   if (P.y <= 0) { if (!P.onGround && P.vy < -3) P.dip = Math.min(0.18, -P.vy * 0.018); P.y = 0; P.vy = 0; P.onGround = true; }
   var moving = Math.hypot(P.vx, P.vz) > 0.5 && P.onGround;
@@ -3738,6 +4020,8 @@ function updateWeapon(dt) {
 
 function update(dt) {
   G.t += dt; updateNpcs(); updateDust(dt); if (G.state !== 'paused') updateMap(G.t, dt);
+  followRig(); updateLights(G.t, dt);
+  cellT -= dt; if (cellT <= 0) { cellT = 0.3; updateCells(false); }
   if (G.state === 'menu') { P.yaw += dt * 0.12; P.pitch = -0.03; P.yawT = P.yaw; P.pitchT = P.pitch; applyCamera(); return; }
   if (G.state === 'paused' || G.state === 'dialog' || G.state === 'shop' || G.state === 'win') return;
   if (G.state === 'over') { G.deathT += dt; deathCam(); crowdDeath(dt); updateFx(dt); G.hurtT = Math.max(0, G.hurtT - dt * 0.3); updateHud(); return; }
