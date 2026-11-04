@@ -501,16 +501,24 @@ var ARENA = [24, 36, 52, 70, 90];
 var LOC_OF_STAGE = [0, 4, 0, 4, 0];
 var curLoc = -1;
 /* Zombies: cada 8 rondas cambia de mapa (índices de MAPS) */
-var ZOMBIE_ORDER = [0, 4, 1, 2, 3];
+var ZOMBIE_ORDER = [0, 4, 1, 2, 3, 5];
 var ZOMBIE_HALF = 36;
-/* Evento de cada mapa: cambia cuántas ofertas salen, su velocidad y los pickups que sueltan */
+/* Eventos por mapa: se elige uno al azar en cada visita */
 var MAP_EVENT = {
-  0: { t: 'REUNIÓN DE VIERNES', d: 'Más ofertas de lo normal.', cnt: 1.3, spd: 1, drop: 1 },
-  4: { t: 'SIESTA DEL GATO', d: 'Menos ofertas, pero sueltan más pickups.', cnt: 0.7, spd: 1, drop: 1.6 },
-  1: { t: 'TURNO DE NOCHE', d: 'Las ofertas van más rápidas.', cnt: 1, spd: 1.3, drop: 1 },
-  2: { t: 'CAÍDA DEL SISTEMA', d: 'Menos ofertas, pero más rápidas.', cnt: 0.8, spd: 1.2, drop: 1.3 },
-  3: { t: 'FIESTA DEL CEO', d: 'Muchos pickups de bambú y pizza.', cnt: 1, spd: 1, drop: 2 }
+  0: [{ t: 'REUNIÓN DE VIERNES', d: 'Más ofertas de lo normal.', cnt: 1.3, spd: 1, drop: 1 },
+      { t: 'AUDITORÍA SORPRESA', d: 'Auditores por todas partes, y van más rápidos.', cnt: 1.1, spd: 1.25, drop: 0.8 }],
+  4: [{ t: 'SIESTA DEL GATO', d: 'Menos ofertas, pero sueltan más pickups.', cnt: 0.7, spd: 1, drop: 1.6 },
+      { t: 'VISITA DE LA SUEGRA', d: 'Preguntas sobre el trabajo. Muchas ofertas.', cnt: 1.25, spd: 1.1, drop: 1 }],
+  1: [{ t: 'TURNO DE NOCHE', d: 'Las ofertas van más rápidas.', cnt: 1, spd: 1.3, drop: 1 },
+      { t: 'INVENTARIO', d: 'Todo el almacén cuenta cajas. Más ofertas.', cnt: 1.4, spd: 1, drop: 1 }],
+  2: [{ t: 'CAÍDA DEL SISTEMA', d: 'Menos ofertas, pero más rápidas.', cnt: 0.8, spd: 1.2, drop: 1.3 },
+      { t: 'ACTUALIZACIÓN', d: 'Todo se actualiza a la vez: ritmo rápido.', cnt: 1, spd: 1.45, drop: 1 }],
+  3: [{ t: 'FIESTA DEL CEO', d: 'Muchos pickups de bambú y pizza.', cnt: 1, spd: 1, drop: 2 },
+      { t: 'NETWORKING', d: 'Gente con tarjetas de visita. Más ofertas.', cnt: 1.2, spd: 1, drop: 1.5 }],
+  5: [{ t: 'HORA DEL CAFÉ', d: 'Café gratis: pickups por todas partes.', cnt: 1, spd: 1, drop: 2 },
+      { t: 'MICROONDAS', d: 'El microondas pita y las ofertas llegan calientes.', cnt: 0.9, spd: 1.4, drop: 1.2 }]
 };
+var curEv = MAP_EVENT[0][0];
 var evCount = 1, evSpeed = 1, evDrop = 1;
 /* Cajas misteriosas: cada mapa tiene varios puntos; la caja se mueve tras cada compra */
 var BOX_SPOTS = [
@@ -518,7 +526,8 @@ var BOX_SPOTS = [
   [[-10, 0], [10, 4], [0, -10]],
   [[-8, -6], [8, 6], [0, 9]],
   [[-9, -9], [9, 9], [0, 0]],
-  [[-8, 6], [8, -6], [0, -10]]
+  [[-8, 6], [8, -6], [0, -10]],
+  [[-8, -4], [8, 4], [0, 8]]
 ];
 /* Armas que salen en cada mapa (Zombies). La grapadora está en todos */
 var WEAPON_MAP = {
@@ -526,7 +535,8 @@ var WEAPON_MAP = {
   1: ['grapadora', 'trituradora', 'pizza', 'taladro', 'sopladora'],
   2: ['grapadora', 'leche', 'bao', 'sopladora'],
   3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora'],
-  4: ['grapadora', 'leche', 'bao', 'sopladora']
+  4: ['grapadora', 'leche', 'bao', 'sopladora'],
+  5: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro']
 };
 function weaponAllowed(k) { return G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
 function buildLoc(loc) {
@@ -534,7 +544,8 @@ function buildLoc(loc) {
   else if (loc === 1) buildWarehouse();
   else if (loc === 2) buildServers();
   else if (loc === 3) buildRooftop();
-  else buildHouse();
+  else if (loc === 4) buildHouse();
+  else buildKitchen();
 }
 /* Ambiente animado: cuatro focos del color del mapa que laten, con un destello lento */
 function ambientGlow(loc) {
@@ -566,7 +577,7 @@ function loadZombieMap(round) {
   loadLoc(loc, ZOMBIE_HALF);
   buildPerks(); buildBox(); setPerkVis(true);
   moveBoxTo(0); placeBarri();
-  var ev = MAP_EVENT[loc]; evCount = ev.cnt; evSpeed = ev.spd; evDrop = ev.drop;
+  curEv = pick(MAP_EVENT[loc]); evCount = curEv.cnt; evSpeed = curEv.spd; evDrop = curEv.drop;
   if (!weaponAllowed(G.wcur)) selectGun('grapadora');
 }
 
@@ -1086,6 +1097,12 @@ var FUNNY = [
   { k: 'grapas', name: 'GRAPADORA ROBADA', t: 'GRAPADORA ROBADA', l: ['Es de Recursos Humanos.', 'Dispara grapas a 60 km/h.', 'Sin cargador. Sin remordimiento.'], bg: '#ffe066', fg: '#2b2b2b', s: 'DEVOLVER', w: 1.0, h: 1.3, r: 0.5, hp: 2, sp: 2.6, dmg: 5, sc: 30, eu: 14, gun: { every: 1.8, dmg: 3, speed: 18, spread: 0.08 }, intro: '¡Una grapadora robada! Te dispara grapas. Eso sí es personal.' },
   { k: 'mosca', name: 'MOSCA DE PORTÁTIL', t: 'MOSCA DE PORTÁTIL', l: ['Zumba sobre el teclado.', 'Responde a todos los correos.', 'No se deja matar. Mucho.'], bg: '#dff5df', fg: '#2f6e2f', s: 'ZZZ', w: 0.8, h: 0.9, r: 0.4, hp: 1, sp: 4.8, dmg: 4, sc: 20, eu: 8, intro: '¡Una mosca de portátil! Rápida y pesada de matar. Dispara a bulto.' },
   { k: 'tupper', name: 'TUPPERWARE DEL COMPI', t: 'TUPPERWARE', l: ['Pone su nombre en la etiqueta.', 'Dentro: ensalada de 2019.', 'Lo abre en tu cara.'], bg: '#d6f0f5', fg: '#1c6b7a', s: 'CADUCADO', w: 1.3, h: 1.4, r: 0.7, hp: 8, sp: 1.4, dmg: 14, sc: 45, eu: 22, intro: '¡Un táper caducado! Lento, pero cuando se abre, duele.' },
+  { k: 'stagiario', name: 'STAGIARIO', t: 'STAGIARIO', l: ['Cobra en café y en pizza.', 'Sin nómina. Con mucha ilusión.', 'Corre a por tu CV.'], bg: '#e8f7ff', fg: '#1d5a7a', s: 'PRÁCTICAS', w: 0.9, h: 1.2, r: 0.5, hp: 2, sp: 4.6, dmg: 5, sc: 22, eu: 9, intro: '¡Un stagiario! Rápido y sin sueldo. Cuesta esquivarlo.' },
+  { k: 'reloj', name: 'CONTROL HORARIO', t: 'FICHAJE', l: ['Entrada: 9:00. Salida: nunca.', 'Tu fichaje ha sido rechazado.', 'Pitido a 14 km/h.'], bg: '#fff3c4', fg: '#5a4a00', s: 'LLEGAS TARDE', w: 1.0, h: 1.3, r: 0.5, hp: 5, sp: 1.8, dmg: 6, sc: 40, eu: 18, gun: { every: 2.0, dmg: 5, speed: 14, spread: 0.1 }, intro: '¡El control horario! Te lanza pitidos. No te quedes en línea recta.' },
+  { k: 'encuesta', name: 'ENCUESTA DE SATISFACCIÓN', t: 'ENCUESTA', l: ['¿Del 1 al 10, cuánto odias esto?', 'Responde antes de morir.', 'Sus respuestas son confidenciales.'], bg: '#f0eaff', fg: '#4a2c8a', s: 'SIN RESPUESTA', w: 1.1, h: 1.4, r: 0.55, hp: 2, sp: 2.2, dmg: 4, sc: 25, eu: 12, gun: { every: 1.6, dmg: 2, speed: 12, spread: 0.4 }, intro: '¡La encuesta de satisfacción! Lanza preguntas en abanico. Contéstalas a tiros.' },
+  { k: 'maquina', name: 'MÁQUINA DE CAFÉ', t: 'MÁQUINA DE CAFÉ', l: ['Solo tiene cápsula de descafeinado.', 'El agua hierve a 98 grados.', 'Ya no tiene garantía.'], bg: '#e5d6c5', fg: '#3a2418', s: 'AVERÍA', w: 1.2, h: 1.5, r: 0.65, hp: 9, sp: 1.3, dmg: 12, sc: 50, eu: 24, gun: { every: 3.0, dmg: 8, speed: 9, spread: 0.02 }, intro: '¡La máquina de café! Lenta y con mucho daño. Dispara vapor: no te acerques.' },
+  { k: 'coach', name: 'COACH DE VIDA', t: 'COACH', l: ['Tú puedes con todo.', 'Cree en ti (99 € al mes).', 'Dile que no a la pereza.'], bg: '#ffd6e0', fg: '#8a1d4a', s: 'NO HAY EXCUSAS', w: 1.0, h: 1.4, r: 0.55, hp: 6, sp: 2.8, dmg: 8, sc: 35, eu: 16, intro: '¡Un coach de vida! Te persigue con frases motivadoras. No le escuches.' },
+  { k: 'baja', name: 'PARTE DE BAJA MÉDICA', t: 'BAJA MÉDICA', l: ['Motivo: "me pesa la vida".', 'Recomendación: sofá y siesta.', 'Puede ser contagioso.'], bg: '#e3f5ea', fg: '#1f5f3a', s: 'APROBADA', w: 1.0, h: 1.3, r: 0.5, hp: 3, sp: 3.6, dmg: 7, sc: 30, eu: 14, gun: { every: 2.4, dmg: 3, speed: 15, spread: 0.15 }, intro: '¡Partes de baja médica! Rápidos y contagiosos a distancia.' },
   { k: 'indefinido', name: 'CONTRATO INDEFINIDO', t: 'INDEFINIDO', l: ['Sin fecha de fin.', 'Cláusula 14: no hay salida.', 'Lo firmas y ya no te vas.'], bg: '#f7f3e3', fg: '#1b1b1b', s: 'FIRMADO', w: 1.8, h: 2.2, r: 0.9, hp: 14, sp: 1.2, dmg: 16, sc: 90, eu: 40, intro: '¡Un contrato indefinido! Lento y con mucha vida. Rodéalo y no te lo firmes.' },
   { k: 'pavo', name: 'PAVO DE LA OFICINA', t: 'PAVO DE OFICINA', l: ['Ha sobrevivido a tres cenas.', 'Picotea tu carpeta.', 'Grazna a 110 decibelios.'], bg: '#f4e4c1', fg: '#6b4a1a', s: 'NAVIDAD', w: 1.0, h: 1.2, r: 0.55, hp: 4, sp: 2.9, dmg: 7, sc: 40, eu: 18, gun: { every: 2.5, dmg: 3, speed: 13, spread: 0.3 }, intro: '¡Un pavo de oficina! Graznando y picoteando. Ni te acerques a su carpeta.' }
 ];
@@ -1496,6 +1513,41 @@ function buildHouse() {
     catA.push(function (tt) { pl.position.y = 0.45 + h / 2 + Math.sin(tt * 2) * 0.03; });
   });
 }
+
+/* Cocina de la oficina: azulejos, encimeras, nevera, cafeteras, mesas y un microondas que pita */
+function buildKitchen() {
+  var fc = mkCanvas(256, 256), fx = fc.getContext('2d');
+  for (var ty = 0; ty < 4; ty++) for (var tx = 0; tx < 4; tx++) { fx.fillStyle = (tx + ty) % 2 ? '#e8edf0' : '#2a3238'; fx.fillRect(tx * 64, ty * 64, 64, 64); }
+  floorPlane(fc, [10, 10]);
+  var wc = mkCanvas(256, 256), wx = wc.getContext('2d');
+  wx.fillStyle = '#cfe6f0'; wx.fillRect(0, 0, 256, 256);
+  wx.strokeStyle = '#9fc3d1'; wx.lineWidth = 3;
+  for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) wx.strokeRect(c * 64, r * 64, 64, 64);
+  walls(new THREE.MeshLambertMaterial({ map: tex(wc, [12, 1]) }), 4.4);
+  ceilPlane(0x2b3238);
+  /* Encimeras con fregadero a lo largo de las paredes */
+  [-10, -4, 2, 8].forEach(function (x) { solid(new THREE.Mesh(BG(5.6, 1, 1.4), LM(0xd9dde0)), x, 0.5, -HALF + 1.4, 5.6, 1.4, 1); });
+  [-8, -2, 4, 10].forEach(function (x) { solid(new THREE.Mesh(BG(5.6, 1, 1.4), LM(0xd9dde0)), x, 0.5, HALF - 1.4, 5.6, 1.4, 1); });
+  /* Nevera y máquinas de café */
+  solid(new THREE.Mesh(BG(1.6, 2.6, 1.3), LM(0xe8eef2)), -HALF + 1.6, 1.3, 0, 1.6, 1.3, 2.6);
+  [[-6, -HALF + 1.2], [6, HALF - 1.2]].forEach(function (p) {
+    solid(new THREE.Mesh(BG(0.9, 1.1, 0.7), LM(0x3a2a22)), p[0], 1.05, p[1], 0.9, 0.7, 1.1);
+    var led = glow('255,80,60', p[0], 1.5, p[1] + (p[1] < 0 ? 0.4 : -0.4), 0.4, 0.4, 0.8);
+    var ph = p[0] * 0.3; anim(function (t) { led.material.opacity = 0.4 + 0.5 * Math.max(0, Math.sin(t * 3 + ph)); });
+  });
+  /* Mesas redondas con sillas */
+  [[-6, 6], [6, 6], [0, -2]].forEach(function (p) {
+    solid(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.12, 14), LM(0xf1efe6)), p[0], 0.9, p[1], 2.4, 2.4, 0.9);
+    put(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.9, 8), LM(0x9aa3a8)), p[0], 0.45, p[1]);
+    [[1.7, 0], [-1.7, 0], [0, 1.7], [0, -1.7]].forEach(function (q) { solid(new THREE.Mesh(BG(0.5, 0.5, 0.5), LM(0x4a7aa0)), p[0] + q[0], 0.25, p[1] + q[1], 0.5, 0.5, 0.5); });
+  });
+  /* Microondas que pulsa cuando calienta */
+  var mo = dbox(0.8, 0.5, 0.6, 0x2b2f31, -2, 1.25, HALF - 1.4);
+  var mg = glow('255,170,80', -2, 1.25, HALF - 1.05, 1.0, 1.0, 0.5);
+  anim(function (t) { mg.material.opacity = 0.25 + 0.3 * Math.abs(Math.sin(t * 4)); });
+  wallSign('NO TOCAR EL CAFÉ', 'Ni el de Raúl Becas', '#8a2a2a', -HALF + 0.1, -6, Math.PI / 2, 2.4);
+  wallSign('COCINA', 'Lava tu taza', '#2b6a8a', HALF - 0.1, 6, -Math.PI / 2, 2.4);
+}
 function buildWarehouse() {
   var fc = mkCanvas(256, 256), fx = fc.getContext('2d'), i;
   fx.fillStyle = '#4b4c48'; fx.fillRect(0, 0, 256, 256);
@@ -1814,9 +1866,6 @@ function buildRooftop() {
 }
 
 MAPS = [
-  { key: 'casa', name: 'CASA DE BILAL', sub: 'Tetuán · su sofá y su gato', accent: '#d9a33b', build: 'buildHouse',
-    desc: 'Alfombras, faroles, mesas de bandeja de latón, cojines y plantas. El gato manda, y el sofá es suyo.',
-    tone: { bg: 0x1a0f08, hemi: 0xffd9a8, gnd: 0x3a2418, hI: 0.7, sun: 0xffc878, sI: 0.45, sp: [6, 24, 6], pl: 0xffb35a, pI: 0.8, pY: 4, fog: [8, 44], pk: 0.5 } },
   { key: 'oficina', name: 'OFICINA CENTRAL', sub: 'Planta 3 · el clásico', accent: '#e0382d', build: 'buildOffice',
     desc: 'Mesas, cubículos y tubos fluorescentes. Ventiladores, plantas, impresoras y papeles flotando: el campo de batalla de siempre.',
     tone: { bg: 0x0a100e, hemi: 0xcfe8d8, gnd: 0x1b2622, hI: 0.72, sun: 0xfff1dc, sI: 0.55, sp: [10, 24, 8], pl: 0xdff5e8, pI: 0.55, pY: 5, fog: [10, 52], pk: 1 } },
@@ -1828,7 +1877,13 @@ MAPS = [
     tone: { bg: 0x050a14, hemi: 0x9cc8ff, gnd: 0x0c1220, hI: 0.58, sun: 0x7aa8ff, sI: 0.32, sp: [8, 24, -10], pl: 0x6fb4ff, pI: 0.75, pY: 4.6, fog: [8, 42], pk: 0.3 } },
   { key: 'azotea', name: 'AZOTEA DEL CEO', sub: 'Ático · atardecer', accent: '#c4569a', build: 'buildRooftop',
     desc: 'Terraza al anochecer con ciudad, estrellas, jacuzzi, sofás, barbacoa y neones. Aire libre y mucha cobertura baja.',
-    tone: { bg: 0x1d1233, hemi: 0xffc3a0, gnd: 0x2a2038, hI: 0.85, sun: 0xffa868, sI: 0.9, sp: [-24, 9, 14], pl: 0xffd9a8, pI: 0.35, pY: 3.4, fog: [14, 80], pk: 0.25 } }
+    tone: { bg: 0x1d1233, hemi: 0xffc3a0, gnd: 0x2a2038, hI: 0.85, sun: 0xffa868, sI: 0.9, sp: [-24, 9, 14], pl: 0xffd9a8, pI: 0.35, pY: 3.4, fog: [14, 80], pk: 0.25 } },
+  { key: 'casa', name: 'CASA DE BILAL', sub: 'Tetuán · su sofá y su gato', accent: '#d9a33b', build: 'buildHouse',
+    desc: 'Alfombras, faroles, mesas de bandeja de latón, cojines y plantas. El gato manda, y el sofá es suyo.',
+    tone: { bg: 0x1a0f08, hemi: 0xffd9a8, gnd: 0x3a2418, hI: 0.7, sun: 0xffc878, sI: 0.45, sp: [6, 24, 6], pl: 0xffb35a, pI: 0.8, pY: 4, fog: [8, 44], pk: 0.5 } },
+  { key: 'cocina', name: 'COCINA DE LA OFICINA', sub: 'Planta 2 · café gratis', accent: '#8fd0ff', build: 'buildKitchen',
+    desc: 'Azulejos blancos, neveras, máquinas de café y un microondas que pita. Mesas redondas y mucho espacio para correr.',
+    tone: { bg: 0x0c1014, hemi: 0xe8f4ff, gnd: 0x222a30, hI: 0.75, sun: 0xffffff, sI: 0.5, sp: [0, 24, 0], pl: 0xe8f4ff, pI: 0.6, pY: 5, fog: [10, 50], pk: 0.6 } }
 ];
 function beginMap(i) {
   var m = MAPS[i]; CUR = new THREE.Group(); CUR.visible = false; scene.add(CUR);
@@ -1837,8 +1892,7 @@ function beginMap(i) {
 function buildMaps() {
   MAPS.forEach(function (m, i) {
     beginMap(i);
-    if (i === 0) { buildOffice(); officeExtras(); }
-    else if (i === 1) buildWarehouse(); else if (i === 2) buildServers(); else if (i === 3) buildRooftop(); else buildHouse();
+    buildLoc(i);
   });
 }
 function setMap(i) {
@@ -2285,6 +2339,8 @@ function newKinds(R) {
     jefe: R >= 4 ? Math.floor((R - 3) * 0.5) : 0, cita: R >= 5 ? 1 + Math.floor((R - 5) * 0.5) : 0,
     pulpo: R >= 2 ? Math.floor((R - 1) * 0.5) : 0, impresora: R >= 2 ? Math.floor((R - 1) * 0.5) : 0, lunes: R >= 3 ? Math.floor((R - 2) * 0.5) : 0,
     mosca: R >= 3 ? Math.floor((R - 2) * 0.6) : 0, pavo: R >= 4 ? Math.floor((R - 3) * 0.4) : 0, cafetera: R >= 4 ? Math.floor((R - 3) * 0.5) : 0,
+    stagiario: R >= 2 ? Math.floor((R - 1) * 0.6) : 0, reloj: R >= 3 ? Math.floor((R - 2) * 0.5) : 0, encuesta: R >= 4 ? Math.floor((R - 3) * 0.5) : 0,
+    maquina: R >= 5 ? Math.floor((R - 4) * 0.4) : 0, coach: R >= 6 ? Math.floor((R - 5) * 0.5) : 0, baja: R >= 7 ? Math.floor((R - 6) * 0.5) : 0,
     grapas: R >= 5 ? Math.floor((R - 4) * 0.5) : 0, webinar: R >= 6 ? Math.floor((R - 5) * 0.5) : 0, powerpoint: R >= 7 ? Math.floor((R - 6) * 0.5) : 0,
     tupper: R >= 8 ? Math.floor((R - 7) * 0.5) : 0, indefinido: R >= 10 ? 1 + Math.floor((R - 10) * 0.5) : 0 };
 }
@@ -3199,7 +3255,7 @@ function updateAlly(dt) {
 function startWave(n) {
   if (G.mode === 'survival') {
     var zl = ZOMBIE_ORDER[Math.floor((n - 1) / 8) % ZOMBIE_ORDER.length];
-    if (zl !== curLoc) { loadZombieMap(n); toast('MAPA · ' + MAPS[zl].name + ' · ' + MAP_EVENT[zl].t + ': ' + MAP_EVENT[zl].d); }
+    if (zl !== curLoc) { loadZombieMap(n); toast('MAPA · ' + MAPS[zl].name + ' · ' + curEv.t + ': ' + curEv.d); }
   }
   G.wave = n; var q = [], ns = 4 + n * 3, nr = n >= 2 ? Math.floor(n * 1.5) : 0, nc = n >= 4 ? Math.floor((n - 3) * 1.2) : 0;
   var extra = { correo: n >= 3 ? Math.floor((n - 1) * 0.8) : 0, reunion: n >= 4 ? Math.floor((n - 2) * 0.7) : 0, factura: n >= 5 ? Math.floor((n - 3) * 0.9) : 0,
