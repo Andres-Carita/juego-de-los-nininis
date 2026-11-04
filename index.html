@@ -365,9 +365,11 @@ body {
       <label class="sens chk" for="invA"><input type="checkbox" id="invA"><span>Invertir eje vertical</span></label>
       </div>
       <div class="menu-r">
+        <div id="mapPick" hidden>
         <h2 class="sec"><i>1</i>ELIGE EL MAPA</h2>
         <div class="maps" id="mapGrid" role="radiogroup" aria-label="Mapa"></div>
         <p class="mapdesc" id="mapDesc"></p>
+        </div>
         <p class="mapdesc" id="roundNote">La dificultad no se elige: sube sola con cada ronda. Más ofertas, más rápidas y más variadas.</p>
         <label class="sens namefield" for="nameIn"><span>Tu nombre</span><input type="text" id="nameIn" maxlength="14" placeholder="NINI ANÓNIMO" autocomplete="off"></label>
         <div class="btnrow">
@@ -2466,6 +2468,8 @@ function buildMates() {
     var label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(lc), transparent: true }));
     label.scale.set(0.9, 0.253, 1); label.position.y = 2.2; g.add(label);
     m.g = g;
+    var ringM = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.75, 32), new THREE.MeshBasicMaterial({ color: m.key === 'andres' ? 0x7fe8ff : 0xffd27a, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
+    ringM.rotation.x = -Math.PI / 2; ringM.position.y = 0.04; g.add(ringM); m.ring = ringM;
     loadCharCanvas(m.key, function (t, aspect) {
       var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
       pl.position.y = 0.88 + h / 2; g.add(pl);
@@ -2529,8 +2533,10 @@ function updateMates(dt) {
       var ex = m.tgt.x, ez = m.tgt.z, ang = Math.atan2(m.z - ez, m.x - ex) + m.side * 0.7, rr = 4.5 + m.off;
       gx = ex + Math.cos(ang) * rr; gz = ez + Math.sin(ang) * rr;
     } else {
-      gx = P.x + sy * (4.2 + m.off) + cy * 1.4 * m.side + Math.sin(G.t * 0.5 + i) * 0.4;
-      gz = P.z + cy * (4.2 + m.off) - sy * 1.4 * m.side + Math.cos(G.t * 0.4 + i) * 0.4;
+      var spread = G.enemies.length ? 1 : 1.9;
+      var fwd = (4.6 + m.off * 2) * spread, lat = (2.6 + 0.6 * i) * m.side * spread;
+      gx = P.x + sy * fwd + cy * lat + Math.sin(G.t * 0.5 + i * 2) * 0.9 * spread;
+      gz = P.z + cy * fwd - sy * lat + Math.cos(G.t * 0.4 + i * 2) * 0.9 * spread;
     }
     gx = clamp(gx, -HALF + 1, HALF - 1); gz = clamp(gz, -HALF + 1, HALF - 1);
     var dx = gx - m.x, dz = gz - m.z, dl = Math.hypot(dx, dz);
@@ -2538,6 +2544,7 @@ function updateMates(dt) {
     if (Math.hypot(P.x - m.x, P.z - m.z) > 22) { m.x = P.x + sy * 2; m.z = P.z + cy * 2; }
     var o = resolve(m.x, m.z, 0.4); m.x = o.x; m.z = o.z;
     m.g.position.set(m.x, 0, m.z);
+    if (m.ring) { var pulse = 1 + 0.12 * Math.sin(G.t * 4 + i * 2); m.ring.scale.set(pulse, pulse, 1); m.ring.material.opacity = 0.55 + 0.25 * Math.sin(G.t * 4 + i * 2); }
     /* Dispara al enemigo más cercano al alcance */
     m.cd -= dt;
     if (m.cd <= 0) {
@@ -3457,7 +3464,7 @@ function loop(now) {
 loop.last = performance.now();
 
 function init() {
-  G.mapId = lsInt('nini-map', 0, 3);
+  G.mapId = 0;
   buildWorld(); setMap(G.mapId); buildMenu();
   $('nameIn').value = loadName();
   applyStats(); initAmmo(); selectGun('grapadora'); renderWList();
