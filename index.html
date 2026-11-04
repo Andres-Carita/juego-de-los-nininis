@@ -373,7 +373,7 @@ body {
         <div class="btnrow">
         <button class="btn" id="btnStory" disabled>MODO HISTORIA</button>
         <button class="btn alt" id="btnNew" hidden>NUEVA HISTORIA</button>
-        <button class="btn ghost" id="btnSurv" disabled>SUPERVIVENCIA</button>
+        <button class="btn ghost" id="btnSurv" disabled>ZOMBIES</button>
         <button class="btn ghost" id="btnBoard">CLASIFICACIÓN</button>
       </div>
         <p class="best" id="bestLine"></p>
@@ -388,7 +388,7 @@ body {
       <h1>CLASIFICACIÓN</h1>
       <div class="btnrow">
         <button class="btn ghost" id="bTabStory" aria-pressed="true">HISTORIA</button>
-        <button class="btn ghost" id="bTabSurv" aria-pressed="false">SUPERVIVENCIA</button>
+        <button class="btn ghost" id="bTabSurv" aria-pressed="false">ZOMBIES</button>
       </div>
       <ol class="board" id="boardList"></ol>
       <p class="best" id="boardMsg"></p>
@@ -3041,15 +3041,38 @@ function loadSave() {
 }
 function clearSave() { try { localStorage.removeItem('nini-save'); } catch (e) {} }
 
+var boxG = null;
+function buildBox() {
+  if (!boxG) {
+    boxG = new THREE.Group();
+    var body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.9, 0.9), new THREE.MeshLambertMaterial({ color: 0x3d5a2a })); body.position.y = 0.45; boxG.add(body);
+    var lid = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.14, 0.96), new THREE.MeshLambertMaterial({ color: 0x6e8f3a })); lid.position.y = 0.97; boxG.add(lid);
+    var band = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.92, 0.94), new THREE.MeshLambertMaterial({ color: 0xe0382d })); band.position.y = 0.45; boxG.add(band);
+    var sign = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.3), new THREE.MeshBasicMaterial({ map: tex(posterCanvas('CAJA', '950 PUNTOS · E', '#e0382d')) }));
+    sign.position.set(0, 1.35, 0); boxG.add(sign);
+  }
+  if (!boxG.parent) scene.add(boxG);
+  boxG.visible = false;
+}
+function useBox() {
+  if (!boxG || !boxG.visible || G.mode !== 'survival' || G.state !== 'playing') return;
+  if (Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) > 2.4) return;
+  if (G.score < 950) { toast('CAJA · NECESITAS 950 PUNTOS'); sfx.empty(); return; }
+  G.score -= 950;
+  var k = pick(WORDER.filter(function (w) { return w !== G.wcur; }));
+  G.owned[k] = 1; G.ammoMap[k] = magSize(k); trySelect(k); sfx.pickup();
+  toast('CAJA · ' + WEAPONS[k].name.toUpperCase());
+}
 function startSurvival() {
   initAudio(); startHum(); clearWorld();
   seenKinds = {}; G.mode = 'survival'; G.owned = { grapadora: 1, leche: 1, trituradora: 1, pizza: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
-  startWave(1); requestLock(); toast(MAPS[G.mapId].name + ' · Ronda ' + roundIdx());
+  buildBox(); boxG.position.set(0, 0, 0); var bo = resolve(-8, -8, 1.2); boxG.position.set(bo.x, 0, bo.z); boxG.visible = true;
+  startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
 }
 function startStory(fresh) {
-  initAudio(); startHum();
+  initAudio(); startHum(); if (boxG) boxG.visible = false;
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
   if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = s.owned || { grapadora: 1 }; G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
@@ -3304,6 +3327,7 @@ window.addEventListener('keydown', function (e) {
   if (e.repeat) return;
   if (G.state === 'playing') {
     if (e.code === 'KeyR') startReload();
+    if (e.code === 'KeyE') useBox();
     if (e.code === 'KeyP') pause();
     var di = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(e.code); if (di >= 0) trySelect(WORDER[di]);
   } else if (G.state === 'paused' && e.code === 'KeyP') resume();
