@@ -545,6 +545,9 @@ var PHASES = [
     w: [{ sol: 6 }, { sol: 10 }],
     radio: [L('lefillas', 'Apunta con calma, Bilal. No gastes grapas.'), L('gato', 'Miau. Cada papel roto es una excusa menos.')],
     intro: [
+      L('aliado', 'Bilal, Andrés y Heverton han venido conmigo. Hoy rechazamos contratos juntos.'),
+      L('andres', 'Soy Andrés chan, de Bolivia. Me apunto a rechazar ofertas, con salteñas de por medio.'),
+      L('heverton', 'Heverton-erome, de Brasil. Entro en el equipo, meu amigo. Vai dar certo!'),
       L('lefillas', 'Bilal. Llevas tres días en el sofá con el móvil en la mano. Esto se acaba hoy.'),
       L('bilal', 'Sensei, solo estoy descansando. Es un descanso largo.'),
       L('gato', 'Miau. Un nini de verdad no da explicaciones. Se tumba y ya está.'),
@@ -562,9 +565,6 @@ var PHASES = [
     w: [{ sol: 8, req: 4, cor: 2 }, { sol: 8, req: 8, cor: 3 }],
     radio: [L('bucle', 'Los requisitos amarillos son rápidos. Repite: apunta, dispara, apunta.'), L('gato', 'Miau. Piden cinco años en una tecnología de dos.')],
     intro: [
-      L('andres', 'Bilal, soy Andrés chan, de Bolivia. Me han dicho que aquí caen ofertas a cámara lenta. Me apunto.'),
-      L('bilal', '¡Andrés! ¿Traes salteñas?'),
-      L('andres', 'Traigo algo mejor: puntería y hambre.'),
       L('aliado', 'Bilal, mira esa cola de requisitos. Piden cinco años de experiencia a gente de veintiuno.'),
       L('bilal', 'Pues los rechazamos todos, Nofal.'),
       L('lefillas', 'Un buen compañero ayuda, Bilal. Pero el que tiene que ir a las prácticas eres tú.'),
@@ -579,9 +579,6 @@ var PHASES = [
     w: [{ sol: 8, req: 6, con: 3, cor: 2, reu: 2 }, { sol: 10, req: 6, con: 6, cor: 3, reu: 3, fac: 2 }],
     radio: [L('nomina', 'Mis contratos tienen aguante. Firma y sufre menos.'), L('aliado', 'Tranquilo, Bilal. Mientras yo esté aquí, nadie te firma nada.')],
     intro: [
-      L('heverton', 'Bilal, meu amigo, soy Heverton-erome, de Brasil. Entro en el equipo. Mi canal de Telegram ya tiene tres seguidores.'),
-      L('bilal', 'Heverton, no me metas en canales.'),
-      L('heverton', 'Vai dar certo! Y Andrés ya cuenta sus salteñas.'),
       L('nomina', 'Soy la Directora Nómina. Tengo un contrato indefinido con tu nombre y no admite cambios.'),
       L('bilal', '¿Cuánto pagáis?'),
       L('nomina', 'Un salario competitivo. Competitivo con el de una planta.'),
@@ -619,6 +616,14 @@ var PHASES = [
       L('bilal', 'Vale. Mañana empiezo a estudiar. Bueno, el lunes.'),
       L('lefillas', 'Hoy es martes.')] }
 ];
+var ZOMBIE_INTRO = [
+  L('bilal', 'Otra vez en el sofá... Dicen que hay que trabajar. Yo no quiero trabajar.'),
+  L('aliado', 'Bilal, hoy no hay sofá. Hay contratos sueltos por toda la oficina, y vienen a por ti.'),
+  L('andres', 'En Bolivia decimos: el que no trabaja, que no coma salteñas. Pero yo te invito igual.'),
+  L('heverton', 'Bilal, meu amigo, os contratos vão nos perseguir. Corre, ou assina!'),
+  L('bilal', 'Pues los rechazamos todos. Y luego a dormir.')
+];
+function zombiesMenu() { showDialog(ZOMBIE_INTRO, startSurvival); }
 var ROUND_LINES = {
   1: [L('andres', 'Bilal, soy Andrés chan, de Bolivia. Si acabas la ronda, te invito una salteña. Si no, también.'), L('aliado', 'Bilal, sin ChatGPT no hay currículum. Recoge los globos de ChatGPT: son tu catalizador.')],
   2: [L('heverton', 'Bilal, meu amigo! Entra en mi canal de Telegram, hay ofertas y mucha gente que quiere conocerte. Vai dar certo!'), L('lefillas', 'No entres en esos canales, Bilal. Eso no es un plan de futuro.')],
@@ -1807,7 +1812,7 @@ function applyTheme(i) {
   scene.background.setHex(bg); scene.fog.color.setHex(bg); hemi.color.setHex(mixHex(m.hemi, t.hemi, k)); panelMat.color.setHex(mixHex(m.pl, t.panel, k));
 }
 function updateNpcs() {
-  var show = G.mode === 'story' && G.state !== 'menu';
+  var show = G.state !== 'menu';
   if (ally.g) ally.g.visible = show;
   for (var i = 0; i < npcs.length; i++) {
     var n = npcs[i], vis = show && G.phase >= n.minPhase && n.map === G.mapId; n.g.visible = vis;
@@ -2443,13 +2448,13 @@ var ally = { g: null, body: null, plane: null, planeY: 1.4, label: null, emote: 
   sayAt: -99, pending: null, side: 1, sideT: 6, strafe: 1, strafeT: 2, tgt: null, cover: null, coverT: 0, fetch: null,
   emoteT: 0, lookT: 0, lookA: 0, warnBack: -99, pizzaCall: -99, lowCall: false,
   info: { cnt: 0, cx: 0, cz: 0, nearD: 99, nearE: null, nearP: 99, nearPe: null, crowd: 0, pn: 0 } };
-function allyActive() { return G.mode === 'story'; }
+function allyActive() { return true; }
 
 /* Compañeros de combate: Andrés chan y Heverton-erome. Nofal ya tiene su propia IA. */
 var REVIVE_T = 6, REVIVE_R = 2.6;
 var MATES = [
-  { key: 'andres', name: 'ANDRÉS CHAN', short: 'ANDRÉS', join: 1, side: -1, off: 0.3, cdMax: 1.1, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1 },
-  { key: 'heverton', name: 'HEVERTON-EROME', short: 'HEVERTON', join: 2, side: 1, off: 0.9, cdMax: 0.9, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1.5 }
+  { key: 'andres', name: 'ANDRÉS CHAN', short: 'ANDRÉS', join: 0, side: -1, off: 0.3, cdMax: 1.1, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1 },
+  { key: 'heverton', name: 'HEVERTON-EROME', short: 'HEVERTON', join: 0, side: 1, off: 0.9, cdMax: 0.9, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1.5 }
 ];
 function buildMates() {
   MATES.forEach(function (m) {
@@ -2950,7 +2955,7 @@ function startWave(n) {
   var nk = newKinds(n); Object.keys(nk).forEach(function (kind) { for (var m2 = 0; m2 < nk[kind]; m2++) q.push(kind); });
   shuffle(q); q = scaleQ(q); if (n % 3 === 0) q.splice(Math.floor(q.length / 2), 0, n % 9 === 0 ? 'final' : 'entrevista');
   G.toSpawn = q; G.spawnT = 1.8; G.waveDone = false; G.waveBreak = 0;
-  banner('OLEADA ' + n, n % 9 === 0 ? 'Llega el contrato final' : (n % 3 === 0 ? 'Llega la entrevista de 7 rondas' : 'Rechaza todas las ofertas')); sfx.wave();
+  banner((G.mode === 'survival' ? 'CONTRATOS · ' : '') + 'OLEADA ' + n, n % 9 === 0 ? 'Llega el contrato final' : (n % 3 === 0 ? 'Llega la entrevista de 7 rondas' : 'Rechaza todas las ofertas')); sfx.wave();
 }
 function startPhaseWave() {
   var ph = PHASES[G.phase], c = ph.w[G.wip - 1], q = [], i;
@@ -2982,7 +2987,7 @@ function updateWaves(dt) {
       else { G.waveBreak = 4; banner('RONDA ' + G.wip + ' RECHAZADA', '+30 € · recoge la pizza'); var a = rnd(0, 6.283); dropPickup('pizza', P.x + Math.cos(a) * 5, P.z + Math.sin(a) * 5); }
     } else {
       G.waveBreak = 4; G.score += G.wave * 50;
-      banner('OLEADA ' + G.wave + ' RECHAZADA', '+' + (G.wave * 50) + ' puntos · recoge la pizza');
+      banner((G.mode === 'survival' ? 'CONTRATOS ' : '') + 'OLEADA ' + G.wave + ' RECHAZADA', '+' + (G.wave * 50) + ' puntos · recoge la pizza');
       var b = rnd(0, 6.283); dropPickup('pizza', P.x + Math.cos(b) * 5, P.z + Math.sin(b) * 5);
     }
   }
@@ -3428,7 +3433,7 @@ function setSens(v) { CTRL.sens = clamp(v | 0, 1, 100); syncCtrl(); }
 });
 $('btnStory').addEventListener('click', function () { startStory(false); });
 $('btnNew').addEventListener('click', function () { startStory(true); });
-$('btnSurv').addEventListener('click', startSurvival);
+$('btnSurv').addEventListener('click', zombiesMenu);
 $('btnAgain').addEventListener('click', retry);
 $('btnBoard').addEventListener('click', function () { showOnly('ovBoard'); renderBoard(); });
 $('btnBoardBack').addEventListener('click', function () { showOnly('ovStart'); });
