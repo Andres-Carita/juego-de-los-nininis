@@ -503,6 +503,15 @@ var curLoc = -1;
 /* Zombies: cada 8 rondas cambia de mapa (índices de MAPS) */
 var ZOMBIE_ORDER = [0, 4, 1, 2, 3];
 var ZOMBIE_HALF = 36;
+/* Evento de cada mapa: cambia cuántas ofertas salen, su velocidad y los pickups que sueltan */
+var MAP_EVENT = {
+  0: { t: 'REUNIÓN DE VIERNES', d: 'Más ofertas de lo normal.', cnt: 1.3, spd: 1, drop: 1 },
+  4: { t: 'SIESTA DEL GATO', d: 'Menos ofertas, pero sueltan más pickups.', cnt: 0.7, spd: 1, drop: 1.6 },
+  1: { t: 'TURNO DE NOCHE', d: 'Las ofertas van más rápidas.', cnt: 1, spd: 1.3, drop: 1 },
+  2: { t: 'CAÍDA DEL SISTEMA', d: 'Menos ofertas, pero más rápidas.', cnt: 0.8, spd: 1.2, drop: 1.3 },
+  3: { t: 'FIESTA DEL CEO', d: 'Muchos pickups de bambú y pizza.', cnt: 1, spd: 1, drop: 2 }
+};
+var evCount = 1, evSpeed = 1, evDrop = 1;
 /* Cajas misteriosas: cada mapa tiene varios puntos; la caja se mueve tras cada compra */
 var BOX_SPOTS = [
   [[-8, -8], [8, -6], [-6, 10]],
@@ -557,6 +566,7 @@ function loadZombieMap(round) {
   loadLoc(loc, ZOMBIE_HALF);
   buildPerks(); buildBox(); setPerkVis(true);
   moveBoxTo(0); placeBarri();
+  var ev = MAP_EVENT[loc]; evCount = ev.cnt; evSpeed = ev.spd; evDrop = ev.drop;
   if (!weaponAllowed(G.wcur)) selectGun('grapadora');
 }
 
@@ -1076,6 +1086,7 @@ var FUNNY = [
   { k: 'grapas', name: 'GRAPADORA ROBADA', t: 'GRAPADORA ROBADA', l: ['Es de Recursos Humanos.', 'Dispara grapas a 60 km/h.', 'Sin cargador. Sin remordimiento.'], bg: '#ffe066', fg: '#2b2b2b', s: 'DEVOLVER', w: 1.0, h: 1.3, r: 0.5, hp: 2, sp: 2.6, dmg: 5, sc: 30, eu: 14, gun: { every: 1.8, dmg: 3, speed: 18, spread: 0.08 }, intro: '¡Una grapadora robada! Te dispara grapas. Eso sí es personal.' },
   { k: 'mosca', name: 'MOSCA DE PORTÁTIL', t: 'MOSCA DE PORTÁTIL', l: ['Zumba sobre el teclado.', 'Responde a todos los correos.', 'No se deja matar. Mucho.'], bg: '#dff5df', fg: '#2f6e2f', s: 'ZZZ', w: 0.8, h: 0.9, r: 0.4, hp: 1, sp: 4.8, dmg: 4, sc: 20, eu: 8, intro: '¡Una mosca de portátil! Rápida y pesada de matar. Dispara a bulto.' },
   { k: 'tupper', name: 'TUPPERWARE DEL COMPI', t: 'TUPPERWARE', l: ['Pone su nombre en la etiqueta.', 'Dentro: ensalada de 2019.', 'Lo abre en tu cara.'], bg: '#d6f0f5', fg: '#1c6b7a', s: 'CADUCADO', w: 1.3, h: 1.4, r: 0.7, hp: 8, sp: 1.4, dmg: 14, sc: 45, eu: 22, intro: '¡Un táper caducado! Lento, pero cuando se abre, duele.' },
+  { k: 'indefinido', name: 'CONTRATO INDEFINIDO', t: 'INDEFINIDO', l: ['Sin fecha de fin.', 'Cláusula 14: no hay salida.', 'Lo firmas y ya no te vas.'], bg: '#f7f3e3', fg: '#1b1b1b', s: 'FIRMADO', w: 1.8, h: 2.2, r: 0.9, hp: 14, sp: 1.2, dmg: 16, sc: 90, eu: 40, intro: '¡Un contrato indefinido! Lento y con mucha vida. Rodéalo y no te lo firmes.' },
   { k: 'pavo', name: 'PAVO DE LA OFICINA', t: 'PAVO DE OFICINA', l: ['Ha sobrevivido a tres cenas.', 'Picotea tu carpeta.', 'Grazna a 110 decibelios.'], bg: '#f4e4c1', fg: '#6b4a1a', s: 'NAVIDAD', w: 1.0, h: 1.2, r: 0.55, hp: 4, sp: 2.9, dmg: 7, sc: 40, eu: 18, gun: { every: 2.5, dmg: 3, speed: 13, spread: 0.3 }, intro: '¡Un pavo de oficina! Graznando y picoteando. Ni te acerques a su carpeta.' }
 ];
 function makeFunny(f) {
@@ -2189,7 +2200,7 @@ function spawnEnemy(kind, x, z) {
   if (T.boss) { var aura = new THREE.Sprite(auraMat); aura.scale.set(T.w * 2.4, T.h * 1.7, 1); aura.position.set(0, T.h / 2 + 0.35, -0.3); g.add(aura); }
   g.position.set(x, 0, z); g.scale.setScalar(0.01); scene.add(g);
   var dfc = DF(), hs = (T.boss ? 1 : 1 + 0.05 * Math.max(0, G.wave - 3)) * dfc.hp, ss = (1 + Math.min(0.3, 0.02 * G.wave)) * dfc.spd;
-  var e = { kind: kind, T: T, g: g, paper: paper, mat: mat, x: x, z: z, hp: T.hp * hs, maxHp: T.hp * hs, atk: 0.5, flash: 0, age: 0, phase: rnd(0, 6), speed: T.speed * rnd(0.9, 1.12) * ss, bossT: 5,
+  var e = { kind: kind, T: T, g: g, paper: paper, mat: mat, x: x, z: z, hp: T.hp * hs, maxHp: T.hp * hs, atk: 0.5, flash: 0, age: 0, phase: rnd(0, 6), speed: T.speed * rnd(0.9, 1.12) * ss * (G.mode === 'survival' ? evSpeed : 1), bossT: 5,
     tint: 0xffffff, st: '', stT: 0, cd: rnd(1.2, 2.8) + ((kind === 'cazatalentos' || kind === 'agencia') ? 2 : 0), dir: Math.random() < 0.5 ? 1 : -1, dirT: rnd(1, 3), ax: 0, az: 0, hit: false, fuse: 0, boost: 0, shotT: rnd(2.5, 4) };
   paper.userData.enemy = e; G.enemies.push(e); introEnemy(kind); tmpV.set(x, 0.4, z); sparkBurst(tmpV, sparkMat, 6, 2.2, 1); return e;
 }
@@ -2218,9 +2229,9 @@ function killEnemy(e, byAlly) {
   sfx.kill(); stampFx();
   if (byAlly) { ally.kills++; if (ally.kills % 7 === 0) radio(L('aliado', pick(ALLY_LINES))); }
   if (T.boss) { dropPickup('pizza', e.x - 1, e.z); dropPickup('subsidio', e.x + 1, e.z); }
-  else if (Math.random() < 0.14 * DF().drop) dropPickup(pick(['pizza', 'pizza', 'cafe', 'subsidio']), e.x, e.z);
+  else if (Math.random() < 0.14 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(pick(['pizza', 'pizza', 'cafe', 'subsidio']), e.x, e.z);
   if ((e.kind === 'cv' || e.kind === 'carta') && Math.random() < 0.35) dropPickup('chatgpt', e.x, e.z);
-  if (Math.random() < 0.06 * DF().drop) dropPickup('bambu', e.x, e.z);
+  if (Math.random() < 0.06 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup('bambu', e.x, e.z);
 }
 function hurtPlayer(d) {
   if (G.shield > 0 || G.state !== 'playing') return;
@@ -2275,7 +2286,7 @@ function newKinds(R) {
     pulpo: R >= 2 ? Math.floor((R - 1) * 0.5) : 0, impresora: R >= 2 ? Math.floor((R - 1) * 0.5) : 0, lunes: R >= 3 ? Math.floor((R - 2) * 0.5) : 0,
     mosca: R >= 3 ? Math.floor((R - 2) * 0.6) : 0, pavo: R >= 4 ? Math.floor((R - 3) * 0.4) : 0, cafetera: R >= 4 ? Math.floor((R - 3) * 0.5) : 0,
     grapas: R >= 5 ? Math.floor((R - 4) * 0.5) : 0, webinar: R >= 6 ? Math.floor((R - 5) * 0.5) : 0, powerpoint: R >= 7 ? Math.floor((R - 6) * 0.5) : 0,
-    tupper: R >= 8 ? Math.floor((R - 7) * 0.5) : 0 };
+    tupper: R >= 8 ? Math.floor((R - 7) * 0.5) : 0, indefinido: R >= 10 ? 1 + Math.floor((R - 10) * 0.5) : 0 };
 }
 function ringShot(e, n, dmg, speed) {
   var cy = e.T.h / 2 + 0.35, off = rnd(0, 6.283);
@@ -3188,7 +3199,7 @@ function updateAlly(dt) {
 function startWave(n) {
   if (G.mode === 'survival') {
     var zl = ZOMBIE_ORDER[Math.floor((n - 1) / 8) % ZOMBIE_ORDER.length];
-    if (zl !== curLoc) { loadZombieMap(n); toast('CAMBIO DE MAPA · ' + MAPS[zl].name); }
+    if (zl !== curLoc) { loadZombieMap(n); toast('MAPA · ' + MAPS[zl].name + ' · ' + MAP_EVENT[zl].t + ': ' + MAP_EVENT[zl].d); }
   }
   G.wave = n; var q = [], ns = 4 + n * 3, nr = n >= 2 ? Math.floor(n * 1.5) : 0, nc = n >= 4 ? Math.floor((n - 3) * 1.2) : 0;
   var extra = { correo: n >= 3 ? Math.floor((n - 1) * 0.8) : 0, reunion: n >= 4 ? Math.floor((n - 2) * 0.7) : 0, factura: n >= 5 ? Math.floor((n - 3) * 0.9) : 0,
@@ -3197,6 +3208,10 @@ function startWave(n) {
   Object.keys(extra).forEach(function (kind) { for (var m = 0; m < extra[kind]; m++) q.push(kind); });
   var nk = newKinds(n); Object.keys(nk).forEach(function (kind) { for (var m2 = 0; m2 < nk[kind]; m2++) q.push(kind); });
   shuffle(q); q = scaleQ(q); if (n % 3 === 0) q.splice(Math.floor(q.length / 2), 0, n % 9 === 0 ? 'final' : 'entrevista');
+  if (G.mode === 'survival') {
+    if (evCount > 1) { var extra = Math.round(q.length * (evCount - 1)); for (var xi = 0; xi < extra; xi++) q.push('solicitud'); shuffle(q); }
+    else if (evCount < 1) q = q.slice(0, Math.max(3, Math.round(q.length * evCount)));
+  }
   G.toSpawn = q; G.spawnT = 1.8; G.waveDone = false; G.waveBreak = 0;
   banner((G.mode === 'survival' ? 'CONTRATOS · ' : '') + 'OLEADA ' + n, n % 9 === 0 ? 'Llega el contrato final' : (n % 3 === 0 ? 'Llega la entrevista de 7 rondas' : 'Rechaza todas las ofertas')); sfx.wave();
 }
