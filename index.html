@@ -518,7 +518,9 @@ var CHARS = {
   bucle: { name: 'Bucle-sama', role: 'Sensei de prácticas', img: svgURI(SVG_BUCLE) },
   nomina: { name: 'Directora Nómina', role: 'Recursos Humanos', img: svgURI(SVG_NOMINA) },
   bilal: { name: 'Bilal', role: 'Protagonista · nini en prácticas', img: 'bilal.webp' },
-  aliado: { name: 'Nofal', role: 'Aliado de Bilal', img: 'aliado.webp' }
+  aliado: { name: 'Nofal', role: 'Aliado de Bilal', img: 'aliado.webp' },
+  andres: { name: 'Andrés chan', role: 'Compi de Bolivia · salteñas', img: 'andres.webp' },
+  heverton: { name: 'Heverton-erome', role: 'Compi de Brasil · canales', img: 'heverton.webp' }
 };
 
 /* ---------------- Historia ---------------- */
@@ -596,6 +598,17 @@ var PHASES = [
       L('bilal', 'Vale. Mañana empiezo a estudiar. Bueno, el lunes.'),
       L('lefillas', 'Hoy es martes.')] }
 ];
+var ROUND_LINES = {
+  1: [L('andres', 'Bilal, soy Andrés chan, de Bolivia. Si acabas la ronda, te invito una salteña. Si no, también.'), L('aliado', 'Bilal, sin ChatGPT no hay currículum. Recoge los globos de ChatGPT: son tu catalizador.')],
+  2: [L('heverton', 'Bilal, meu amigo! Entra en mi canal de Telegram, hay ofertas y mucha gente que quiere conocerte. Vai dar certo!'), L('lefillas', 'No entres en esos canales, Bilal. Eso no es un plan de futuro.')],
+  3: [L('andres', 'Las horas extra son lo peor. Yo me como una salteña y las ignoro. Tú también puedes.'), L('aliado', 'Ojo con las horas extra, Bilal. Te piden quedarte hasta tarde por un café.')],
+  4: [L('lefillas', 'Bilal, en la ronda 5 aparecen las citas a ciegas. Son lo que más miedo te da, así que no te distraigas.'), L('heverton', 'Y cuidado con el canal de Telegram: te lleva a otro canal, y a otro canal.'), L('andres', 'Dicen en Bolivia: primero se come, después se piensa. Aquí se dispara primero.')],
+  5: [L('lefillas', 'Bilal, a las citas a ciegas no se las rechaza con grapas. Pero las grapas te ayudan a pensar.'), L('andres', 'Si te da miedo, cómete una salteña y apunta.'), L('aliado', 'Recoge ChatGPT antes de la cita. Te escribe la respuesta perfecta.')]
+};
+function scheduleRoundLines() {
+  var list = ROUND_LINES[G.wave]; if (!list || G.mode !== 'story') return;
+  list.forEach(function (line, k) { setTimeout(function () { if (G.state === 'playing' && G.wave === roundIdx()) radio(line); }, 9000 + k * 6500); });
+}
 var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los requisitos, Bilal.', 'Tú apunta. Yo grapo.', '¡Otra menos! Y sin currículum.', 'Nofal al rescate. Sin nómina.', 'Si me ofrecen contrato, lo grapo.'];
 var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La leche de Raúl Becas lleva grumos de calidad.', 'Miau. Las zapatillas de sofá corren más de lo que parece.', 'Miau. Gasta rápido, que Lefillas-san te vigila.', 'Miau. Un nini informado compra mejoras.'];
 
@@ -883,6 +896,60 @@ function makeAgencia() {
   var y = 228;
   ['Cita previa: en 3 meses', 'Traemos ofertas para ti', 'Y para tus amigos también'].forEach(function (t) { y = wrapText(x, t, 18, y, 244, 18) + 6; });
   stampMark(x, 'ABIERTO 24H', 160, 346, 24, -0.1);
+  return c;
+}
+function makeCV() {
+  var c = mkCanvas(240, 320), x = c.getContext('2d');
+  paperBase(x, 240, 320, '#fbfaf5');
+  x.fillStyle = '#1d3a5f'; x.fillRect(0, 0, 240, 46);
+  x.fillStyle = '#fbfaf5'; x.textAlign = 'center'; x.font = '26px Anton, Impact, sans-serif'; x.fillText('CV · 40 PÁGINAS', 120, 32);
+  x.textAlign = 'left'; x.fillStyle = '#14181a'; x.font = '14px "Special Elite", "Courier New", monospace';
+  var y = 80;
+  ['Experiencia: 12 becas', 'Idiomas: español y pasión', 'Habilidades: Excel y paciencia', 'Hobbies: el sofá', 'Referencias: mi gato'].forEach(function (t) { y = wrapText(x, t, 16, y, 208, 18) + 8; });
+  stampMark(x, 'PÁG. 40 DE 40', 120, 296, 20, -0.08);
+  return c;
+}
+function makeCarta() {
+  var c = mkCanvas(240, 336), x = c.getContext('2d');
+  paperBase(x, 240, 336, '#f3ead2');
+  x.fillStyle = '#14181a'; x.textAlign = 'center'; x.font = '26px Anton, Impact, sans-serif'; x.fillText('CARTA DE', 120, 44); x.fillText('MOTIVACIÓN', 120, 74);
+  x.textAlign = 'left'; x.fillStyle = '#14181a'; x.font = '14px "Special Elite", "Courier New", monospace';
+  var y = 120;
+  ['Me apasiona la oficina.', 'Soy muy proactivo (en el sofá).', 'Espero su respuesta (no voy a esperar).'].forEach(function (t) { y = wrapText(x, t, 18, y, 204, 18) + 10; });
+  stampMark(x, 'RECHAZADA', 120, 306, 24, -0.12);
+  return c;
+}
+function makeHoras() {
+  var c = mkCanvas(240, 300), x = c.getContext('2d');
+  paperBase(x, 240, 300, '#ffe9b0');
+  x.fillStyle = '#5a3d00'; x.fillRect(0, 0, 240, 50);
+  x.fillStyle = '#ffe9b0'; x.textAlign = 'center'; x.font = '28px Anton, Impact, sans-serif'; x.fillText('HORAS EXTRA', 120, 35);
+  x.textAlign = 'left'; x.fillStyle = '#14181a'; x.font = '14px "Special Elite", "Courier New", monospace';
+  var y = 92;
+  ['Lunes: 0 h', 'Martes: 2 h (se quedan con el café)', 'Viernes: 14 h', 'Pagadas en: visibilidad'].forEach(function (t) { y = wrapText(x, t, 16, y, 208, 18) + 8; });
+  stampMark(x, 'NO PAGADO', 120, 276, 24, -0.1);
+  return c;
+}
+function makeJefe() {
+  var c = mkCanvas(240, 320), x = c.getContext('2d');
+  paperBase(x, 240, 320, '#e6e2d6');
+  x.fillStyle = '#2b2b2b'; x.fillRect(0, 0, 240, 56);
+  x.fillStyle = '#e6e2d6'; x.textAlign = 'center'; x.font = '22px Anton, Impact, sans-serif'; x.fillText('¿TIENES UN MINUTO?', 120, 38);
+  drawEyes(x, 120, 128, 15, '#2b2b2b');
+  x.textAlign = 'left'; x.fillStyle = '#14181a'; x.font = '14px "Special Elite", "Courier New", monospace';
+  var y = 196;
+  ['Solo una cosita rápida.', 'Son las 21:47.', 'Lo necesito para ayer.'].forEach(function (t) { y = wrapText(x, t, 20, y, 200, 18) + 8; });
+  stampMark(x, 'URGENTE', 120, 300, 24, 0.08);
+  return c;
+}
+function makeCita() {
+  var c = mkCanvas(240, 320), x = c.getContext('2d');
+  paperBase(x, 240, 320, '#f7d6e4');
+  x.fillStyle = '#8a2a52'; x.textAlign = 'center'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('¡CITA A CIEGAS!', 120, 50);
+  x.textAlign = 'left'; x.fillStyle = '#14181a'; x.font = '14px "Special Elite", "Courier New", monospace';
+  var y = 104;
+  ['¿Nos vemos el sábado?', 'Te enseño mi colección de Excel.', 'Yo pago... a medias con mi madre.'].forEach(function (t) { y = wrapText(x, t, 16, y, 208, 18) + 10; });
+  stampMark(x, 'NO RESPONDE', 120, 296, 22, -0.1);
   return c;
 }
 function tex(canvas, rep) {
@@ -1628,7 +1695,12 @@ function buildWorld() {
     agencia: { name: 'AGENCIA DE EMPLEO', noMelee: true, w: 2.0, h: 2.6, r: 1.0, hp: 10, speed: 1.7, dmg: 10, score: 60, eur: 35, geo: new THREE.PlaneGeometry(2.0, 2.6) },
     becario: { name: 'BECARIO', w: 0.9, h: 1.2, r: 0.5, hp: 2, speed: 3.8, dmg: 6, score: 25, eur: 9, geo: new THREE.PlaneGeometry(0.9, 1.2) },
     auditor: { name: 'AUDITOR', w: 1.5, h: 2.0, r: 0.8, hp: 8, speed: 1.5, dmg: 7, score: 45, eur: 22, geo: new THREE.PlaneGeometry(1.5, 2.0) },
-    mensajero: { name: 'MENSAJERO', w: 1.1, h: 1.6, r: 0.6, hp: 3, speed: 2.8, dmg: 12, score: 35, eur: 16, geo: new THREE.PlaneGeometry(1.1, 1.6) }
+    mensajero: { name: 'MENSAJERO', w: 1.1, h: 1.6, r: 0.6, hp: 3, speed: 2.8, dmg: 12, score: 35, eur: 16, geo: new THREE.PlaneGeometry(1.1, 1.6) },
+    cv: { name: 'CV DE 40 PÁGINAS', w: 1.2, h: 1.6, r: 0.6, hp: 4, speed: 2.4, dmg: 9, score: 30, eur: 14, geo: new THREE.PlaneGeometry(1.2, 1.6) },
+    carta: { name: 'CARTA DE MOTIVACIÓN', w: 1.0, h: 1.4, r: 0.55, hp: 2, speed: 3.4, dmg: 6, score: 20, eur: 10, geo: new THREE.PlaneGeometry(1.0, 1.4) },
+    horas: { name: 'HORAS EXTRA', w: 1.0, h: 1.3, r: 0.55, hp: 2, speed: 3.6, dmg: 8, score: 25, eur: 12, geo: new THREE.PlaneGeometry(1.0, 1.3) },
+    jefe: { name: 'JEFE · ¿TIENES UN MINUTO?', w: 1.3, h: 1.8, r: 0.65, hp: 5, speed: 2.2, dmg: 12, score: 40, eur: 20, geo: new THREE.PlaneGeometry(1.3, 1.8) },
+    cita: { name: 'CITA A CIEGAS', w: 1.3, h: 1.8, r: 0.7, hp: 6, speed: 2.6, dmg: 10, score: 50, eur: 25, geo: new THREE.PlaneGeometry(1.3, 1.8) }
   };
   TEX.solicitud = [0, 1, 2].map(function (v) { return tex(makeSolicitud(v)); });
   TEX.requisito = [0, 1, 2].map(function () { return tex(makeRequisito()); });
@@ -1638,6 +1710,7 @@ function buildWorld() {
   TEX.correo = [tex(makeCorreo())]; TEX.reunion = [tex(makeReunion())]; TEX.factura = [tex(makeFactura())];
   TEX.cazatalentos = [tex(makeCazatalentos())]; TEX.agencia = [tex(makeAgencia())];
   TEX.becario = TEX.requisito; TEX.auditor = TEX.contrato; TEX.mensajero = TEX.cazatalentos;
+  TEX.cv = [tex(makeCV())]; TEX.carta = [tex(makeCarta())]; TEX.horas = [tex(makeHoras())]; TEX.jefe = [tex(makeJefe())]; TEX.cita = [tex(makeCita())];
 
   WORDER.forEach(function (k) { guns[k] = buildGun(k); });
   var fc2 = mkCanvas(64, 64), fx2 = fc2.getContext('2d');
@@ -1838,6 +1911,7 @@ function killEnemy(e, byAlly) {
   if (byAlly) { ally.kills++; if (ally.kills % 7 === 0) radio(L('aliado', pick(ALLY_LINES))); }
   if (T.boss) { dropPickup('pizza', e.x - 1, e.z); dropPickup('subsidio', e.x + 1, e.z); }
   else if (Math.random() < 0.14 * DF().drop) dropPickup(pick(['pizza', 'pizza', 'cafe', 'subsidio']), e.x, e.z);
+  if ((e.kind === 'cv' || e.kind === 'carta') && Math.random() < 0.35) dropPickup('chatgpt', e.x, e.z);
 }
 function hurtPlayer(d) {
   if (G.shield > 0 || G.state !== 'playing') return;
@@ -1857,7 +1931,12 @@ var INTRO_CALL = {
   final: '¡El contrato final! Cuando lance el anillo de cláusulas, salta.',
   becario: '¡Becarios! Van en grupo y disparan ráfagas de tres. Muévete en zigzag.',
   auditor: '¡Un auditor! Lento, pero cuando se detiene lanza un anillo de multas. Salta por encima.',
-  mensajero: '¡Mensajeros! Lanzan bombas en parábola que explotan al caer. Mira el suelo y corre.'
+  mensajero: '¡Mensajeros! Lanzan bombas en parábola que explotan al caer. Mira el suelo y corre.',
+  cv: 'Un CV de cuarenta páginas. Ninguna empresa lo leerá entero. Dispárale sin piedad.',
+  carta: 'Cartas de motivación. Son rápidas y dicen que te apasiona la oficina. Esquívalas en zigzag.',
+  horas: 'Hojas de horas extra. Son rápidas y muy pesadas. Pagadas en visibilidad, claro.',
+  jefe: '¡El jefe! Pregunta si tienes un minuto. Nunca es un minuto. Mantén la distancia.',
+  cita: '¡Una cita a ciegas! Bilal, esta es la que más miedo te da. Respira y apunta.'
 };
 function introEnemy(kind) {
   if (seenKinds[kind] || !INTRO_CALL[kind]) return;
@@ -1881,7 +1960,9 @@ function enemyStep(e, dt, vx, vz, spd) {
   e.x = o.x; e.z = o.z;
 }
 function newKinds(R) {
-  return { becario: R >= 2 ? Math.floor((R - 1) * 0.8) : 0, auditor: R >= 4 ? Math.floor((R - 3) * 0.5) : 0, mensajero: R >= 5 ? Math.floor((R - 4) * 0.6) : 0 };
+  return { becario: R >= 2 ? Math.floor((R - 1) * 0.8) : 0, auditor: R >= 4 ? Math.floor((R - 3) * 0.5) : 0, mensajero: R >= 5 ? Math.floor((R - 4) * 0.6) : 0,
+    cv: R >= 1 ? 1 + Math.floor((R - 1) * 0.6) : 0, carta: R >= 2 ? Math.floor((R - 1) * 0.6) : 0, horas: R >= 3 ? Math.floor((R - 2) * 0.7) : 0,
+    jefe: R >= 4 ? Math.floor((R - 3) * 0.5) : 0, cita: R >= 5 ? 1 + Math.floor((R - 5) * 0.5) : 0 };
 }
 function ringShot(e, n, dmg, speed) {
   var cy = e.T.h / 2 + 0.35, off = rnd(0, 6.283);
@@ -2089,7 +2170,12 @@ function updateEnemies(dt) {
 /* ---------------- Pickups ---------------- */
 function dropPickup(kind, x, z) {
   var o = resolve(x, z, 0.3), g = new THREE.Group(), body = new THREE.Group(), col;
-  if (kind === 'pizza') {
+  if (kind === 'chatgpt') {
+    col = 0x7fd6b5;
+    var cc = mkCanvas(128, 128), cx = cc.getContext('2d'); cx.fillStyle = '#16282a'; cx.fillRect(0, 0, 128, 128); cx.strokeStyle = '#7fd6b5'; cx.lineWidth = 6; cx.strokeRect(8, 8, 112, 112);
+    cx.fillStyle = '#7fd6b5'; cx.font = '34px Anton, Impact, sans-serif'; cx.textAlign = 'center'; cx.fillText('CHAT', 64, 56); cx.fillText('IA', 64, 100);
+    body.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.06), new THREE.MeshBasicMaterial({ map: tex(cc) })));
+  } else if (kind === 'pizza') {
     col = 0xffb347;
     var s = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.07, 3), new THREE.MeshLambertMaterial({ color: 0xe9a93b })); body.add(s);
     for (var i = 0; i < 3; i++) { var a = i * 2.094, pp = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.02, 10), new THREE.MeshLambertMaterial({ color: 0xb5301f })); pp.position.set(Math.sin(a) * 0.2, 0.045, Math.cos(a) * 0.2); body.add(pp); }
@@ -2118,6 +2204,7 @@ function applyPickup(p, byAlly) {
   sfx.pickup(); var who = byAlly ? 'NOFAL · ' : '';
   if (p.kind === 'pizza') { G.hp = Math.min(G.maxHp, G.hp + 30); toast(who + 'PIZZA · +30 DE NINI'); }
   else if (p.kind === 'cafe') { G.rapid = 8; toast(who + 'CAFÉ · DISPARO RÁPIDO'); }
+  else if (p.kind === 'chatgpt') { G.rapid = 10; toast(who + 'CHAT IA · CATALIZADOR · DISPARO RÁPIDO'); }
   else { G.shield = 6; toast(who + 'SUBSIDIO · INVULNERABLE'); }
   if (byAlly) setEmote('+', '#2f9e5a', 1.2);
 }
@@ -2630,6 +2717,7 @@ function startPhaseWave() {
   G.wave = G.phase * 2 + G.wip; G.toSpawn = q; G.spawnT = 1.8; G.waveDone = false; G.waveBreak = 0;
   banner(G.wip === 1 ? ph.name : 'RONDA FINAL', 'Fase ' + (G.phase + 1) + ' · ronda ' + G.wip + ' de 2'); sfx.wave();
   setTimeout(function () { if (G.state === 'playing') radio(ph.radio[G.wip - 1]); }, 2600);
+  scheduleRoundLines();
 }
 function updateWaves(dt) {
   var story = G.mode === 'story';
