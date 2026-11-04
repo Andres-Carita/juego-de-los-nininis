@@ -527,11 +527,21 @@ function buildLoc(loc) {
   else if (loc === 3) buildRooftop();
   else buildHouse();
 }
+/* Ambiente animado: cuatro focos del color del mapa que laten, con un destello lento */
+function ambientGlow(loc) {
+  var hex = MAPS[loc].accent.replace('#', ''), rgb = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)].join(',');
+  var k = HALF * 0.55;
+  [[-k, -k], [k, -k], [-k, k], [k, k]].forEach(function (p, i) {
+    var gl = glow(rgb, p[0], 3.4, p[1], 5, 5, 0.55);
+    var ph = i * 1.57;
+    anim(function (t) { gl.material.opacity = 0.3 + 0.25 * Math.sin(t * 2.2 + ph) + 0.1 * Math.sin(t * 9 + ph); });
+  });
+}
 function loadLoc(loc, half) {
   if (loc === curLoc && half === HALF) return;
   curLoc = loc; HALF = half;
   if (MAPS[loc].grp) scene.remove(MAPS[loc].grp);
-  beginMap(loc); buildLoc(loc);
+  beginMap(loc); buildLoc(loc); ambientGlow(loc);
   var sc = sunL.shadow.camera; sc.left = -HALF * 1.5; sc.right = HALF * 1.5; sc.top = HALF * 1.5; sc.bottom = -HALF * 1.5; sc.updateProjectionMatrix();
   camera.far = Math.max(120, HALF * 2.4); camera.updateProjectionMatrix();
   setMap(loc);
