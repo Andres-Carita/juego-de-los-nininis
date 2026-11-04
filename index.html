@@ -513,11 +513,11 @@ var BOX_SPOTS = [
 ];
 /* Armas que salen en cada mapa (Zombies). La grapadora está en todos */
 var WEAPON_MAP = {
-  0: ['grapadora', 'leche', 'trituradora', 'pizza'],
-  1: ['grapadora', 'trituradora', 'pizza'],
-  2: ['grapadora', 'leche', 'bao'],
-  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao'],
-  4: ['grapadora', 'leche', 'bao']
+  0: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro'],
+  1: ['grapadora', 'trituradora', 'pizza', 'taladro', 'sopladora'],
+  2: ['grapadora', 'leche', 'bao', 'sopladora'],
+  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora'],
+  4: ['grapadora', 'leche', 'bao', 'sopladora']
 };
 function weaponAllowed(k) { return G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
 function buildLoc(loc) {
@@ -704,10 +704,14 @@ var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los req
 var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La leche de Raúl Becas lleva grumos de calidad.', 'Miau. Las zapatillas de sofá corren más de lo que parece.', 'Miau. Gasta rápido, que Lefillas-san te vigila.', 'Miau. Un nini informado compra mejoras.'];
 
 /* ---------------- Armas y mejoras ---------------- */
-var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao'];
+var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora'];
 var WEAPONS = {
   grapadora: { name: 'Grapadora', short: 'Grapadora', type: 'hitscan', mag: 20, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
     desc: 'Arma inicial. Cadencia media y munición de sobra.' },
+  taladro: { name: 'Taladro de oficina', short: 'Taladro', type: 'spray', mag: 40, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
+    desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
+  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', type: 'pellets', mag: 10, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
+    desc: 'Sopla a todo el mundo hacia atrás. No hace daño, pero se nota.' },
   bao: { name: 'Bao, el panda lechero', short: 'Bao', type: 'pellets', mag: 5, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
     desc: 'Un panda que escupe leche. No se recarga con balas: alimentalo con bambú (tecla R).' },
   leche: { name: 'Leche de Raúl Becas', short: 'Leche', type: 'pellets', mag: 6, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
@@ -1119,6 +1123,9 @@ function buildGun(kind) {
     var tp = part(new THREE.BoxGeometry(0.13, 0.075, 0.4), 0xc22d27, 0, 0.025, -0.03); tp.rotation.x = 0.04;
     part(new THREE.BoxGeometry(0.07, 0.035, 0.14), 0x14181a, 0, -0.005, -0.27);
     part(new THREE.BoxGeometry(0.15, 0.1, 0.06), 0x15191a, 0, 0, 0.2);
+    part(new THREE.BoxGeometry(0.035, 0.02, 0.36), 0xb0b6b8, 0.045, 0.045, -0.02);
+    part(new THREE.BoxGeometry(0.02, 0.012, 0.3), 0x2fb8e8, -0.05, 0.035, 0.02);
+    part(new THREE.BoxGeometry(0.1, 0.14, 0.05), 0x0f1213, 0, -0.1, 0.12).rotation.x = -0.35;
     mz.position.set(0, 0, -0.36); g.add(mz); g.userData.base = [0.27, -0.25, -0.58];
   } else if (kind === 'leche') {
     var wrap = new THREE.Group(); wrap.rotation.x = -1.25; g.add(wrap);
@@ -1126,13 +1133,31 @@ function buildGun(kind) {
     part(new THREE.CylinderGeometry(0.05, 0.037, 0.17, 16), 0xfaf6e8, 0, -0.02, 0, wrap);
     part(new THREE.CylinderGeometry(0.057, 0.057, 0.03, 16), 0x4a6fa5, 0, -0.06, 0, wrap);
     [[-0.02, 0.1, 0.01], [0.02, 0.105, -0.015], [0.0, 0.11, 0.02]].forEach(function (p) { part(new THREE.SphereGeometry(0.02, 8, 6), 0xfaf6e8, p[0], p[1], p[2], wrap); });
+    part(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 8), 0x7a8a95, 0.05, -0.1, 0.02).rotation.z = 0.4;
+    part(new THREE.TorusGeometry(0.05, 0.012, 6, 12), 0x2d6fb8, 0, -0.14, 0);
     mz.position.set(0, 0.12, 0); wrap.add(mz); g.userData.base = [0.24, -0.22, -0.55];
   } else if (kind === 'trituradora') {
     part(new THREE.BoxGeometry(0.2, 0.14, 0.36), 0x3a4044, 0, -0.02, 0);
     part(new THREE.BoxGeometry(0.205, 0.03, 0.2), 0xf2c200, 0, 0.06, 0);
     part(new THREE.BoxGeometry(0.12, 0.06, 0.1), 0x14181a, 0, 0, -0.2);
     part(new THREE.BoxGeometry(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.12, 0.08);
+    part(new THREE.BoxGeometry(0.2, 0.02, 0.12), 0xf2c200, 0, 0.1, -0.1);
+    part(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 10), 0xc22d27, 0.11, -0.02, -0.12).rotation.z = Math.PI / 2;
     mz.position.set(0, 0, -0.27); g.add(mz); g.userData.base = [0.26, -0.26, -0.58];
+  } else if (kind === 'taladro') {
+    part(new THREE.BoxGeometry(0.2, 0.2, 0.34), 0xf2c200, 0, 0, 0);
+    part(new THREE.BoxGeometry(0.12, 0.26, 0.16), 0x2b2f31, 0, -0.17, 0.08).rotation.x = 0.25;
+    part(new THREE.BoxGeometry(0.08, 0.07, 0.12), 0x14181a, 0.1, 0.04, 0.1);
+    var spin = new THREE.Group(); spin.position.set(0, 0, -0.2); g.add(spin); g.userData.bit = spin;
+    var bitM = part(new THREE.CylinderGeometry(0.035, 0.035, 0.28, 8), 0xd9dde0, 0, 0, -0.12, spin); bitM.rotation.x = Math.PI / 2;
+    part(new THREE.CylinderGeometry(0.05, 0.05, 0.12, 10), 0x7a8a95, 0, 0, -0.04, spin).rotation.x = Math.PI / 2;
+    mz.position.set(0, 0, -0.3); g.add(mz); g.userData.base = [0.25, -0.24, -0.56];
+  } else if (kind === 'sopladora') {
+    part(new THREE.CylinderGeometry(0.075, 0.09, 0.5, 14), 0x2f9e5a, 0, 0, -0.1).rotation.x = Math.PI / 2;
+    part(new THREE.SphereGeometry(0.13, 12, 10), 0x1f6b3c, 0, 0.02, 0.1);
+    part(new THREE.CylinderGeometry(0.055, 0.04, 0.22, 12), 0xe0863a, 0, 0, -0.42).rotation.x = Math.PI / 2;
+    part(new THREE.BoxGeometry(0.06, 0.16, 0.06), 0x14181a, 0, -0.14, 0.02);
+    mz.position.set(0, 0, -0.56); g.add(mz); g.userData.base = [0.24, -0.23, -0.5];
   } else if (kind === 'bao') {
     var barrel = new THREE.Group(); barrel.rotation.x = Math.PI / 2; g.add(barrel);
     part(new THREE.CylinderGeometry(0.06, 0.06, 0.4, 16), 0xfaf6e8, 0, -0.02, -0.05, barrel);
@@ -1151,9 +1176,13 @@ function buildGun(kind) {
     part(new THREE.CylinderGeometry(0.065, 0.065, 0.55, 16), 0xb5301f, 0, 0, 0, tube);
     part(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 16), 0xe9a93b, 0, 0.28, 0, tube);
     part(new THREE.CylinderGeometry(0.075, 0.075, 0.08, 16), 0x2b2f31, 0, -0.26, 0, tube);
+    part(new THREE.TorusGeometry(0.075, 0.012, 6, 16), 0x14181a, 0, 0.27, 0, tube);
+    part(new THREE.BoxGeometry(0.03, 0.06, 0.2), 0x14181a, 0.07, -0.05, 0.02);
     mz.position.set(0, 0.3, 0); tube.add(mz); g.userData.base = [0.25, -0.22, -0.45];
   }
-  g.userData.muzzle = mz; g.visible = false; camera.add(g); return g;
+  g.userData.muzzle = mz; g.userData.kick = { grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2 }[kind] || 1;
+  if (kind === 'taladro' || kind === 'sopladora') g.scale.setScalar(0.72);
+  g.visible = false; camera.add(g); return g;
 }
 function loadCharCanvas(key, cb) {
   var im = new Image();
@@ -3484,8 +3513,10 @@ function updateWeapon(dt) {
   /* Balanceo del arma: sigue el giro con un ligero retraso */
   var sd = Math.exp(-dt * 9); P.swayX *= sd; P.swayY *= sd;
   var swx = clamp(P.swayX, -0.12, 0.12), swy = clamp(P.swayY, -0.12, 0.12);
-  g.position.set(b[0] + Math.sin(P.bob * 0.5) * 0.008 * P.bobAmp - swx * 0.12, b[1] - dip * 0.22 + Math.abs(Math.sin(P.bob)) * 0.01 * P.bobAmp + swy * 0.08, b[2] + G.recoil * 0.07);
-  g.rotation.set(G.recoil * 0.12 - dip * 0.8 + swy * 0.5, 0.04 + swx * 0.6, dip * 0.3 + swx * 0.4);
+  var kk = g.userData.kick || 1, jit = (G.wcur === 'trituradora' || G.wcur === 'taladro') && G.fireCd > 0 ? Math.sin(G.t * 60) * 0.006 : 0;
+  g.position.set(b[0] + Math.sin(P.bob * 0.5) * 0.008 * P.bobAmp - swx * 0.12 + jit, b[1] - dip * 0.22 + Math.abs(Math.sin(P.bob)) * 0.01 * P.bobAmp + swy * 0.08, b[2] + G.recoil * 0.07 * kk);
+  g.rotation.set(G.recoil * 0.12 * kk - dip * 0.8 + swy * 0.5, 0.04 + swx * 0.6, dip * 0.3 + swx * 0.4);
+  if (g.userData.bit) g.userData.bit.rotation.z += dt * (mouseDown && G.wcur === 'taladro' ? 45 : 6);
   if (guns.bao && guns.bao.userData.head) guns.bao.userData.head.rotation.x = -G.recoil * 0.45 + (G.reload > 0 ? Math.sin(G.t * 12) * 0.08 : 0);
   if (G.flash > 0) { G.flash -= dt; flashSprite.visible = true; flashSprite.material.rotation = rnd(0, 6); flashLight.intensity = 1.6; }
   else { flashSprite.visible = false; flashLight.intensity = 0; }
@@ -3523,7 +3554,7 @@ window.addEventListener('keydown', function (e) {
     if (e.code === 'KeyR') startReload();
     if (e.code === 'KeyE') useBox();
     if (e.code === 'KeyP') pause();
-    var di = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(e.code); if (di >= 0) trySelect(WORDER[di]);
+    var di = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'].indexOf(e.code); if (di >= 0) trySelect(WORDER[di]);
   } else if (G.state === 'paused' && e.code === 'KeyP') resume();
   if (e.code === 'KeyM') { muted = !muted; if (G.state === 'playing') toast(muted ? 'SONIDO APAGADO' : 'SONIDO ENCENDIDO'); }
 });
