@@ -1630,6 +1630,16 @@ function glow(rgb, x, y, z, sx, sy, op, parent) {
   var mat = base; if (op != null) { mat = base.clone(); mat.opacity = op; }
   var s = new THREE.Sprite(mat); s.scale.set(sx, sy, 1); return put(s, x, y, z, parent);
 }
+/* Suelo con imagen (texturas de cada mapa): mientras carga, o si falla, queda el suelo dibujado por código */
+function floorImg(mesh, url, meters) {
+  var im = new Image(), k = HALF * 2 / meters;
+  im.onload = function () {
+    var c = mkCanvas(im.naturalWidth, im.naturalHeight); c.getContext('2d').drawImage(im, 0, 0);
+    mesh.material.map = tex(c, [k, k]); mesh.material.color.setHex(0xffffff); mesh.material.needsUpdate = true;
+  };
+  im.src = url;
+  return mesh;
+}
 function floorPlane(canvas, rep) {
   if (rep) rep = [rep[0] * HALF / 24, rep[1] * HALF / 24];
   var f = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), new THREE.MeshLambertMaterial({ map: tex(canvas, rep) }));
@@ -1835,7 +1845,7 @@ function buildWarehouse() {
   for (i = 0; i < 3200; i++) { var v = 60 + Math.floor(Math.random() * 40); fx.fillStyle = 'rgba(' + v + ',' + v + ',' + (v - 4) + ',.5)'; fx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
   fx.fillStyle = 'rgba(0,0,0,.12)'; for (i = 0; i < 6; i++) fx.fillRect(Math.random() * 256, Math.random() * 256, 40, 3);
   fx.strokeStyle = 'rgba(20,20,18,.55)'; fx.lineWidth = 3; fx.strokeRect(0, 0, 256, 256);
-  floorPlane(fc, [12, 12]);
+  floorImg(floorPlane(fc, [12, 12]), 'almacen.png', 8);
   [-10, 10].forEach(function (x) { bbox(0.22, 0.012, HALF * 2 - 2, 0xd9b21e, x, 0.012, 0); });
   [-14, 14].forEach(function (z) { bbox(HALF * 2 - 2, 0.012, 0.22, 0xd9b21e, 0, 0.012, z); });
   decal(10, function (x) {
@@ -1949,7 +1959,7 @@ function buildServers() {
   fx.fillStyle = '#0d1520'; fx.fillRect(0, 0, 128, 128);
   for (i = 0; i < 700; i++) { fx.fillStyle = 'rgba(40,70,90,' + (0.15 + Math.random() * 0.2) + ')'; fx.fillRect(Math.random() * 128, Math.random() * 128, 2, 2); }
   fx.strokeStyle = '#1c5f7c'; fx.lineWidth = 3; fx.strokeRect(0, 0, 128, 128); fx.fillStyle = '#10202c'; fx.fillRect(10, 10, 108, 108);
-  floorPlane(fc, [24, 24]);
+  floorImg(floorPlane(fc, [24, 24]), 'servidores.png', 4);
   [-12, 0, 12].forEach(function (x) { bbox(0.1, 0.012, HALF * 2 - 2, 0x2fd0ff, x, 0.012, 0); });
   decal(10, function (x) {
     x.strokeStyle = 'rgba(74,208,255,.85)'; x.lineWidth = 8; x.beginPath(); x.arc(0, 0, 226, 0, 6.283); x.stroke();
@@ -2022,7 +2032,7 @@ function buildServers() {
 function buildRooftop() {
   var i, fc = mkCanvas(256, 256), fx = fc.getContext('2d');
   for (i = 0; i < 8; i++) { var b = 96 + Math.floor(Math.random() * 28); fx.fillStyle = 'rgb(' + b + ',' + Math.round(b * 0.7) + ',' + Math.round(b * 0.45) + ')'; fx.fillRect(0, i * 32, 256, 32); fx.fillStyle = '#2a1d14'; fx.fillRect(0, i * 32, 256, 3); fx.fillRect(Math.random() * 256, i * 32, 3, 32); }
-  floorPlane(fc, [10, 10]);
+  floorImg(floorPlane(fc, [10, 10]), 'azotea.png', 8);
   decal(11, function (x) {
     x.strokeStyle = 'rgba(241,239,230,.8)'; x.lineWidth = 14; x.beginPath(); x.arc(0, 0, 226, 0, 6.283); x.stroke();
     x.fillStyle = 'rgba(241,239,230,.82)'; x.font = '300px Anton, Impact, sans-serif'; x.textAlign = 'center'; x.fillText('H', 0, 100);
@@ -2246,7 +2256,7 @@ function buildOffice() {
   for (var i = 0; i < 2600; i++) { var g = 40 + Math.floor(Math.random() * 30); fx.fillStyle = 'rgba(' + g + ',' + (g + 12) + ',' + (g + 6) + ',.55)'; fx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
   fx.strokeStyle = '#1b2421'; fx.lineWidth = 4; fx.strokeRect(0, 0, 256, 256);
   var floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2, HALF * 2), new THREE.MeshLambertMaterial({ map: tex(fc, [HALF, HALF]) }));
-  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; CUR.add(floor); occluders.push(floor);
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; CUR.add(floor); occluders.push(floor); floorImg(floor, 'oficina.png', 6);
   var dc = mkCanvas(512, 512), dxx = dc.getContext('2d'); dxx.translate(256, 256);
   dxx.strokeStyle = 'rgba(224,56,45,.85)'; dxx.lineWidth = 14; dxx.beginPath(); dxx.arc(0, 0, 228, 0, 6.283); dxx.stroke();
   dxx.strokeStyle = 'rgba(241,239,230,.7)'; dxx.lineWidth = 4; dxx.beginPath(); dxx.arc(0, 0, 200, 0, 6.283); dxx.stroke();
