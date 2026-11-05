@@ -4784,6 +4784,7 @@ function netUseBox() {
   if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) { NG.r.emit('req', { t: 'box', cur: G.wcur }).catch(function () {}); return; }
   for (var i = 0; i < PERKM.length; i++) {
     var m = PERKM[i];
+    if (m.k === 'pap' && G.wcur === 'punos') continue;
     if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= perkReach(m)) {
       if (m.k === 'pap') {
         var chk = papNext(G.wcur); if (chk.err) { toast(chk.err); sfx.empty(); return; }
@@ -5181,6 +5182,7 @@ function papSign(m, lv) {
   var x = m.signC.getContext('2d');
   x.fillStyle = '#0f1412'; x.fillRect(0, 0, 512, 180); x.strokeStyle = '#e0382d'; x.lineWidth = 8; x.strokeRect(4, 4, 504, 172);
   x.textAlign = 'center'; x.fillStyle = '#f1efe6'; x.font = '50px Anton, Impact, sans-serif'; x.fillText('MEJORAS · NIVEL ' + lv, 256, 70);
+  if (G.wcur === 'punos') { x.fillStyle = '#ffb0a8'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('CAMBIA A UN ARMA', 256, 112); x.fillStyle = '#f1efe6'; x.fillText('PARA MEJORARLA', 256, 152); m.signT.needsUpdate = true; return; }
   x.fillStyle = '#ffb0a8'; x.font = '30px Anton, Impact, sans-serif';
   x.fillText((w ? w.short.toUpperCase() : '') + ' NV ' + cur + (n.lv ? ' → ' + n.lv : ''), 256, 112);
   x.fillStyle = '#f1efe6'; x.fillText(n.lv ? 'E · x' + (1.8 + 0.4 * (n.lv - 1)).toFixed(1) + ' DAÑO · ' + n.cost + ' PUNTOS' : (cur >= PAP_MAX ? 'NIVEL MÁXIMO' : 'SUBE EN LA PRÓXIMA RONDA'), 256, 152);
@@ -5219,6 +5221,7 @@ function fxRingsTick(dt) {
 }
 function buyPerk(m) {
   if (m.k === 'pap') {
+    if (G.wcur === 'punos') return; /* Los puños no entran en la máquina */
     var nx = papNext(G.wcur);
     if (nx.err) { toast(nx.err); sfx.empty(); return; }
     if (G.score < nx.cost) { toast('MEJORA · NECESITAS ' + nx.cost + ' PUNTOS'); sfx.empty(); return; }
@@ -5247,6 +5250,8 @@ function useBox() {
   }
   for (var i = 0; i < PERKM.length; i++) {
     var m = PERKM[i];
+    /* Con los puños en la mano, la máquina de mejoras ignora al jugador */
+    if (m.k === 'pap' && G.wcur === 'punos') continue;
     if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= perkReach(m)) { buyPerk(m); return; }
   }
 }
@@ -5312,6 +5317,7 @@ function pickBranch(b) {
 }
 function victory() {
   G.state = 'win'; clearSave(); if (G.score > best) { best = G.score; try { localStorage.setItem('nini-best', String(best)); } catch (e) {} }
+  if (document.pointerLockElement) document.exitPointerLock();
   $('wKills').textContent = G.kills; $('wScore').textContent = G.score; $('wBest').textContent = best; $('hud').hidden = true; showOnly('ovWin');
 }
 function pause() {
@@ -5453,6 +5459,8 @@ function renderShop() {
 }
 function openShop() {
   G.state = 'shop'; mouseDown = false; $('hud').hidden = true;
+  /* Con el puntero bloqueado (de la ronda) los clics van al canvas y no llegan a los botones de compra */
+  if (document.pointerLockElement) document.exitPointerLock();
   $('shopCat').src = CHARS.gato.img; $('catLine').textContent = pick(CAT_LINES);
   saveGame(G.phase + 1); renderShop(); showOnly('ovShop'); $('ovShop').scrollTop = 0;
 }
@@ -5525,7 +5533,9 @@ function updateWeapon(dt) {
   var sd = Math.exp(-dt * 9); P.swayX *= sd; P.swayY *= sd;
   var swx = clamp(P.swayX, -0.12, 0.12), swy = clamp(P.swayY, -0.12, 0.12);
   var kk = g.userData.kick || 1, jit = (G.wcur === 'trituradora' || G.wcur === 'taladro') && G.fireCd > 0 ? Math.sin(G.t * 60) * 0.006 : 0;
-  g.position.set(b[0] + Math.sin(P.bob * 0.5) * 0.008 * P.bobAmp - swx * 0.12 + jit, b[1] - dip * 0.22 + Math.abs(Math.sin(P.bob)) * 0.01 * P.bobAmp + swy * 0.08, b[2] + G.recoil * 0.07 * kk - pk * 0.22);
+  /* En pantalla vertical el campo de visión es estrecho: el arma se acerca al centro para no salirse del encuadre */
+  var lat = clamp(camera.aspect, 0.42, 1);
+  g.position.set(b[0] * lat + Math.sin(P.bob * 0.5) * 0.008 * P.bobAmp - swx * 0.12 + jit, b[1] - dip * 0.22 + Math.abs(Math.sin(P.bob)) * 0.01 * P.bobAmp + swy * 0.08, b[2] + G.recoil * 0.07 * kk - pk * 0.22);
   g.rotation.set(G.recoil * 0.12 * kk - dip * 0.8 - pk * 0.7 + swy * 0.5, 0.04 + swx * 0.6, dip * 0.3 + swx * 0.4);
   if (g.userData.bit) g.userData.bit.rotation.z += dt * (mouseDown && G.wcur === 'taladro' ? 45 : 6);
   if (guns.bao && guns.bao.userData.head) guns.bao.userData.head.rotation.x = -G.recoil * 0.45 + (G.reload > 0 ? Math.sin(G.t * 12) * 0.08 : 0);
