@@ -1181,17 +1181,18 @@ var MUN_INFO = {
   munS: { cat: 'secundaria', label: 'SECUNDARIA', css: '#59b8ff', hex: 0x59b8ff }
 };
 var MUN_KIND = { principal: 'munP', secundaria: 'munS' };
-var MUN_TEX = {};
+var MUN_TEX = {}, MUN_MAT = {};
 /* Arma que gasta munición de reserva (no los puños ni Bao) */
 function usesAmmo(k) { return WEAPONS[k].type !== 'melee' && k !== 'bao' && (WEAPONS[k].maxReserve | 0) > 0; }
 function ammoOf(k) { return (G.ammoMap[k] | 0) + (G.reserve[k] | 0); }
 /* Arma nueva o de caja: cargador lleno y, si no tenía reserva, su reserva inicial */
 function refillWeapon(k) { G.ammoMap[k] = magSize(k); if (usesAmmo(k)) G.reserve[k] = Math.max(G.reserve[k] | 0, WEAPONS[k].reserve | 0); }
+/* Armas de una categoría que el jugador tiene y gastan munición de reserva */
+function ammoWeaponsIn(c) { return allKeys().filter(function (k) { return catOf(k) === c && G.owned[k] && usesAmmo(k); }); }
 /* Reparte un pickup de munición entre las armas de su categoría que el jugador tiene. Devuelve cuántas subieron */
 function giveAmmo(c) {
   var n = 0;
-  allKeys().forEach(function (k) {
-    if (catOf(k) !== c || !G.owned[k] || !usesAmmo(k)) return;
+  ammoWeaponsIn(c).forEach(function (k) {
     var before = G.reserve[k] | 0, after = Math.min(WEAPONS[k].maxReserve, before + AMMO_PICK[c]);
     G.reserve[k] = after; if (after > before) n++;
   });
@@ -1210,11 +1211,12 @@ function starvedKind() {
   return ammoOf(k) === 0 ? MUN_KIND[catOf(k)] : null;
 }
 /* Al morir un enemigo: munición de una categoría que el jugador tiene, con probabilidad que escala con DF().drop.
-   Si el arma en mano está vacía, el siguiente enemigo la suelta seguro (sin acumular más de un pickup de ese tipo). */
+   Si el arma en mano está vacía, el siguiente enemigo la suelta seguro. Nunca hay más de un pickup de cada tipo en el suelo. */
+function onFloor(kind) { return G.pickups.some(function (p) { return p.kind === kind; }); }
 function dropAmmo(x, z) {
   var need = starvedKind();
-  if (need) { if (!G.pickups.some(function (p) { return p.kind === need; })) dropPickup(need, x, z); return; }
-  var cats = CATS.filter(function (c) { return MUN_KIND[c] && allKeys().some(function (k) { return catOf(k) === c && G.owned[k] && usesAmmo(k); }); });
+  if (need) { if (!onFloor(need)) dropPickup(need, x, z); return; }
+  var cats = CATS.filter(function (c) { return MUN_KIND[c] && !onFloor(MUN_KIND[c]) && ammoWeaponsIn(c).length; });
   if (cats.length && Math.random() < AMMO_DROP * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(MUN_KIND[pick(cats)], x, z);
 }
 /* Caja de munición con su etiqueta (una textura por categoría, reutilizada) */
@@ -1229,7 +1231,7 @@ function munCrate(kind) {
     x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('+' + AMMO_PICK[mi.cat] + ' POR ARMA', 128, 234, 236);
     MUN_TEX[kind] = tex(c);
   }
-  return new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ map: MUN_TEX[kind] }));
+  return new THREE.Mesh(BG(0.5, 0.5, 0.5), MUN_MAT[kind] || (MUN_MAT[kind] = new THREE.MeshBasicMaterial({ map: MUN_TEX[kind] })));
 }
 
 /* ---------------- Audio ---------------- */
@@ -3228,7 +3230,7 @@ function killEnemy(e, byAlly) {
   if (T.boss) { dropPickup('pizza', e.x - 1, e.z); dropPickup('subsidio', e.x + 1, e.z); }
   else if (Math.random() < 0.14 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(pick(['pizza', 'pizza', 'cafe', 'subsidio']), e.x, e.z);
   if ((e.kind === 'cv' || e.kind === 'carta') && Math.random() < 0.35) dropPickup('chatgpt', e.x, e.z);
-  if (Math.random() < 0.06 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup('bambu', e.x, e.z);
+  if (!onFloor('bambu') && Math.random() < 0.06 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup('bambu', e.x, e.z);
   dropAmmo(e.x, e.z);
 }
 function hurtPlayer(d) {
@@ -3785,6 +3787,8 @@ function dropPickup(kind, x, z) {
 }
 function allyWants(p) {
   if (p.kind === 'pizza') return G.hp < G.maxHp - 10;
+  /* Munición: Lefal solo la recoge si hay alguna arma de esa categoría con reserva sin llenar */
+  if (MUN_INFO[p.kind]) return ammoWeaponsIn(MUN_INFO[p.kind].cat).some(function (k) { return (G.reserve[k] | 0) < WEAPONS[k].maxReserve; });
   return G.enemies.length > 0;
 }
 function applyPickup(p, byAlly) {
@@ -3793,7 +3797,7 @@ function applyPickup(p, byAlly) {
   else if (p.kind === 'cafe') { G.rapid = 8; toast(who + 'CAFÉ · DISPARO RÁPIDO'); }
   else if (p.kind === 'bambu') { G.bambu = Math.min(5, (G.bambu || 0) + 1); toast(who + 'BAMBÚ · ALIMENTO DE BAO'); }
   else if (p.kind === 'chatgpt') { G.rapid = 10; toast(who + 'CHAT IA · CATALIZADOR · DISPARO RÁPIDO'); }
-  else if (MUN_INFO[p.kind]) { var mc = MUN_INFO[p.kind].cat, got = giveAmmo(mc); toast(who + 'MUNICIÓN ' + CAT_NAME[mc].toUpperCase() + (got ? ' · +' + AMMO_PICK[mc] + ' POR ARMA' : ' · RESERVAS LLENAS')); }
+  else if (MUN_INFO[p.kind]) { var mc = MUN_INFO[p.kind].cat, got = giveAmmo(mc); toast(who + 'MUNICIÓN ' + CAT_NAME[mc].toUpperCase() + (got ? ' · +' + AMMO_PICK[mc] + ' POR ARMA' : ammoWeaponsIn(mc).length ? ' · RESERVAS LLENAS' : ' · NO TIENES ARMA DE ESTA CATEGORÍA')); }
   else { G.shield = 6; toast(who + 'SUBSIDIO · INVULNERABLE'); }
   if (byAlly) setEmote('+', '#2f9e5a', 1.2);
 }
@@ -5015,7 +5019,7 @@ function netOnSnap(msg) {
   });
   var sp = {};
   (Array.isArray(d.pk) ? d.pk : []).forEach(function (r) {
-    var id = r[0]; if (typeof id !== 'number' || ['pizza', 'cafe', 'subsidio', 'bambu', 'chatgpt'].indexOf(r[1]) < 0) return; sp[id] = 1;
+    var id = r[0]; if (typeof id !== 'number' || ['pizza', 'cafe', 'subsidio', 'bambu', 'chatgpt', 'munP', 'munS'].indexOf(r[1]) < 0) return; sp[id] = 1;
     if (!NG.pks[id]) { dropPickup(r[1], +r[2] || 0, +r[3] || 0); var p = G.pickups.pop(); p.id = id; NG.pks[id] = p; }
   });
   Object.keys(NG.pks).forEach(function (id) { if (!sp[id]) { scene.remove(NG.pks[id].g); delete NG.pks[id]; } });
@@ -5448,7 +5452,7 @@ function startOwned(o) { var r = { grapadora: 1, punos: 1 }; if (o) for (var k i
 function startSurvival() {
   initAudio(); startHum(); clearWorld();
   G.perks = {}; G.pap = {}; papSeen = 0; papKey = '';
-  seenKinds = {}; G.mode = 'survival'; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
+  seenKinds = {}; G.mode = 'survival'; G.bambu = 0; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
   loadZombieMap(1);
@@ -5458,7 +5462,7 @@ function startStory(fresh) {
   if (fresh) G.branch = null;
   initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
-  G.mode = 'story'; seenKinds = {};
+  G.mode = 'story'; seenKinds = {}; G.bambu = 0;
   /* Las mejoras de arma y las ventajas de Zombies no pasan a la historia */
   G.perks = {}; G.pap = {};
   G.startWip = s && s.wip > 1 && s.wip <= ROUNDS ? s.wip : 1;
