@@ -5876,6 +5876,8 @@ $('ovShop').addEventListener('click', function (e) {
     var up = UPGRADES.filter(function (x) { return x.k === b.dataset.u; })[0], lv = G.upg[up.k] | 0;
     if (lv >= up.costs.length || G.euros < up.costs[lv]) return;
     G.euros -= up.costs[lv]; G.upg[up.k] = lv + 1; $('catLine').textContent = 'Miau. Mejora instalada. Ahora a dormir.';
+    /* Sofá ergonómico: "cura al comprar". Sube el máximo y deja la vida llena con el nuevo tope */
+    if (up.k === 'hp') { applyStats(); G.hp = G.maxHp; }
   }
   sfx.pickup(); applyStats(); saveGame(G.phase + 1); renderShop(); renderWList();
 });
