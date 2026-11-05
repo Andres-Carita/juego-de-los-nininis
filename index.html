@@ -5365,6 +5365,8 @@ function startStory(fresh) {
   initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
+  /* Las mejoras de arma y las ventajas de Zombies no pasan a la historia */
+  G.perks = {}; G.pap = {};
   G.startWip = s && s.wip > 1 && s.wip <= ROUNDS ? s.wip : 1;
   if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = startOwned(s.owned); G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
   else { G.phase = 0; G.euros = 0; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = 0; G.kills = 0; clearSave(); }
