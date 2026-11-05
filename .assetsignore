@@ -1,6 +1,7 @@
 online
 .git
 .github
+.vs
 .wrangler
 node_modules
 wrangler.toml

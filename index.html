@@ -207,7 +207,7 @@ body {
 .sens.chk input { flex: 0 0 auto; width: 18px; height: 18px; margin: 0; }
 .sens.chk span { min-width: 0; }
 
-/* Estado de Nofal */
+/* Estado de Lefal */
 .revive { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--paper); color: var(--ink); padding: 6px 14px 8px; box-shadow: 3px 3px 0 rgba(0,0,0,.65); min-width: 240px; text-align: center; }
 .revive .lab { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #4b5552; display: block; }
 .rbar { height: 12px; background: #c9c6b6; margin-top: 5px; border: 2px solid var(--ink); }
@@ -358,7 +358,7 @@ body {
 
     <div class="revive" id="reviveBox" hidden><span class="lab" id="reviveLab">SANANDO</span><div class="rbar"><i id="reviveFill"></i></div></div>
     <div class="squad" id="squad" hidden></div>
-    <div class="allytag" id="allyTag" hidden><span class="lab">Nofal</span><b id="allySt">Te acompaña</b><div class="am" id="allyAm"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="allytag" id="allyTag" hidden><span class="lab">Lefal</span><b id="allySt">Te acompaña</b><div class="am" id="allyAm"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 
     <div class="br">
       <div class="big"><span id="ammoNow">20</span> <span id="ammoMag">/ 20</span></div>
@@ -388,7 +388,7 @@ body {
         <dt>Clic</dt><dd>Disparar</dd>
         <dt>1–7 · Rueda</dt><dd>Cambiar de arma</dd>
         <dt>C</dt><dd>Agacharse (esquiva lo que vuela alto)</dd>
-        <dt>Z · X · V</dt><dd>Escudo de Andrés · Señuelo de Heverton · Ráfaga de Nofal</dd>
+        <dt>Z · X · V</dt><dd>Escudo de Andrés · Señuelo de Heverton · Ráfaga de Lefal</dd>
         <dt>Shift · Espacio</dt><dd>Correr · Saltar</dd>
         <dt>R · M · Esc</dt><dd>Recargar · Sonido · Pausa</dd>
       </dl>
@@ -433,9 +433,9 @@ body {
 
   <div class="overlay mid" id="ovNet" hidden>
     <div class="sheet net-sheet">
-      <div class="formno">Partida cooperativa · Zombies online · hasta 4 personas</div>
+      <div class="formno">Partida cooperativa · Zombies online · hasta 7 personas</div>
       <h1>ONLINE</h1>
-      <p>Cada persona lleva a un personaje (Bilal, Nofal, Andrés o Heverton) y jugáis la misma partida de Zombies. Los personajes que nadie elija los lleva la IA.</p>
+      <p>Cada persona lleva a un personaje y jugáis la misma partida de Zombies. Si nadie los elige, Lefal, Andrés y Heverton los lleva la IA; Eusebio-sama, Valentin y Dr House solo aparecen si los lleva alguien.</p>
       <div id="netJoinBox">
         <div class="btnrow"><button class="btn" id="btnNetNew">CREAR PARTIDA</button></div>
         <label class="sens namefield" for="netCode"><span>Código</span><input type="text" id="netCode" maxlength="6" placeholder="ABCD" autocomplete="off"></label>
@@ -523,9 +523,9 @@ body {
 
   <div class="overlay" id="ovShop" hidden>
     <div class="sheet wide">
-      <div class="formno">Tienda del Gato de Bilal · Pedido N.º 000128</div>
+      <div class="formno">Tienda del Gato de Bilalzinho · Pedido N.º 000128</div>
       <div class="shop-head">
-        <img id="shopCat" alt="Gato de Bilal">
+        <img id="shopCat" alt="Gato de Bilalzinho">
         <p id="catLine"></p>
         <div class="eur">€ <span id="shopEur">0</span></div>
       </div>
@@ -554,7 +554,7 @@ var HALF = 24;
 /* Mitad del lado del escenario por etapa. Lado de 50 m; el área se multiplica ×8 y luego ×5
    (lado 50 → 141 → 316 m). Desde la etapa 3 el tamaño no cambia, pero sí el mapa y la ambientación. */
 var ARENA = [25, Math.sqrt(2500 * 8) / 2, Math.sqrt(2500 * 40) / 2, Math.sqrt(2500 * 40) / 2, Math.sqrt(2500 * 40) / 2];
-/* Mapa de cada etapa: oficina, casa de Bilal, almacén, servidores y azotea */
+/* Mapa de cada etapa: oficina, casa de Bilalzinho, almacén, servidores y azotea */
 var LOC_OF_STAGE = [0, 4, 1, 2, 3];
 /* Rondas por etapa de la historia */
 var ROUNDS = 8;
@@ -741,13 +741,16 @@ var SVG_NOMINA = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="36
   '<g transform="rotate(-12 235 310)"><rect x="196" y="262" width="82" height="98" fill="#fff" stroke="#14181a" stroke-width="3"/><path d="M206 282 h60 M206 296 h60 M206 310 h44" stroke="#8a9c94" stroke-width="4"/><text x="236" y="344" font-family="Impact, Arial, sans-serif" font-size="18" text-anchor="middle" fill="#d42f25">FIRMA</text></g></svg>';
 var CHARS = {
   lefillas: { name: 'Lefillas-san', role: 'Sensei', img: 'lefillas.webp' },
-  gato: { name: 'Gato de Bilal', role: 'Mentor del sofá', img: 'gato.webp' },
+  gato: { name: 'Gato de Bilalzinho', role: 'Mentor del sofá', img: 'gato.webp' },
   bucle: { name: 'Bucle-sama', role: 'Sensei de prácticas', img: svgURI(SVG_BUCLE) },
   nomina: { name: 'Directora Nómina', role: 'Recursos Humanos', img: svgURI(SVG_NOMINA) },
-  bilal: { name: 'Bilal', role: 'Protagonista · nini en prácticas', img: 'bilal.webp' },
-  aliado: { name: 'Nofal', role: 'Aliado de Bilal', img: 'aliado.webp' },
+  bilal: { name: 'Bilalzinho', role: 'Protagonista · nini en prácticas', img: 'bilal.webp' },
+  aliado: { name: 'Lefal', role: 'Aliado de Bilalzinho', img: 'aliado.webp' },
   andres: { name: 'Andrés chan', role: 'Compi de Bolivia · salteñas', img: 'andres.webp' },
-  heverton: { name: 'Heverton-erome', role: 'Compi de Brasil · canales', img: 'heverton.webp' }
+  heverton: { name: 'Heverton-erome', role: 'Compi de Brasil · canales', img: 'heverton.webp' },
+  sonrisas: { name: 'Eusebio-sama', role: 'Relaciones públicas · sonríe a todo', img: 'sonrisas.webp' },
+  visto: { name: 'Valentin', role: 'Especialista en dejar en visto', img: 'visto.webp' },
+  respeto: { name: 'Dr House', role: 'Rechaza con todo el respeto', img: 'respeto.webp' }
 };
 
 /* ---------------- Historia ---------------- */
@@ -755,18 +758,18 @@ function L(who, t) { return { who: who, t: t }; }
 var PHASES = [
   { name: 'EL LUNES FATAL', theme: { bg: 0x0a100e, hemi: 0xcfe8d8, panel: 0xdff5e8 },
     w: [{ sol: 6 }, { sol: 10 }],
-    radio: [L('lefillas', 'Apunta con calma, Bilal. No gastes grapas.'), L('gato', 'Miau. Cada papel roto es una excusa menos.')],
+    radio: [L('lefillas', 'Apunta con calma, Bilalzinho. No gastes grapas.'), L('gato', 'Miau. Cada papel roto es una excusa menos.')],
     intro: [
-      L('aliado', 'Bilal, Andrés y Heverton han venido conmigo. Hoy rechazamos contratos juntos.'),
+      L('aliado', 'Bilalzinho, Andrés y Heverton han venido conmigo. Hoy rechazamos contratos juntos.'),
       L('andres', 'Soy Andrés chan, de Bolivia. Me apunto a rechazar ofertas, con salteñas de por medio.'),
       L('heverton', 'Heverton-erome, de Brasil. Entro en el equipo, meu amigo. Vai dar certo!'),
-      L('lefillas', 'Bilal. Llevas tres días en el sofá con el móvil en la mano. Esto se acaba hoy.'),
+      L('lefillas', 'Bilalzinho. Llevas tres días en el sofá con el móvil en la mano. Esto se acaba hoy.'),
       L('bilal', 'Sensei, solo estoy descansando. Es un descanso largo.'),
       L('gato', 'Miau. Un nini de verdad no da explicaciones. Se tumba y ya está.'),
       L('lefillas', 'No le hagas caso al gato. Esas ofertas de empleo no son tu enemigo. Tu problema es que no sabes cuál aceptar.'),
       L('bilal', 'Pues yo las voy a rechazar todas a grapadazos.'),
-      L('aliado', '¡Eso mismo! Bilal, no vas a rechazar ofertas tú solo. Soy Nofal y vengo a ayudarte.'),
-      L('bilal', '¡Nofal! ¿Has traído grapadora?'),
+      L('aliado', '¡Eso mismo! Bilalzinho, no vas a rechazar ofertas tú solo. Soy Lefal y vengo a ayudarte.'),
+      L('bilal', '¡Lefal! ¿Has traído grapadora?'),
       L('aliado', 'Mejor: he traído buena puntería.'),
       L('lefillas', 'Está bien. Si aguantas ocho rondas, hablamos. Y después te pones a estudiar.')],
     outro: [
@@ -777,25 +780,25 @@ var PHASES = [
     w: [{ sol: 8, req: 4, cor: 2 }, { sol: 8, req: 8, cor: 3 }],
     radio: [L('bucle', 'Los requisitos amarillos son rápidos. Repite: apunta, dispara, apunta.'), L('gato', 'Miau. Piden cinco años en una tecnología de dos.')],
     intro: [
-      L('aliado', 'Bilal, mira esa cola de requisitos. Piden cinco años de experiencia a gente de veintiuno.'),
-      L('bilal', 'Pues los rechazamos todos, Nofal.'),
-      L('lefillas', 'Un buen compañero ayuda, Bilal. Pero el que tiene que ir a las prácticas eres tú.'),
+      L('aliado', 'Bilalzinho, mira esa cola de requisitos. Piden cinco años de experiencia a gente de veintiuno.'),
+      L('bilal', 'Pues los rechazamos todos, Lefal.'),
+      L('lefillas', 'Un buen compañero ayuda, Bilalzinho. Pero el que tiene que ir a las prácticas eres tú.'),
       L('bucle', 'Soy Bucle-sama. Me han dicho que evitas las prácticas. Te lo explico. Te lo explico. Te lo explico.'),
       L('lefillas', 'Bucle-sama es compañero mío. Las prácticas son la puerta al primer buen trabajo.'),
       L('bilal', 'Yo no quiero puertas. Quiero un sofá.'),
       L('gato', 'Esos papeles amarillos son requisitos. Piden cinco años de experiencia en una tecnología de dos. Dispárales sin miedo.')],
     outro: [
       L('bucle', 'Muy bien. Repite conmigo: for, while, descanso. Repite. Repite.'),
-      L('lefillas', 'Sigue así, Bilal. Se te da mejor de lo que crees.')] },
+      L('lefillas', 'Sigue así, Bilalzinho. Se te da mejor de lo que crees.')] },
   { name: 'LA LETRA PEQUEÑA', theme: { bg: 0x120d18, hemi: 0xdacbf0, panel: 0xeadfff },
     w: [{ sol: 8, req: 6, con: 3, cor: 2, reu: 2 }, { sol: 10, req: 6, con: 6, cor: 3, reu: 3, fac: 2 }],
-    radio: [L('nomina', 'Mis contratos tienen aguante. Firma y sufre menos.'), L('aliado', 'Tranquilo, Bilal. Mientras yo esté aquí, nadie te firma nada.')],
+    radio: [L('nomina', 'Mis contratos tienen aguante. Firma y sufre menos.'), L('aliado', 'Tranquilo, Bilalzinho. Mientras yo esté aquí, nadie te firma nada.')],
     intro: [
       L('nomina', 'Soy la Directora Nómina. Tengo un contrato indefinido con tu nombre y no admite cambios.'),
       L('bilal', '¿Cuánto pagáis?'),
       L('nomina', 'Un salario competitivo. Competitivo con el de una planta.'),
-      L('lefillas', 'Bilal, lee siempre la letra pequeña. Esos contratos tienen más cláusulas que notificaciones tiene tu móvil.'),
-      L('aliado', 'Cuidado, Bilal. La letra pequeña muerde. Y los contratos también.')],
+      L('lefillas', 'Bilalzinho, lee siempre la letra pequeña. Esos contratos tienen más cláusulas que notificaciones tiene tu móvil.'),
+      L('aliado', 'Cuidado, Bilalzinho. La letra pequeña muerde. Y los contratos también.')],
     outro: [
       L('nomina', 'Esto no ha terminado. Todavía tengo más papeles.'),
       L('gato', 'Miau. Compra algo y descansa un rato. Un rato largo.')] },
@@ -804,7 +807,7 @@ var PHASES = [
     radio: [L('lefillas', 'Mantén la calma. Una entrevista es solo una conversación.'), L('bucle', 'Pregunta típica: ¿dónde te ves en cinco años? Repite, repite.')],
     intro: [
       L('nomina', 'Para firmar solo falta superar la entrevista de siete rondas. Es muy sencillo.'),
-      L('lefillas', 'La entrevista es solo una conversación, Bilal. Si te preparas, no da miedo.'),
+      L('lefillas', 'La entrevista es solo una conversación, Bilalzinho. Si te preparas, no da miedo.'),
       L('bilal', 'Si la destrozo a grapadazos, ¿cuenta como ronda superada?'),
       L('bucle', 'Pregunta: ¿dónde te ves en cinco años? Repite. Repite.'),
       L('aliado', 'Si te piden una prueba técnica, la hago yo. Mal, pero la hago.')],
@@ -816,10 +819,10 @@ var PHASES = [
     radio: [L('lefillas', 'Es la última fase. Confía en lo que has practicado.'), L('gato', 'Miau. Yo votaría por el sofá, pero estoy contigo.')],
     intro: [
       L('nomina', 'Este es el contrato definitivo. Jornada completa, sueldo en exposición y sin vacaciones.'),
-      L('lefillas', 'Bilal, esta vez no lo rechaces por rechazar. Léelo y decide tú.'),
+      L('lefillas', 'Bilalzinho, esta vez no lo rechaces por rechazar. Léelo y decide tú.'),
       L('gato', 'Miau. Yo votaría por el sofá, pero te acompaño.'),
       L('bilal', 'Vale. Pero primero lo destrozo.'),
-      L('aliado', 'Hasta el final, Bilal. Cuenta conmigo.')],
+      L('aliado', 'Hasta el final, Bilalzinho. Cuenta conmigo.')],
     outro: [
       L('lefillas', 'Lo has conseguido. Y ahora entiendes algo: rechazar una mala oferta está bien. Rechazarlas todas por pereza, no.'),
       L('bucle', 'Y recuerda: repite el código hasta que compile.'),
@@ -830,76 +833,76 @@ var PHASES = [
 ];
 var ZOMBIE_INTRO = [
   L('bilal', 'Otra vez en el sofá... Dicen que hay que trabajar. Yo no quiero trabajar.'),
-  L('aliado', 'Bilal, hoy no hay sofá. Hay contratos sueltos por toda la oficina, y vienen a por ti.'),
+  L('aliado', 'Bilalzinho, hoy no hay sofá. Hay contratos sueltos por toda la oficina, y vienen a por ti.'),
   L('andres', 'En Bolivia decimos: el que no trabaja, que no coma salteñas. Pero yo te invito igual.'),
-  L('heverton', 'Bilal, meu amigo, os contratos vão nos perseguir. Corre, ou assina!'),
+  L('heverton', 'Bilalzinho, meu amigo, os contratos vão nos perseguir. Corre, ou assina!'),
   L('bilal', 'Pues los rechazamos todos. Y luego a dormir.')
 ];
 function zombiesMenu() { showDialog(ZOMBIE_INTRO, startSurvival); }
 var ROUND_LINES = {
-  1: [L('andres', 'Bilal, soy Andrés chan, de Bolivia. Si acabas la ronda, te invito una salteña. Si no, también.'), L('aliado', 'Bilal, sin ChatGPT no hay currículum. Recoge los globos de ChatGPT: son tu catalizador.')],
-  2: [L('heverton', 'Bilal, meu amigo! Entra en mi canal de Telegram, hay ofertas y mucha gente que quiere conocerte. Vai dar certo!'), L('lefillas', 'No entres en esos canales, Bilal. Eso no es un plan de futuro.')],
-  3: [L('andres', 'Las horas extra son lo peor. Yo me como una salteña y las ignoro. Tú también puedes.'), L('aliado', 'Ojo con las horas extra, Bilal. Te piden quedarte hasta tarde por un café.'), L('gato', 'Miau. En mi tienda tengo a Bao, un panda que escupe leche. Se alimenta de bambú.'), L('gato', 'Miau. Bienvenidos a mi casa de Tetuán, Bilal. El sofá es mío.')],
-  4: [L('lefillas', 'Bilal, en la ronda 5 aparecen las citas a ciegas. Son lo que más miedo te da, así que no te distraigas.'), L('heverton', 'Y cuidado con el canal de Telegram: te lleva a otro canal, y a otro canal.'), L('andres', 'Dicen en Bolivia: primero se come, después se piensa. Aquí se dispara primero.')],
-  5: [L('lefillas', 'Bilal, a las citas a ciegas no se las rechaza con grapas. Pero las grapas te ayudan a pensar.'), L('andres', 'Si te da miedo, cómete una salteña y apunta.'), L('aliado', 'Recoge ChatGPT antes de la cita. Te escribe la respuesta perfecta.')],
-  6: [L('andres', 'Bilal, en Bolivia el pan con queso se come a cualquier hora. Las horas extra también, pero por pena.'), L('heverton', 'Bilal, cuidado: en el canal ya hablan de tu CV. Vai dar certo... ou não.')],
-  7: [L('lefillas', 'Ya es el sprint final, Bilal. Recoge lo que cae: el bambú alimenta a Bao.'), L('andres', 'Mi preferido es Bao. Bueno, el panda de Bilal, que ahora es nuestro.')],
-  8: [L('heverton', 'Bilal, la webinar de tres horas tiene su canal. No entres, meu amigo.'), L('aliado', 'Hoy somos el equipo que no firma nada. Andrés, Heverton y yo.')],
-  9: [L('andres', 'Antes de la presentación de 97 diapositivas, cómete una salteña. Te da fuerzas.'), L('lefillas', 'La presentación no se rechaza con grapas, Bilal. Se rechaza con silencio.')],
+  1: [L('andres', 'Bilalzinho, soy Andrés chan, de Bolivia. Si acabas la ronda, te invito una salteña. Si no, también.'), L('aliado', 'Bilalzinho, sin ChatGPT no hay currículum. Recoge los globos de ChatGPT: son tu catalizador.')],
+  2: [L('heverton', 'Bilalzinho, meu amigo! Entra en mi canal de Telegram, hay ofertas y mucha gente que quiere conocerte. Vai dar certo!'), L('lefillas', 'No entres en esos canales, Bilalzinho. Eso no es un plan de futuro.')],
+  3: [L('andres', 'Las horas extra son lo peor. Yo me como una salteña y las ignoro. Tú también puedes.'), L('aliado', 'Ojo con las horas extra, Bilalzinho. Te piden quedarte hasta tarde por un café.'), L('gato', 'Miau. En mi tienda tengo a Bao, un panda que escupe leche. Se alimenta de bambú.'), L('gato', 'Miau. Bienvenidos a mi casa de Tetuán, Bilalzinho. El sofá es mío.')],
+  4: [L('lefillas', 'Bilalzinho, en la ronda 5 aparecen las citas a ciegas. Son lo que más miedo te da, así que no te distraigas.'), L('heverton', 'Y cuidado con el canal de Telegram: te lleva a otro canal, y a otro canal.'), L('andres', 'Dicen en Bolivia: primero se come, después se piensa. Aquí se dispara primero.')],
+  5: [L('lefillas', 'Bilalzinho, a las citas a ciegas no se las rechaza con grapas. Pero las grapas te ayudan a pensar.'), L('andres', 'Si te da miedo, cómete una salteña y apunta.'), L('aliado', 'Recoge ChatGPT antes de la cita. Te escribe la respuesta perfecta.')],
+  6: [L('andres', 'Bilalzinho, en Bolivia el pan con queso se come a cualquier hora. Las horas extra también, pero por pena.'), L('heverton', 'Bilalzinho, cuidado: en el canal ya hablan de tu CV. Vai dar certo... ou não.')],
+  7: [L('lefillas', 'Ya es el sprint final, Bilalzinho. Recoge lo que cae: el bambú alimenta a Bao.'), L('andres', 'Mi preferido es Bao. Bueno, el panda de Bilalzinho, que ahora es nuestro.')],
+  8: [L('heverton', 'Bilalzinho, la webinar de tres horas tiene su canal. No entres, meu amigo.'), L('aliado', 'Hoy somos el equipo que no firma nada. Andrés, Heverton y yo.')],
+  9: [L('andres', 'Antes de la presentación de 97 diapositivas, cómete una salteña. Te da fuerzas.'), L('lefillas', 'La presentación no se rechaza con grapas, Bilalzinho. Se rechaza con silencio.')],
   10: [L('heverton', 'Última ronda, meu amigo. Si ganamos, hay fiesta en el canal de Telegram.'), L('andres', 'Y si perdemos, hay salteñas igual.'), L('lefillas', 'Bien. Veo que el equipo funciona.')]
 };
 /* Consejo al empezar cada etapa (mecánicas nuevas) */
 var STAGE_TIPS = [
-  L('lefillas', 'Bilal, salta con Espacio y agáchate con C. Lo que vuela bajo se salta; lo que vuela alto se esquiva agachado.'),
+  L('lefillas', 'Bilalzinho, salta con Espacio y agáchate con C. Lo que vuela bajo se salta; lo que vuela alto se esquiva agachado.'),
   L('gato', 'Miau. Mi casa ahora es enorme: salones y más salones. Si te pierdes, el sofá está en el centro.'),
   L('lefillas', 'En el almacén los auditores lanzan anillos a la altura de la cabeza. Agáchate con C y pasarán por encima.'),
   L('bucle', 'Los servidores son un laberinto. Repite: muévete, agáchate, dispara. Repite.'),
-  L('aliado', 'Bilal, en la azotea sopla el viento. Salta los anillos bajos y agáchate con los altos.')
+  L('aliado', 'Bilalzinho, en la azotea sopla el viento. Salta los anillos bajos y agáchate con los altos.')
 ];
 /* Diálogo al terminar cada ronda (de la 1 a la 7; la 8 cierra con el final de la etapa) */
 var ROUND_TALK = [
-  [ [L('andres', '¡Primera ronda fuera! En Bolivia esto se celebra con una salteña.'), L('bilal', 'Yo lo celebro sentándome. ¿Hay silla?'), L('aliado', 'No hay silla, Bilal. Hay otra ronda.')],
-    [L('heverton', 'Meu amigo, ya hay doscientas personas en el canal viendo cómo rechazas ofertas.'), L('lefillas', 'Heverton, deja el móvil y vigila la espalda de Bilal.')],
-    [L('bilal', 'Nofal, ¿cuántas rondas quedan?'), L('aliado', 'Cinco. Y luego otra etapa. Y luego otra.'), L('bilal', 'Esto es peor que trabajar.')],
-    [L('lefillas', 'Vas por la mitad, Bilal. Fíjate: ya no disparas a lo loco.'), L('gato', 'Miau. No dispara a lo loco. Dispara a lo nini.')],
+  [ [L('andres', '¡Primera ronda fuera! En Bolivia esto se celebra con una salteña.'), L('bilal', 'Yo lo celebro sentándome. ¿Hay silla?'), L('aliado', 'No hay silla, Bilalzinho. Hay otra ronda.')],
+    [L('heverton', 'Meu amigo, ya hay doscientas personas en el canal viendo cómo rechazas ofertas.'), L('lefillas', 'Heverton, deja el móvil y vigila la espalda de Bilalzinho.')],
+    [L('bilal', 'Lefal, ¿cuántas rondas quedan?'), L('aliado', 'Cinco. Y luego otra etapa. Y luego otra.'), L('bilal', 'Esto es peor que trabajar.')],
+    [L('lefillas', 'Vas por la mitad, Bilalzinho. Fíjate: ya no disparas a lo loco.'), L('gato', 'Miau. No dispara a lo loco. Dispara a lo nini.')],
     [L('andres', 'Me queda media salteña. Es para el que acabe la ronda siete.'), L('heverton', 'Yo acabo la siete, la ocho y la salteña.')],
-    [L('aliado', 'Bilal, ¿has visto que las ofertas llegan cada vez más rápido?'), L('bilal', 'Es que me quieren mucho. Es un problema de popularidad.')],
-    [L('lefillas', 'Última ronda del lunes. Si la superas, el martes empieza igual de mal.'), L('bilal', 'Gracias por los ánimos, sensei.'), L('andres', '¡Vamos, Bilal! ¡Por la salteña!')] ],
-  [ [L('gato', 'Miau. Bienvenidos a mi casa. Bueno, a la de Bilal. Bueno, a la mía.'), L('heverton', 'Esta casa es enorme, meu amigo. ¿Cuántos salones tiene?'), L('bilal', 'Ni idea. Nunca he pasado del sofá.')],
+    [L('aliado', 'Bilalzinho, ¿has visto que las ofertas llegan cada vez más rápido?'), L('bilal', 'Es que me quieren mucho. Es un problema de popularidad.')],
+    [L('lefillas', 'Última ronda del lunes. Si la superas, el martes empieza igual de mal.'), L('bilal', 'Gracias por los ánimos, sensei.'), L('andres', '¡Vamos, Bilalzinho! ¡Por la salteña!')] ],
+  [ [L('gato', 'Miau. Bienvenidos a mi casa. Bueno, a la de Bilalzinho. Bueno, a la mía.'), L('heverton', 'Esta casa es enorme, meu amigo. ¿Cuántos salones tiene?'), L('bilal', 'Ni idea. Nunca he pasado del sofá.')],
     [L('bucle', 'Ronda dos de prácticas. Repite conmigo: café, fotocopia, café.'), L('aliado', 'Bucle-sama, aquí no hay fotocopiadora. Hay un gato.')],
-    [L('andres', 'Bilal, hay té en la mesa de latón. ¿Puedo?'), L('bilal', 'Si no se lo bebe el gato primero, sí.'), L('gato', 'Miau. Ya me lo he bebido.')],
-    [L('lefillas', 'Mitad de etapa. Las prácticas también tienen mitad, Bilal. Y final.'), L('bucle', 'Final. Final. Final. Repite.')],
+    [L('andres', 'Bilalzinho, hay té en la mesa de latón. ¿Puedo?'), L('bilal', 'Si no se lo bebe el gato primero, sí.'), L('gato', 'Miau. Ya me lo he bebido.')],
+    [L('lefillas', 'Mitad de etapa. Las prácticas también tienen mitad, Bilalzinho. Y final.'), L('bucle', 'Final. Final. Final. Repite.')],
     [L('heverton', 'En el canal dicen que tu casa es la mejor oficina de Tetuán.'), L('bilal', 'Normal. No hay jefe, solo un gato.')],
-    [L('aliado', 'Cuidado con las alfombras, Bilal: los requisitos se esconden debajo.'), L('andres', 'Yo he encontrado uno que pedía diez años de experiencia en salteñas. Lo he rechazado.')],
+    [L('aliado', 'Cuidado con las alfombras, Bilalzinho: los requisitos se esconden debajo.'), L('andres', 'Yo he encontrado uno que pedía diez años de experiencia en salteñas. Lo he rechazado.')],
     [L('bucle', 'Última ronda de prácticas. Si la superas, te firmo el certificado.'), L('bilal', '¿Certificado de qué?'), L('bucle', 'De haber repetido. Repite.')] ],
-  [ [L('nomina', 'Bienvenido al almacén. Aquí guardamos los contratos que nadie ha leído.'), L('aliado', 'Son miles de cajas, Bilal. Y todas tienen letra pequeña.')],
-    [L('lefillas', '¿Has probado a agacharte, Bilal? Los anillos de los auditores pasan por encima.'), L('bilal', 'Agacharme se me da bien. Es casi tumbarse.')],
+  [ [L('nomina', 'Bienvenido al almacén. Aquí guardamos los contratos que nadie ha leído.'), L('aliado', 'Son miles de cajas, Bilalzinho. Y todas tienen letra pequeña.')],
+    [L('lefillas', '¿Has probado a agacharte, Bilalzinho? Los anillos de los auditores pasan por encima.'), L('bilal', 'Agacharme se me da bien. Es casi tumbarse.')],
     [L('heverton', 'He leído un contrato entero. Cláusula 14: ver cláusula 1.'), L('andres', 'Y la cláusula 1 dice: no quejarse. Qué casualidad.')],
     [L('nomina', 'Has llegado a la mitad. Tengo una oferta de media jornada. Y medio sueldo.'), L('bilal', '¿Y medio trabajo?'), L('nomina', 'No.')],
-    [L('gato', 'Miau. Este almacén huele a cartón. Me encanta. Me quedo a vivir.'), L('aliado', 'El gato ya ha elegido caja, Bilal. Tú elige ronda: la sexta.')],
-    [L('andres', 'Bilal, la grúa se mueve sola. ¿Eso es normal?'), L('heverton', 'En Brasil eso es una señal. De que hay que correr.')],
-    [L('lefillas', 'Última ronda del almacén. Lee siempre antes de firmar, Bilal. Y dispara antes de leer.'), L('bilal', 'Ese consejo sí lo entiendo.')] ],
+    [L('gato', 'Miau. Este almacén huele a cartón. Me encanta. Me quedo a vivir.'), L('aliado', 'El gato ya ha elegido caja, Bilalzinho. Tú elige ronda: la sexta.')],
+    [L('andres', 'Bilalzinho, la grúa se mueve sola. ¿Eso es normal?'), L('heverton', 'En Brasil eso es una señal. De que hay que correr.')],
+    [L('lefillas', 'Última ronda del almacén. Lee siempre antes de firmar, Bilalzinho. Y dispara antes de leer.'), L('bilal', 'Ese consejo sí lo entiendo.')] ],
   [ [L('nomina', 'Recursos Humanos te espera en la sala de servidores. Aquí guardamos tu historial.'), L('bilal', '¿Mi historial de qué?'), L('nomina', 'De rechazos. Ocupa tres servidores.')],
     [L('heverton', 'Hace frío aquí, meu amigo. Dieciocho grados y cero ganas.'), L('andres', 'Una salteña caliente lo arregla todo.')],
     [L('bucle', 'Pregunta de entrevista: ¿por qué quieres este trabajo? Respuesta correcta: no lo quiero.'), L('lefillas', 'Bucle-sama, no le enseñes eso.')],
     [L('aliado', 'Ya ha pasado la entrevista de siete rondas. Y esto sigue.'), L('bilal', 'Siete rondas dentro de una ronda. Esto es un bucle.'), L('bucle', 'Por fin lo entiendes.')],
     [L('lefillas', 'Bien hecho. Una entrevista no da miedo si la miras a los ojos.'), L('gato', 'Miau. Y si no, le disparas a los ojos.')],
-    [L('nomina', 'Error 404: empleo no encontrado. Vuelve a intentarlo.'), L('heverton', 'En el canal ya hay un sticker de ese error con tu cara, Bilal.')],
+    [L('nomina', 'Error 404: empleo no encontrado. Vuelve a intentarlo.'), L('heverton', 'En el canal ya hay un sticker de ese error con tu cara, Bilalzinho.')],
     [L('andres', 'Última ronda en el frío. Después, azotea y atardecer.'), L('aliado', 'Y un contrato final, Andrés. No te olvides.')] ],
   [ [L('heverton', '¡Qué vistas, meu amigo! Desde aquí se ven todas las ofertas de la ciudad.'), L('bilal', 'Prefiero no verlas.')],
-    [L('nomina', 'El CEO te invita a su jacuzzi. Solo tienes que firmar aquí.'), L('aliado', 'Bilal, ni el jacuzzi ni el contrato.')],
+    [L('nomina', 'El CEO te invita a su jacuzzi. Solo tienes que firmar aquí.'), L('aliado', 'Bilalzinho, ni el jacuzzi ni el contrato.')],
     [L('gato', 'Miau. Hay barbacoa. No pienso trabajar, pero pienso comer.'), L('andres', 'En eso estoy de acuerdo con el gato.')],
-    [L('lefillas', 'Bilal, estás a mitad del final. Piensa qué harás cuando acabe.'), L('bilal', 'Dormir.'), L('lefillas', '¿Y después?'), L('bilal', 'Estudiar. El lunes.')],
+    [L('lefillas', 'Bilalzinho, estás a mitad del final. Piensa qué harás cuando acabe.'), L('bilal', 'Dormir.'), L('lefillas', '¿Y después?'), L('bilal', 'Estudiar. El lunes.')],
     [L('bucle', 'Repite conmigo: una ronda más. Una ronda más. Una ronda más.'), L('heverton', 'Bucle-sama, ya vamos por la sexta.')],
-    [L('aliado', 'Bilal, pase lo que pase con el contrato final, estoy contigo.'), L('andres', 'Y yo. Y la salteña también.')],
-    [L('nomina', 'Última oportunidad, Bilal. El contrato final te espera en la próxima ronda.'), L('lefillas', 'Esta vez léelo, Bilal. Y luego decide tú.'), L('bilal', 'Vale. Primero lo leo. Luego lo destrozo.')] ]
+    [L('aliado', 'Bilalzinho, pase lo que pase con el contrato final, estoy contigo.'), L('andres', 'Y yo. Y la salteña también.')],
+    [L('nomina', 'Última oportunidad, Bilalzinho. El contrato final te espera en la próxima ronda.'), L('lefillas', 'Esta vez léelo, Bilalzinho. Y luego decide tú.'), L('bilal', 'Vale. Primero lo leo. Luego lo destrozo.')] ]
 ];
 function scheduleRoundLines() {
   if (G.mode !== 'story' || (G.wip !== 1 && G.wip !== 5)) return;
   var list = ROUND_LINES[G.phase * 2 + (G.wip <= 4 ? 1 : 2)]; if (!list) return;
   list.forEach(function (line, k) { setTimeout(function () { if (G.state === 'playing' && G.wave === roundIdx()) radio(line); }, 9000 + k * 6500); });
 }
-var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los requisitos, Bilal.', 'Tú apunta. Yo grapo.', '¡Otra menos! Y sin currículum.', 'Nofal al rescate. Sin nómina.', 'Si me ofrecen contrato, lo grapo.'];
+var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los requisitos, Bilalzinho.', 'Tú apunta. Yo grapo.', '¡Otra menos! Y sin currículum.', 'Lefal al rescate. Sin nómina.', 'Si me ofrecen contrato, lo grapo.'];
 var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La leche de Raúl Becas lleva grumos de calidad.', 'Miau. Las zapatillas de sofá corren más de lo que parece.', 'Miau. Gasta rápido, que Lefillas-san te vigila.', 'Miau. Un nini informado compra mejoras.'];
 
 /* ---------------- Armas y mejoras ---------------- */
@@ -926,7 +929,7 @@ var UPGRADES = [
   { k: 'rel', name: 'Recarga exprés', desc: '-20% de tiempo de recarga por nivel.', costs: [80, 140, 220] },
   { k: 'speed', name: 'Zapatillas de sofá', desc: '+8% de velocidad por nivel.', costs: [100, 180, 260] },
   { k: 'hp', name: 'Sofá ergonómico', desc: '+20 de nivel de nini máximo por nivel y cura al comprar.', costs: [120, 200, 300] },
-  { k: 'ally', name: 'Entrenamiento de Nofal', desc: 'Nofal dispara un 18% más rápido y recarga un 12% antes por nivel.', costs: [150, 250, 350] }
+  { k: 'ally', name: 'Entrenamiento de Lefal', desc: 'Lefal dispara un 18% más rápido y recarga un 12% antes por nivel.', costs: [150, 250, 350] }
 ];
 
 /* ---------------- Estado ---------------- */
@@ -935,7 +938,7 @@ var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0,
   reload: 0, reloadT: 1, fireCd: 0, rapid: 0, shield: 0, combo: 0, comboT: 0, toSpawn: [], spawnT: 0, waveDone: false, waveBreak: 0,
   enemies: [], hazards: [], pickups: [], fx: [], tracers: [], proj: [], eproj: [], radioAt: -99, hurtT: 0, shake: 0, recoil: 0, flash: 0, t: 0, lowWarn: false };
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
-/* Punto al que apuntan los enemigos: Bilal, o el señuelo de Heverton cuando está activo */
+/* Punto al que apuntan los enemigos: Bilalzinho, o el señuelo de Heverton cuando está activo */
 var AIM = P;
 var keys = {}, mouseDown = false, locked = false, lockFailed = false, lockErrors = 0, muted = false;
 /* Ajustes de control: sensibilidad con escala exponencial (pasos finos), suavizado de cámara e inversión del eje Y */
@@ -1665,7 +1668,7 @@ FILL[3] = function (cx, cz, R, m) {
   for (var k = 0; k < 6; k++) glow('255,214,140', cx - 7 + k * 2.8, 3.6, cz + 9, 0.5, 0.5, 0.7);
   lightAt(cx, 3.2, cz + 7, 0xffd9a0, 0.7, 1.7);
 };
-/* Casa de Bilal: tabiques con arco, alfombras, sofás bajos, pufs, mesas de latón y faroles */
+/* Casa de Bilalzinho: tabiques con arco, alfombras, sofás bajos, pufs, mesas de latón y faroles */
 FILL[4] = function (cx, cz, R) {
   var wc = 0xe9d9b8, vert = R() < 0.5;
   if (R() < 0.75) {
@@ -1795,7 +1798,7 @@ function officeExtras() {
 
 /* ---- Mapa 2: Almacén de envíos ---- */
 
-/* Casa de Bilal: zellige en el suelo, faroles, alfombra, sofás bajos y el gato */
+/* Casa de Bilalzinho: zellige en el suelo, faroles, alfombra, sofás bajos y el gato */
 function makeArt() {
   var c = mkCanvas(256, 320), x = c.getContext('2d');
   var g = x.createLinearGradient(0, 0, 0, 320); g.addColorStop(0, '#e7b86a'); g.addColorStop(1, '#b8542f');
@@ -1866,7 +1869,7 @@ function buildHouse() {
   /* Cuadro decorativo en la pared del fondo */
   var art = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 2.4), new THREE.MeshBasicMaterial({ map: tex(makeArt()) }));
   put(art, 0, 2.3, -HALF + 0.06);
-  /* El gato de Bilal, sobre el puf */
+  /* El gato de Bilalzinho, sobre el puf */
   var catG = CUR, catA = CURM.anim;
   loadCharCanvas('gato', function (t, aspect) {
     var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
@@ -2245,7 +2248,7 @@ MAPS = [
   { key: 'azotea', name: 'AZOTEA DEL CEO', sub: 'Ático · atardecer', accent: '#c4569a', build: 'buildRooftop',
     desc: 'Terraza al anochecer con ciudad, estrellas, jacuzzi, sofás, barbacoa y neones. Aire libre y mucha cobertura baja.',
     tone: { bg: 0x1d1233, hemi: 0xffc3a0, gnd: 0x2a2038, hI: 0.85, sun: 0xffa868, sI: 0.9, sp: [-24, 9, 14], pl: 0xffd9a8, pI: 0.35, pY: 3.4, fog: [14, 80], pk: 0.25 } },
-  { key: 'casa', name: 'CASA DE BILAL', sub: 'Tetuán · su sofá y su gato', accent: '#d9a33b', build: 'buildHouse',
+  { key: 'casa', name: 'CASA DE BILALZINHO', sub: 'Tetuán · su sofá y su gato', accent: '#d9a33b', build: 'buildHouse',
     desc: 'Alfombras, faroles, mesas de bandeja de latón, cojines y plantas. El gato manda, y el sofá es suyo.',
     tone: { bg: 0x1a0f08, hemi: 0xffd9a8, gnd: 0x3a2418, hI: 0.7, sun: 0xffc878, sI: 0.45, sp: [6, 24, 6], pl: 0xffb35a, pI: 0.8, pY: 4, fog: [8, 44], pk: 0.5 } },
   { key: 'cocina', name: 'COCINA DE LA OFICINA', sub: 'Planta 2 · café gratis', accent: '#8fd0ff', build: 'buildKitchen',
@@ -2680,7 +2683,7 @@ function hurtPlayer(d) {
 /* ---------------- Enemigos: comportamientos por tipo ---------------- */
 var seenKinds = {};
 var INTRO_CALL = {
-  correo: '¡Bilal, los correos urgentes disparan desde lejos! No te quedes quieto.',
+  correo: '¡Bilalzinho, los correos urgentes disparan desde lejos! No te quedes quieto.',
   reunion: '¡Cuidado! Las reuniones urgentes embisten en línea recta. Apártate cuando se pongan rojas.',
   factura: '¡Facturas! Explotan al llegar. Mátalas antes de que se acerquen, o salta.',
   cazatalentos: '¡Un cazatalentos! Se teletransporta a tu espalda. Mira atrás.',
@@ -2694,7 +2697,7 @@ var INTRO_CALL = {
   carta: 'Cartas de motivación. Son rápidas y dicen que te apasiona la oficina. Esquívalas en zigzag.',
   horas: 'Hojas de horas extra. Son rápidas y muy pesadas. Pagadas en visibilidad, claro.',
   jefe: '¡El jefe! Pregunta si tienes un minuto. Nunca es un minuto. Mantén la distancia.',
-  cita: '¡Una cita a ciegas! Bilal, esta es la que más miedo te da. Respira y apunta.'
+  cita: '¡Una cita a ciegas! Bilalzinho, esta es la que más miedo te da. Respira y apunta.'
 };
 function introEnemy(kind) {
   if (seenKinds[kind] || !INTRO_CALL[kind]) return;
@@ -3004,12 +3007,12 @@ function enemyMove(e, dt, dx, dz, d) {
       enemyStep(e, dt, jx / jl, jz / jl, sp * 1.1);
       break; }
     case 'stagiario': {
-      /* Corre en zigzag hacia Bilal */
+      /* Corre en zigzag hacia Bilalzinho */
       var zz = Math.sin(e.age * 7 + e.phase) * 0.9, zx = nx - nz * zz, zy = nz + nx * zz, zl = Math.hypot(zx, zy) || 1;
       enemyStep(e, dt, zx / zl, zy / zl, sp * 1.15);
       break; }
     case 'pulpo': {
-      /* Rodea a Bilal a unos 3 metros y se lanza de golpe cuando el contador llega a cero */
+      /* Rodea a Bilalzinho a unos 3 metros y se lanza de golpe cuando el contador llega a cero */
       e.cd -= dt;
       if (e.cd <= 0) { enemyStep(e, dt, nx, nz, sp * 2.6); if (d < 1.5) e.cd = rnd(2.5, 3.5); }
       else {
@@ -3120,7 +3123,7 @@ function enemyMove(e, dt, dx, dz, d) {
 function updateEnemies(dt) {
   for (var i = G.enemies.length - 1; i >= 0; i--) {
     var e = G.enemies[i]; e.age += dt;
-    /* Persiguen el señuelo de Heverton si está cerca; el daño cuerpo a cuerpo sigue siendo contra Bilal */
+    /* Persiguen el señuelo de Heverton si está cerca; el daño cuerpo a cuerpo sigue siendo contra Bilalzinho */
     var base = G.online ? netNearest(e) : P;
     var tg = (DECOY.g && !DECOY.vis && Math.hypot(DECOY.x - e.x, DECOY.z - e.z) < 22) ? DECOY : base;
     AIM = tg;
@@ -3200,7 +3203,7 @@ function allyWants(p) {
   return G.enemies.length > 0;
 }
 function applyPickup(p, byAlly) {
-  sfx.pickup(); var who = typeof byAlly === 'string' ? byAlly + ' · ' : (byAlly ? 'NOFAL · ' : '');
+  sfx.pickup(); var who = typeof byAlly === 'string' ? byAlly + ' · ' : (byAlly ? 'LEFAL · ' : '');
   if (p.kind === 'pizza') { G.hp = Math.min(G.maxHp, G.hp + 30); toast(who + 'PIZZA · +30 DE NINI'); }
   else if (p.kind === 'cafe') { G.rapid = 8; toast(who + 'CAFÉ · DISPARO RÁPIDO'); }
   else if (p.kind === 'bambu') { G.bambu = Math.min(5, (G.bambu || 0) + 1); toast(who + 'BAMBÚ · ALIMENTO DE BAO'); }
@@ -3288,7 +3291,7 @@ function shoot() {
   camera.updateMatrixWorld(true);
   camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
   curMuzzle.getWorldPosition(tmpV);
-  var dm = dmgMult() * (G.pap[G.wcur] ? 1.8 : 1);
+  var dm = dmgMult() * papMult(G.wcur);
   if (w.type === 'hitscan' || w.type === 'spray') {
     var targets = occluders.slice(); for (var i = 0; i < G.enemies.length; i++) targets.push(G.enemies[i].paper);
     if (w.type === 'hitscan') { raycaster.setFromCamera({ x: 0, y: 0 }, camera); raycaster.far = 90; }
@@ -3347,7 +3350,7 @@ function updateDust(dt) {
   dust.pts.geometry.attributes.position.needsUpdate = true;
 }
 
-/* ---------------- Aliado: Nofal (percepción, decisiones y movimiento propio) ---------------- */
+/* ---------------- Aliado: Lefal (percepción, decisiones y movimiento propio) ---------------- */
 var ALLY_MAG = 12;
 var ally = { g: null, body: null, plane: null, planeY: 1.4, label: null, emote: null, emoteCv: null, emoteTex: null, emoteCh: '',
   x: 0, z: 0, vx: 0, vz: 0, cd: 1.5, kills: 0, step: 0, face: 0,
@@ -3357,7 +3360,7 @@ var ally = { g: null, body: null, plane: null, planeY: 1.4, label: null, emote: 
   info: { cnt: 0, cx: 0, cz: 0, nearD: 99, nearE: null, nearP: 99, nearPe: null, crowd: 0, pn: 0 } };
 function allyActive() { return true; }
 
-/* Compañeros de combate: Andrés chan y Heverton-erome. Nofal ya tiene su propia IA. */
+/* Compañeros de combate: Andrés chan y Heverton-erome. Lefal ya tiene su propia IA. */
 var REVIVE_T = 6, REVIVE_R = 2.6;
 var MATES = [
   { key: 'andres', name: 'ANDRÉS CHAN', short: 'ANDRÉS', role: 'guardia', join: 0, side: -1, off: 0.3, cdMax: 1.1, g: null, x: 0, z: 0, hp: 100, down: false, revive: 0, cd: 1 },
@@ -3393,8 +3396,8 @@ function hitMate(m, d) {
   m.hp -= d;
   if (m.hp > 0) return;
   m.hp = 0; m.down = true; m.revive = 0; m.g.rotation.z = 1.35; sfx.hurt();
-  if (m === ally) allySay('¡Me han derribado! ¡Bilal, sánanme!', 2);
-  else radio(L(m.key, '¡Me han derribado! Bilal, ven a sanarme, por favor.'));
+  if (m === ally) allySay('¡Me han derribado! ¡Bilalzinho, sánanme!', 2);
+  else radio(L(m.key, '¡Me han derribado! Bilalzinho, ven a sanarme, por favor.'));
 }
 function mateShoot(m, target) {
   var a = new THREE.Vector3(m.x, 1.2, m.z), b = new THREE.Vector3(target.x, target.T.h / 2 + 0.35, target.z);
@@ -3403,7 +3406,7 @@ function mateShoot(m, target) {
   var s0 = G.score, k0 = G.kills; damageEnemy(target, 1, true);
   if (G.kills > k0) { m.kills = (m.kills || 0) + 1; m.pts = (m.pts || 0) + (G.score - s0); }
 }
-/* ---------------- Habilidades activas: escudo (Andrés, Z), señuelo (Heverton, X) y ráfaga (Nofal, V) ---------------- */
+/* ---------------- Habilidades activas: escudo (Andrés, Z), señuelo (Heverton, X) y ráfaga (Lefal, V) ---------------- */
 var ABIL = {
   escudo: { id: 'escudo', who: 'andres', name: 'ESCUDO', key: 'Z', el: 'abZ', cd: 0, max: 20, t: 0, dur: 6 },
   senuelo: { id: 'senuelo', who: 'heverton', name: 'SEÑUELO', key: 'X', el: 'abX', cd: 0, max: 22, t: 0, dur: 7 },
@@ -3415,7 +3418,7 @@ function abilState(a) { var m = abilOwner(a); if (!m || !m.g || !mateIn(m)) retu
 function useAbility(id, auto, pos) {
   var a = ABIL[id], st = pos ? 'ready' : abilState(a), who = abilOwner(a);
   if (G.state !== 'playing') return false;
-  if (st === 'down') { if (!auto) { toast((who.short || 'NOFAL') + ' ESTÁ CAÍDO · MANTÉN F'); sfx.empty(); } return false; }
+  if (st === 'down') { if (!auto) { toast((who.short || 'LEFAL') + ' ESTÁ CAÍDO · MANTÉN F'); sfx.empty(); } return false; }
   if (st !== 'ready') { if (!auto && st === 'cd') { toast(a.name + ' · ' + Math.ceil(a.cd) + ' s'); sfx.empty(); } return false; }
   a.t = a.dur; if (!pos) a.cd = a.max;
   if (G.online && NG.host && !(pos && pos.vis) && (id === 'escudo' || id === 'senuelo')) setTimeout(function () {
@@ -3429,7 +3432,7 @@ function useAbility(id, auto, pos) {
     var ring = new THREE.Mesh(new THREE.RingGeometry(SHIELD.r - 0.15, SHIELD.r, 48), new THREE.MeshBasicMaterial({ color: 0x7fe8ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; g.add(ring);
     g.position.set(SHIELD.x, 0, SHIELD.z); scene.add(g); SHIELD.m = g;
-    if (!pos) radio(L('andres', auto ? '¡Bilal, te cubro! Escudo de salteñas: quédate dentro.' : '¡Escudo de salteñas! Quédate dentro, Bilal.'));
+    if (!pos) radio(L('andres', auto ? '¡Bilalzinho, te cubro! Escudo de salteñas: quédate dentro.' : '¡Escudo de salteñas! Quédate dentro, Bilalzinho.'));
   } else if (id === 'senuelo') {
     if (DECOY.g) scene.remove(DECOY.g);
     var o = pos || resolve(P.x - Math.sin(P.yaw) * 4, P.z - Math.cos(P.yaw) * 4, 0.5);
@@ -3520,7 +3523,7 @@ function updateMates(dt) {
     m.g.visible = on && mateIn(m);
     if (!on || m.down || !mateIn(m)) continue;
     var sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
-    /* Decide cada poco: recoger un pickup cercano, cazar un enemigo o acompañar a Bilal */
+    /* Decide cada poco: recoger un pickup cercano, cazar un enemigo o acompañar a Bilalzinho */
     m.think = (m.think || 0) - dt;
     if (m.think <= 0) {
       m.think = rnd(0.3, 0.5);
@@ -3579,7 +3582,7 @@ function updateSquad(dt) {
   if (G.online) { netSquad(); return; }
   if (!allyActive()) { squadEl.hidden = true; return; }
   squadEl.hidden = false;
-  var rows = [{ n: 'NOFAL', m: ally, join: 0, pts: ally.pts || 0, k: ally.kills2 || 0 }];
+  var rows = [{ n: 'LEFAL', m: ally, join: 0, pts: ally.pts || 0, k: ally.kills2 || 0 }];
   MATES.forEach(function (m) { rows.push({ n: m.short, m: m, join: m.join, pts: m.pts || 0, k: m.kills || 0 }); });
   squadEl.innerHTML = rows.map(function (r) {
     var on = G.phase >= r.join;
@@ -3610,7 +3613,7 @@ function updateRevive(dt) {
   }
   for (var j = 0; j < list.length; j++) { if (list[j] !== best || !keys['KeyF']) list[j].revive = 0; }
   if (!best) { reviveBoxEl.hidden = true; return; }
-  var nm = best === ally ? 'NOFAL' : best.name;
+  var nm = best === ally ? 'LEFAL' : best.name;
   reviveBoxEl.hidden = false;
   if (keys['KeyF'] && G.state === 'playing') best.revive = Math.min(REVIVE_T, best.revive + dt);
   reviveLabEl.textContent = keys['KeyF'] ? 'SANANDO A ' + nm + ' · ' + Math.ceil(REVIVE_T - best.revive) + ' s' : 'MANTÉN F PARA SANAR A ' + nm;
@@ -3619,7 +3622,7 @@ function updateRevive(dt) {
     if (best.peer) { best.revive = 0; netRevive(best.peer); sfx.pickup(); toast('HAS SANADO A ' + best.name); reviveBoxEl.hidden = true; return; }
     best.down = false; best.hp = 45; best.revive = 0; best.g.rotation.z = 0; sfx.pickup();
     if (best === ally) allySay('¡Vuelvo! Aún puedo disparar.', 2);
-    else radio(L(best.key, '¡Gracias, Bilal! Vuelvo a la oficina.'));
+    else radio(L(best.key, '¡Gracias, Bilalzinho! Vuelvo a la oficina.'));
     reviveBoxEl.hidden = true;
   }
 }
@@ -3644,13 +3647,13 @@ function buildAlly() {
   var sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; sh.scale.setScalar(0.7); g.add(sh);
   var lc = mkCanvas(256, 72), lx = lc.getContext('2d');
   lx.fillStyle = '#f1efe6'; lx.fillRect(0, 0, 256, 72); lx.strokeStyle = '#14181a'; lx.lineWidth = 6; lx.strokeRect(3, 3, 250, 66);
-  lx.fillStyle = '#e0382d'; lx.textAlign = 'center'; lx.font = '46px Anton, Impact, sans-serif'; lx.fillText('NOFAL', 128, 53);
+  lx.fillStyle = '#e0382d'; lx.textAlign = 'center'; lx.font = '46px Anton, Impact, sans-serif'; lx.fillText('LEFAL', 128, 53);
   var label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(lc), transparent: true }));
   label.scale.set(0.9, 0.253, 1); label.position.y = 2.2; g.add(label);
   ally.emoteCv = mkCanvas(64, 64); ally.emoteTex = tex(ally.emoteCv);
   var em = new THREE.Sprite(new THREE.SpriteMaterial({ map: ally.emoteTex, transparent: true }));
   em.scale.set(0.62, 0.62, 1); em.position.y = 2.78; em.visible = false; g.add(em); ally.emote = em;
-  ally.key = 'aliado'; ally.g = g; ally.body = body; ally.label = label; ally.hp = 100; ally.down = false; ally.revive = 0; ally.name = 'NOFAL';
+  ally.key = 'aliado'; ally.g = g; ally.body = body; ally.label = label; ally.hp = 100; ally.down = false; ally.revive = 0; ally.name = 'LEFAL';
   loadCharCanvas('aliado', function (t, aspect) {
     var h = 1.0, m = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
     ally.planeY = 0.88 + h / 2; m.position.y = ally.planeY; g.add(m); ally.plane = m;
@@ -3698,7 +3701,7 @@ function setEmote(ch, col, dur) {
   A.emoteT = dur;
 }
 
-/* Nofal se aparta cuando algo explota cerca */
+/* Lefal se aparta cuando algo explota cerca */
 function allyKnock(x, z, rad, dur) {
   var A = ally; if (!A.g || !allyActive()) return;
   var dx = A.x - x, dz = A.z - z, d = Math.hypot(dx, dz);
@@ -3797,7 +3800,7 @@ function allyThink() {
     if (da < 6) crowd++;
     if (dp < 5) pn++;
     if (dp < 7 && e.age > 0.6 && ((e.x - P.x) * -sy + (e.z - P.z) * -cy) < -2 && G.t - A.warnBack > 10) {
-      A.warnBack = G.t; allySay('¡Bilal, a tu espalda!', 1); setEmote('!', '#e0382d', 1);
+      A.warnBack = G.t; allySay('¡Bilalzinho, a tu espalda!', 1); setEmote('!', '#e0382d', 1);
     }
   }
   if (cnt) { cx /= cnt; cz /= cnt; }
@@ -3812,7 +3815,7 @@ function allyThink() {
   if (A.rel > 0 && cnt >= 2 && nearD < 9 && !A.relCall) { A.relCall = true; allySay('¡Recargando, cúbreme!', 1); }
   if (A.rel <= 0) A.relCall = false;
 
-  /* objetivo: prioriza amenazas peligrosas y las cercanas a Bilal, siempre con línea de tiro */
+  /* objetivo: prioriza amenazas peligrosas y las cercanas a Bilalzinho, siempre con línea de tiro */
   var low = G.hp < G.maxHp * 0.4, list = [];
   for (i = 0; i < G.enemies.length; i++) {
     e = G.enemies[i]; if (e.age < 0.4) continue;
@@ -3847,13 +3850,13 @@ function allyThink() {
     A.mode = m; A.modeAt = G.t;
   }
 
-  /* avisos a Bilal */
-  if (G.hp < G.maxHp * 0.25 && !A.lowCall) { A.lowCall = true; allySay('¡Aguanta, Bilal! ¡Yo te cubro!', 2); }
+  /* avisos a Bilalzinho */
+  if (G.hp < G.maxHp * 0.25 && !A.lowCall) { A.lowCall = true; allySay('¡Aguanta, Bilalzinho! ¡Yo te cubro!', 2); }
   if (G.hp > G.maxHp * 0.5) A.lowCall = false;
   if (low && G.t - A.pizzaCall > 14) {
     for (i = 0; i < G.pickups.length; i++) {
       var pp = G.pickups[i];
-      if (pp.kind === 'pizza' && pp.life > 5) { A.pizzaCall = G.t; allySay('¡Hay pizza ' + relDir(pp.x - P.x, pp.z - P.z) + ', Bilal!', 1); break; }
+      if (pp.kind === 'pizza' && pp.life > 5) { A.pizzaCall = G.t; allySay('¡Hay pizza ' + relDir(pp.x - P.x, pp.z - P.z) + ', Bilalzinho!', 1); break; }
     }
   }
   if (A.pending) {
@@ -4049,12 +4052,18 @@ function updateWaves(dt) {
 }
 
 /* ================= ONLINE COOPERATIVO (Zombies) =================
-   Cada persona lleva a un personaje: Bilal, Nofal, Andrés o Heverton. El anfitrión (quien crea la
+   Cada persona lleva a un personaje de NETC. El anfitrión (quien crea la
    partida) simula enemigos, oleadas, objetos y la IA de los personajes libres, y manda el estado
    unas 8 veces por segundo. Cada jugador mueve y dispara al suyo y manda sus impactos al anfitrión.
    Transporte: la sala `room` dentro de claude.ai, o un WebSocket al Worker de Cloudflare. */
-var NETC = ['bilal', 'aliado', 'andres', 'heverton'];
-var NETAB_DEF = { bilal: { n: 'CAFÉ DOBLE', cd: 18 }, aliado: { n: 'RÁFAGA', cd: 18 }, andres: { n: 'ESCUDO', cd: 20 }, heverton: { n: 'SEÑUELO', cd: 22 } };
+var NETC = ['bilal', 'aliado', 'andres', 'heverton', 'sonrisas', 'visto', 'respeto'];
+/* Solo jugables online: si nadie los elige no aparecen ni los lleva la IA */
+var NETFX = {
+  sonrisas: { r: 7, color: 0x2f9e5a, toast: 'CURA A LOS QUE ESTÁN CERCA', lines: ['¡Sonreíd, que es gratis! Hasta que os lo descuenten de la nómina.', 'Esta risa se pega. La tos del lunes, no tanto.', 'Con una sonrisa se rechaza todo mejor.'], hello: 'Soy Eusebio-sama, de relaciones públicas. Me río yo y os curáis vosotros.' },
+  visto: { r: 10, color: 0x2aa3df, toast: 'LAS OFERTAS CERCANAS VAN MÁS LENTAS', lines: ['Visto. Ya contestaré. O no.', 'Doble check azul y ni una respuesta.', 'Tu oferta es muy importante para mí. Espera en la cola.'], hello: 'Soy Valentin. He leído todas las ofertas. No he contestado a ninguna.' },
+  respeto: { r: 6.5, color: 0xe0382d, toast: 'ONDA QUE EMPUJA Y DAÑA', lines: ['Con todo el respeto: no.', 'Agradezco su interés. Fuera de aquí.', 'Le respondo con la mano en el corazón. Bueno, en el corazón no.'], hello: 'Soy Dr House. Rechazo cada oferta con muchísimo respeto y un gesto muy claro.' }
+};
+var NETAB_DEF = { bilal: { n: 'CAFÉ DOBLE', cd: 18 }, aliado: { n: 'RÁFAGA', cd: 18 }, andres: { n: 'ESCUDO', cd: 20 }, heverton: { n: 'SEÑUELO', cd: 22 }, sonrisas: { n: 'RISA CONTAGIOSA', cd: 24 }, visto: { n: 'EN VISTO', cd: 22 }, respeto: { n: 'CON RESPETO', cd: 20 } };
 var NG = { r: null, code: '', host: false, hostPeer: null, me: null, c: null, started: false, claimed: {}, peers: [], hum: [], pup: {}, ens: {}, pks: {}, ai: {},
   eid: 0, pid: 0, newProj: [], hitBuf: {}, slowBuf: {}, hurtBuf: {}, snapT: 0, poseT: 0, hitT: 0, overT: 0, ab: 0, slowT: 0, unsub: [], menu: false };
 function r1(v) { return Math.round(v * 10) / 10; }
@@ -4166,7 +4175,8 @@ function renderNetLobby() {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'charcard'; b.dataset.c = c; b.setAttribute('aria-pressed', NG.c === c ? 'true' : 'false');
     var im = document.createElement('img'); im.src = CHARS[c].img; im.alt = ''; b.appendChild(im);
     var nb = document.createElement('b'); nb.textContent = CHARS[c].name; b.appendChild(nb);
-    var sm = document.createElement('small'); sm.textContent = taken[c] ? 'Lo lleva ' + (cleanName(taken[c].presence.n) || 'alguien') : (NG.c === c ? 'Tu personaje' : 'Libre · lo lleva la IA'); b.appendChild(sm);
+    var sm = document.createElement('small'); sm.textContent = taken[c] ? 'Lo lleva ' + (cleanName(taken[c].presence.n) || 'alguien') : (NG.c === c ? 'Tu personaje' : (NETFX[c] ? 'Libre' : 'Libre · lo lleva la IA')); b.appendChild(sm);
+    var ab = document.createElement('small'); ab.textContent = 'Q · ' + NETAB_DEF[c].n; b.title = CHARS[c].role; b.appendChild(ab);
     if (taken[c]) b.disabled = true;
     box.appendChild(b);
   });
@@ -4195,9 +4205,10 @@ function netStart(claim, hostPeer) {
   G.online = true;
   startSurvival();
   if (!NG.host) G.toSpawn = [];
-  var idx = NETC.indexOf(NG.c); P.x = (idx - 1.5) * 2; P.z = 2;
+  var idx = NETC.indexOf(NG.c), so = resolve((idx - 3) * 1.5, 2, 0.5); P.x = so.x; P.z = so.z;
   NG.r.presence({ s: 'game' }).catch(function () {});
   toast('ONLINE · JUEGAS CON ' + CHARS[NG.c].name.toUpperCase() + ' · Q HABILIDAD');
+  if (NETFX[NG.c]) radio(L(NG.c, NETFX[NG.c].hello));
 }
 function netLeave() {
   var r = NG.r; if (!r) return;
@@ -4225,6 +4236,7 @@ function netOnEv(msg) {
   if (d.t === 'wave') { if ((d.n | 0) !== G.wave) { startWave(d.n | 0); G.toSpawn = []; } var evs = MAP_EVENT[curLoc] || []; if (evs[d.ev]) curEv = evs[d.ev]; }
   else if (d.t === 'hz') addHazard(+d.x || 0, +d.z || 0, Math.min(8, +d.r || 1), Math.min(10, +d.l || 1), 0, /^\d{1,3},\d{1,3},\d{1,3}$/.test(d.c) ? d.c : '255,150,60', String(d.lb || '').slice(0, 40));
   else if (d.t === 'ab' && (d.k === 'escudo' || d.k === 'senuelo')) useAbility(d.k, true, { x: +d.x || 0, z: +d.z || 0, vis: true });
+  else if (d.t === 'fx' && NETFX[d.k]) netFxApply(d.k, +d.x || 0, +d.z || 0);
   else if (d.t === 'grant' && d.to === NG.me) netGrant(d);
   else if (d.t === 'took' && d.to === NG.me) applyPickup({ kind: String(d.k) }, false);
   else if (d.t === 'revived' && d.to === NG.me) netRevived();
@@ -4258,17 +4270,21 @@ function netOnReq(msg) {
     moveBoxTo(nx); netGrantTo(msg.peer, { w: k });
   } else if (d.t === 'perk') {
     var m = PERKM.filter(function (x) { return x.k === d.k; })[0]; if (!m) return;
-    if (G.score < m.cost) { netGrantTo(msg.peer, { err: m.name + ' · OS FALTAN PUNTOS (' + m.cost + ')' }); return; }
-    G.score -= m.cost; netGrantTo(msg.peer, { perk: m.k, w: WEAPONS[d.w] ? d.w : 'grapadora' });
+    var plv = d.lv | 0, pcost = m.k === 'pap' ? papCost(plv) : m.cost;
+    if (m.k === 'pap' && (plv < 1 || plv > papLevel())) { netGrantTo(msg.peer, { err: 'CAJA · ESE NIVEL AÚN NO ESTÁ' }); return; }
+    if (G.score < pcost) { netGrantTo(msg.peer, { err: m.name + ' · OS FALTAN PUNTOS (' + pcost + ')' }); return; }
+    G.score -= pcost; netGrantTo(msg.peer, { perk: m.k, w: WEAPONS[d.w] ? d.w : 'grapadora', lv: plv });
   } else if (d.t === 'ab' && (d.k === 'escudo' || d.k === 'senuelo')) {
     var o = resolve(+d.x || 0, +d.z || 0, 0.5); useAbility(d.k, true, { x: o.x, z: o.z });
+  } else if (d.t === 'fx' && NETFX[d.k] && NG.claimed[d.k] === msg.peer) {
+    netFxSend(d.k, +d.x || 0, +d.z || 0);
   } else if (d.t === 'rev') netRevive(String(d.to));
 }
 function netGrant(d) {
   if (d.err) { toast(String(d.err).slice(0, 60)); sfx.empty(); return; }
   if (d.perk) {
     var m = PERKM.filter(function (x) { return x.k === d.perk; })[0]; if (!m) return;
-    if (m.k === 'pap') { G.pap[d.w] = true; toast('MEJORA · ' + WEAPONS[d.w].short.toUpperCase() + ' x1.8 DAÑO'); }
+    if (m.k === 'pap') { G.pap[d.w] = Math.max(G.pap[d.w] | 0, d.lv | 0, 1); papToast(d.w); }
     else { G.perks[m.k] = true; if (m.k === 'vida') { applyStats(); G.hp = G.maxHp; } toast('PERK · ' + m.name); }
     sfx.pickup(); return;
   }
@@ -4278,8 +4294,12 @@ function netUseBox() {
   if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) { NG.r.emit('req', { t: 'box', cur: G.wcur }).catch(function () {}); return; }
   for (var i = 0; i < PERKM.length; i++) {
     var m = PERKM[i];
-    if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4) {
-      if (m.k === 'pap' ? G.pap[G.wcur] : G.perks[m.k]) { toast(m.k === 'pap' ? 'ESTA ARMA YA ESTÁ MEJORADA' : 'YA TIENES ' + m.name); sfx.empty(); return; }
+    if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= perkReach(m)) {
+      if (m.k === 'pap') {
+        var chk = papNext(G.wcur); if (chk.err) { toast(chk.err); sfx.empty(); return; }
+        NG.r.emit('req', { t: 'perk', k: 'pap', w: G.wcur, lv: chk.lv }).catch(function () {}); return;
+      }
+      if (G.perks[m.k]) { toast('YA TIENES ' + m.name); sfx.empty(); return; }
       NG.r.emit('req', { t: 'perk', k: m.k, w: G.wcur }).catch(function () {}); return;
     }
   }
@@ -4357,7 +4377,7 @@ function netHitHuman(p) {
   }
   return false;
 }
-/* Daño de una embestida contra quien persigue el enemigo (Bilal, otro jugador o el señuelo) */
+/* Daño de una embestida contra quien persigue el enemigo (Bilalzinho, otro jugador o el señuelo) */
 function hitAim(dmg) {
   if (AIM === P) hurtPlayer(dmg);
   else if (AIM && AIM.peer) netHurt(AIM.peer, dmg);
@@ -4410,11 +4430,43 @@ function netGameOver() {
   $('overMsg').textContent = 'Os han contratado a todos. Volved al menú y cread otra partida online.';
   $('btnAgain').textContent = 'MENÚ';
 }
+/* Habilidades de Eusebio-sama, Valentin y Dr House: el anfitrión las reparte y cada uno las aplica en su partida */
+function netFxSend(k, x, z) {
+  if (NG.r) NG.r.emit('ev', { t: 'fx', k: k, x: r1(x), z: r1(z) }).catch(function () {});
+  netFxApply(k, x, z);
+}
+function netFxApply(k, x, z) {
+  if (!G.online || G.state !== 'playing') return;
+  var fx = NETFX[k], list, i, e, d;
+  fxRing(x, z, fx.color, fx.r);
+  if (k === 'sonrisas') {
+    sfx.pickup();
+    if (!P.down && Math.hypot(P.x - x, P.z - z) < fx.r) { G.hp = Math.min(G.maxHp, G.hp + 35); if (NG.c !== k) toast('EUSEBIO-SAMA TE HA CONTAGIADO LA RISA · +35'); }
+  } else if (k === 'visto') {
+    sfx.summon();
+    if (NG.host) for (i = 0; i < G.enemies.length; i++) { e = G.enemies[i]; if (Math.hypot(e.x - x, e.z - z) < fx.r) e.slowT = 5; }
+  } else {
+    sfx.boom(); sparkBurst(new THREE.Vector3(x, 0.8, z), sparkMat, 22, 7, 2.4);
+    if (Math.hypot(P.x - x, P.z - z) < 8) G.shake = Math.max(G.shake, 0.25);
+    if (!NG.host) return;
+    list = G.enemies.slice();
+    for (i = 0; i < list.length; i++) {
+      e = list[i]; d = Math.hypot(e.x - x, e.z - z) || 0.01;
+      if (d >= fx.r + e.T.r * 0.5) continue;
+      if (!e.T.boss) { var o = resolve(e.x + (e.x - x) / d * 2.5, e.z + (e.z - z) / d * 2.5, e.T.r); e.x = o.x; e.z = o.z; }
+      damageEnemy(e, 8, 'net');
+    }
+  }
+}
 function netAbility() {
   if (!G.online || P.down || G.state !== 'playing') return;
   var c = NG.c, def = NETAB_DEF[c] || NETAB_DEF.bilal;
   if (NG.ab > 0) { toast(def.n + ' · ' + Math.ceil(NG.ab) + ' s'); sfx.empty(); return; }
   NG.ab = def.cd;
+  if (NETFX[c]) {
+    if (NG.host) netFxSend(c, P.x, P.z); else NG.r.emit('req', { t: 'fx', k: c, x: r1(P.x), z: r1(P.z) }).catch(function () {});
+    toast(def.n + ' · ' + NETFX[c].toast); radio(L(c, pick(NETFX[c].lines))); return;
+  }
   if (c === 'bilal') { G.rapid = Math.max(G.rapid, 6); toast('CAFÉ DOBLE · DISPARO RÁPIDO'); sfx.pickup(); }
   else if (c === 'aliado') { G.rapid = Math.max(G.rapid, 4); NG.slowT = 4; toast('RÁFAGA · LOS QUE TOCAS VAN MÁS LENTOS'); sfx.summon(); }
   else {
@@ -4474,7 +4526,7 @@ function netTick(dt) {
 }
 function netSquad() {
   squadEl.hidden = false;
-  squadEl.innerHTML = NETC.map(function (c) {
+  squadEl.innerHTML = NETC.filter(function (c) { return !NETFX[c] || NG.claimed[c]; }).map(function (c) {
     var nm = CHARS[c].name.toUpperCase(), hp = 0, dn = false, meta = '', off = false, H = null;
     if (NG.claimed[c] && NG.claimed[c] === NG.me) { hp = G.hp; dn = P.down; meta = 'TÚ'; }
     else if (NG.claimed[c]) { NG.hum.forEach(function (h) { if (h.c === c) H = h; }); if (H) { hp = H.hp; dn = H.dn; meta = H.n; } else { off = true; meta = 'CONECTANDO…'; } }
@@ -4561,10 +4613,11 @@ var PERKM = [
   { k: 'vida', name: 'VIDA', sub: '+40 de nini · 2000', cost: 2000, c: 0x2f9e5a, x: 8, z: -8 },
   { k: 'recarga', name: 'RECARGA', sub: 'Recargas 30% más rápidas · 2000', cost: 2000, c: 0x2d6fb8, x: 8, z: 8 },
   { k: 'cadencia', name: 'CADENCIA', sub: 'Disparas 20% más rápido · 2000', cost: 2000, c: 0xc9851b, x: -8, z: 8 },
-  { k: 'pap', name: 'MEJORA', sub: 'Arma actual x1.8 daño · 1500', cost: 1500, c: 0x8a2a8a, x: 0, z: -12 }
+  { k: 'pap', name: 'MEJORAS', sub: 'Sube de nivel cada ronda', cost: 1500, c: 0x8a2a8a, x: 0, z: -12 }
 ];
 function buildPerks() {
   PERKM.forEach(function (m) {
+    if (m.k === 'pap') { placePapBox(m); return; }
     if (!m.g) {
       m.g = new THREE.Group();
       var body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.8, 0.7), new THREE.MeshLambertMaterial({ color: m.c })); body.position.y = 0.9; m.g.add(body);
@@ -4576,12 +4629,105 @@ function buildPerks() {
     m.g.visible = true;
   });
 }
-function setPerkVis(v) { PERKM.forEach(function (m) { if (m.g) m.g.visible = v; }); }
+function setPerkVis(v) { PERKM.forEach(function (m) { if (m.g) m.g.visible = v; }); if (!v) papUnblock(); }
+
+/* Caja de mejoras: grande, sube un nivel por ronda (hasta 10) y echa más humo rojo cuanto más nivel tiene */
+var PAP_MAX = 10, PAP_SMOKE = 40, papSeen = 0, papKey = '', papSmokeTex = null, fxRings = [];
+function papLevel() { return clamp(G.wave | 0, 1, PAP_MAX); }
+function papMult(w) { var l = G.pap[w] | 0; return l ? 1.8 + 0.4 * (l - 1) : 1; }
+function papCost(l) { return 1500 + 500 * (l - 1); }
+function papNext(w) {
+  var cur = G.pap[w] | 0;
+  if (cur >= PAP_MAX) return { err: 'ESTA ARMA YA ESTÁ AL NIVEL MÁXIMO' };
+  if (cur >= papLevel()) return { err: 'CAJA NIVEL ' + papLevel() + ' · SUBE EN LA PRÓXIMA RONDA' };
+  return { lv: cur + 1, cost: papCost(cur + 1) };
+}
+function papToast(w) { toast('MEJORA · ' + WEAPONS[w].short.toUpperCase() + ' NV ' + (G.pap[w] | 0) + ' · x' + papMult(w).toFixed(1) + ' DAÑO'); }
+function perkReach(m) { return m.k === 'pap' ? 3.4 : 2.4; }
+function papUnblock() {
+  var m = PERKM[PERKM.length - 1];
+  if (m.ob && m.obList) { var i = m.obList.indexOf(m.ob); if (i >= 0) m.obList.splice(i, 1); }
+  m.ob = null; m.obList = null;
+}
+function placePapBox(m) {
+  papUnblock();
+  if (!m.g) {
+    m.g = new THREE.Group();
+    var part = function (w, h, d, c, y, x) { var o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c })); o.position.set(x || 0, y, 0); m.g.add(o); };
+    part(2.2, 1.7, 1.7, 0x4a1430, 0.85);
+    part(2.36, 0.24, 1.86, m.c, 1.82);
+    part(0.26, 1.72, 1.72, 0xe0382d, 0.85, -0.7);
+    part(0.26, 1.72, 1.72, 0xe0382d, 0.85, 0.7);
+    var pl = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.7), new THREE.MeshBasicMaterial({ map: tex(posterCanvas(m.name, m.sub, '#e0382d')) }));
+    pl.position.set(0, 0.9, 0.86); m.g.add(pl);
+    m.signC = mkCanvas(512, 180); m.signT = tex(m.signC);
+    var sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: m.signT, transparent: true })); sign.scale.set(2.6, 0.91, 1); sign.position.y = 2.75; m.g.add(sign);
+    if (!papSmokeTex) {
+      var sc = mkCanvas(64, 64), sx = sc.getContext('2d'), gr = sx.createRadialGradient(32, 32, 2, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      sx.fillStyle = gr; sx.fillRect(0, 0, 64, 64); papSmokeTex = tex(sc);
+    }
+    m.smoke = [];
+    for (var i = 0; i < PAP_SMOKE; i++) {
+      var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: papSmokeTex, color: 0xe0201a, transparent: true, opacity: 0, depthWrite: false }));
+      sp.visible = false; m.g.add(sp);
+      m.smoke.push({ s: sp, t: Math.random() * 2.6, life: 2.2 + Math.random() * 0.8, x: (Math.random() - 0.5) * 1.8, z: (Math.random() - 0.5) * 1.3, ph: Math.random() * 6.28 });
+    }
+  }
+  if (!m.g.parent) scene.add(m.g);
+  var o = resolve(m.x, m.z, 1.6); m.g.position.set(o.x, 0, o.z); m.g.visible = true;
+  m.ob = { x0: o.x - 1.1, x1: o.x + 1.1, z0: o.z - 0.85, z1: o.z + 0.85, h: 2 }; m.obList = OB; OB.push(m.ob);
+  papKey = '';
+}
+function papSign(m, lv) {
+  var cur = G.pap[G.wcur] | 0, n = papNext(G.wcur), w = WEAPONS[G.wcur], key = lv + '|' + G.wcur + '|' + cur;
+  if (key === papKey) return;
+  papKey = key;
+  var x = m.signC.getContext('2d');
+  x.fillStyle = '#0f1412'; x.fillRect(0, 0, 512, 180); x.strokeStyle = '#e0382d'; x.lineWidth = 8; x.strokeRect(4, 4, 504, 172);
+  x.textAlign = 'center'; x.fillStyle = '#f1efe6'; x.font = '50px Anton, Impact, sans-serif'; x.fillText('MEJORAS · NIVEL ' + lv, 256, 70);
+  x.fillStyle = '#ffb0a8'; x.font = '30px Anton, Impact, sans-serif';
+  x.fillText((w ? w.short.toUpperCase() : '') + ' NV ' + cur + (n.lv ? ' → ' + n.lv : ''), 256, 112);
+  x.fillStyle = '#f1efe6'; x.fillText(n.lv ? 'E · x' + (1.8 + 0.4 * (n.lv - 1)).toFixed(1) + ' DAÑO · ' + n.cost + ' PUNTOS' : (cur >= PAP_MAX ? 'NIVEL MÁXIMO' : 'SUBE EN LA PRÓXIMA RONDA'), 256, 152);
+  m.signT.needsUpdate = true;
+}
+function papTick(dt) {
+  var m = PERKM[PERKM.length - 1];
+  if (!m.g || !m.g.visible || G.mode !== 'survival') return;
+  var lv = papLevel();
+  if (lv !== papSeen) { if (lv > papSeen && papSeen > 0) toast('CAJA DE MEJORAS · NIVEL ' + lv); papSeen = lv; m.g.scale.setScalar(1 + 0.02 * lv); }
+  papSign(m, lv);
+  var active = Math.min(PAP_SMOKE, 10 + lv * 3);
+  for (var i = 0; i < m.smoke.length; i++) {
+    var p = m.smoke[i];
+    if (i >= active) { p.s.visible = false; continue; }
+    p.t += dt; if (p.t > p.life) p.t = 0;
+    var k = p.t / p.life, size = 0.5 + k * (1.6 + lv * 0.06);
+    p.s.visible = true;
+    p.s.position.set(p.x + Math.sin(p.t * 1.7 + p.ph) * 0.3 * k, 1.9 + k * (3.0 + lv * 0.15), p.z + Math.cos(p.t * 1.3 + p.ph) * 0.3 * k);
+    p.s.scale.set(size, size, 1);
+    p.s.material.opacity = Math.sin(Math.PI * k) * 0.8;
+  }
+}
+function fxRing(x, z, color, r) {
+  var m = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 48), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.08, z); m.scale.set(0.2, 0.2, 1); scene.add(m);
+  fxRings.push({ m: m, t: 0, r: r });
+}
+function fxRingsTick(dt) {
+  for (var i = fxRings.length - 1; i >= 0; i--) {
+    var f = fxRings[i]; f.t += dt;
+    var k = f.t / 0.7;
+    if (k >= 1) { scene.remove(f.m); f.m.geometry.dispose(); f.m.material.dispose(); fxRings.splice(i, 1); continue; }
+    var s = 0.2 + (f.r - 0.2) * k; f.m.scale.set(s, s, 1); f.m.material.opacity = 0.9 * (1 - k);
+  }
+}
 function buyPerk(m) {
   if (m.k === 'pap') {
-    if (G.pap[G.wcur]) { toast('ESTA ARMA YA ESTÁ MEJORADA'); sfx.empty(); return; }
-    if (G.score < m.cost) { toast('MEJORA · NECESITAS ' + m.cost + ' PUNTOS'); sfx.empty(); return; }
-    G.score -= m.cost; G.pap[G.wcur] = true; sfx.pickup(); toast('MEJORA · ' + WEAPONS[G.wcur].short.toUpperCase() + ' x1.8 DAÑO');
+    var nx = papNext(G.wcur);
+    if (nx.err) { toast(nx.err); sfx.empty(); return; }
+    if (G.score < nx.cost) { toast('MEJORA · NECESITAS ' + nx.cost + ' PUNTOS'); sfx.empty(); return; }
+    G.score -= nx.cost; G.pap[G.wcur] = nx.lv; sfx.pickup(); papToast(G.wcur);
     return;
   }
   if (G.perks[m.k]) { toast('YA TIENES ' + m.name); sfx.empty(); return; }
@@ -4606,12 +4752,12 @@ function useBox() {
   }
   for (var i = 0; i < PERKM.length; i++) {
     var m = PERKM[i];
-    if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4) { buyPerk(m); return; }
+    if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= perkReach(m)) { buyPerk(m); return; }
   }
 }
 function startSurvival() {
   initAudio(); startHum(); clearWorld();
-  G.perks = {}; G.pap = {};
+  G.perks = {}; G.pap = {}; papSeen = 0; papKey = '';
   seenKinds = {}; G.mode = 'survival'; G.owned = { grapadora: 1, leche: 1, trituradora: 1, pizza: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
@@ -4680,11 +4826,11 @@ function toMenu() {
   $('hud').hidden = true; refreshMenu(); showOnly('ovStart'); updateNpcs();
 }
 var DEATH_QUOTES = [
-  { who: 'lefillas', t: 'Levántate, Bilal. Una derrota no es un contrato. Respira y vuelve a intentarlo.' },
+  { who: 'lefillas', t: 'Levántate, Bilalzinho. Una derrota no es un contrato. Respira y vuelve a intentarlo.' },
   { who: 'lefillas', t: 'Fíjate en cómo se mueven las ofertas. Quien se fija, no firma.' },
   { who: 'gato', t: 'Miau. Te han contratado. Yo me quedo con el sofá, por si acaso.' },
   { who: 'gato', t: 'Miau. Al menos ahora cobrarás. Poco, pero cobrarás.' },
-  { who: 'aliado', t: '¡Bilal! ¡Te dije que no firmaras nada! ¡Aguanta, que voy!' },
+  { who: 'aliado', t: '¡Bilalzinho! ¡Te dije que no firmaras nada! ¡Aguanta, que voy!' },
   { who: 'bucle', t: 'Repite. Repite. Repite. Y esta vez, esquiva.' },
   { who: 'nomina', t: 'Bienvenido a la empresa. Tu mesa es la que está junto al baño.' }
 ];
@@ -4884,6 +5030,7 @@ function update(dt) {
   updatePlayer(dt); applyCamera();
   if (mouseDown) shoot();
   if (G.state !== 'playing') return;
+  papTick(dt); fxRingsTick(dt);
   if (G.online && !NG.host) { netClientTick(dt); updateProj(dt); updateEProj(dt); updateHazards(dt); updateRevive(dt); updateSquad(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt); return; }
   updateWaves(dt); if (G.state !== 'playing') return;
   updateEnemies(dt); if (G.state !== 'playing') return;
