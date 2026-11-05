@@ -1271,7 +1271,7 @@ function munCrate(kind) {
 }
 
 /* ---------------- Audio ---------------- */
-var AC = null, master = null, noiseBuf = null, humOsc = null;
+var AC = null, master = null, noiseBuf = null;
 function initAudio() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try {
@@ -1326,12 +1326,80 @@ var sfx = {
   summon: function () { tone(180, 'sawtooth', 0.4, 0.25, 1.8); tone(270, 'sawtooth', 0.4, 0.22, 1.8, 0.12); },
   dodge: function () { noise(0.08, 0.15, 1200, 0.7); }
 };
-function startHum() {
-  if (!AC || humOsc) return;
-  humOsc = AC.createOscillator(); var g = AC.createGain();
-  humOsc.type = 'sawtooth'; humOsc.frequency.value = 55; g.gain.value = 0.018;
-  var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 240;
-  humOsc.connect(lp); lp.connect(g); g.connect(master); humOsc.start();
+/* Música de fondo original, generada en vivo: 32 compases con partes distintas para que no canse */
+/* MUSICA-INICIO */
+var MUSIC_BAR = 4 * 60 / 88;
+var MUSIC_CHORDS = [[57, 60, 64], [53, 57, 60], [48, 55, 64], [55, 59, 62], [57, 60, 64], [53, 57, 60], [50, 57, 60], [52, 55, 59]];
+var MUSIC_TUNES = [
+  [76, 0, 72, 0, 69, 0, 0, 72], [0, 72, 0, 69, 72, 0, 0, 0], [79, 0, 76, 0, 72, 0, 0, 0], [0, 74, 0, 79, 0, 74, 0, 0],
+  [76, 0, 0, 72, 0, 69, 0, 0], [0, 69, 72, 0, 77, 0, 0, 0], [74, 0, 72, 0, 69, 0, 72, 0], [0, 71, 0, 74, 0, 0, 0, 0]
+];
+function musicNote(c, out, midi, type, t, dur, vol, attack) {
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + attack);
+  g.gain.setTargetAtTime(0.0001, t + attack, (dur - attack) / 3);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.2);
+}
+function musicBar(c, out, echo, noiseBuffer, bar, t) {
+  var part = bar % 32, slot = MUSIC_BAR / 8, chord = MUSIC_CHORDS[bar % 8];
+  /* Colchón suave que entra y sale despacio */
+  chord.forEach(function (n) { musicNote(c, out, n, 'sine', t, MUSIC_BAR * 1.25, 0.05, MUSIC_BAR * 0.3); });
+  /* Bajo redondo; en la parte final se calla para dar respiro */
+  if (part < 24) {
+    musicNote(c, out, chord[0] - 12, 'triangle', t, slot * 3, 0.17, 0.02);
+    musicNote(c, out, chord[0] - 12, 'triangle', t + slot * 3, slot * 1.5, 0.1, 0.02);
+    musicNote(c, out, chord[0] - 12, 'triangle', t + slot * 4, slot * 3, 0.14, 0.02);
+  }
+  /* Melodía con eco, solo en las partes del medio */
+  if (part >= 8) {
+    var tune = MUSIC_TUNES[bar % 8], sparse = part >= 24;
+    tune.forEach(function (n, i) {
+      if (!n || (sparse && i % 4) || (!sparse && Math.random() < 0.12)) return;
+      musicNote(c, out, n, 'triangle', t + slot * i, slot * 2.4, 0.055, 0.008);
+      musicNote(c, echo, n, 'triangle', t + slot * i, slot * 2.4, 0.04, 0.008);
+    });
+  }
+  /* Percusión muy suave en la parte más animada */
+  if (part >= 16 && part < 24) {
+    for (var i = 1; i < 8; i += 2) {
+      var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), at = t + slot * i;
+      s.buffer = noiseBuffer; f.type = 'highpass'; f.frequency.value = 6500;
+      g.gain.setValueAtTime(0.018, at); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.07);
+      s.connect(f); f.connect(g); g.connect(out); s.start(at, Math.random() * 0.5); s.stop(at + 0.1);
+    }
+  }
+}
+function musicOutput(c, dest) {
+  var bus = c.createGain(), soft = c.createBiquadFilter(), echo = c.createDelay(1), back = c.createGain();
+  soft.type = 'lowpass'; soft.frequency.value = 3200;
+  echo.delayTime.value = MUSIC_BAR / 8 * 3; back.gain.value = 0.3;
+  bus.connect(soft); soft.connect(dest);
+  echo.connect(back); back.connect(echo); echo.connect(bus);
+  return { bus: bus, echo: echo };
+}
+/* MUSICA-FIN */
+var MUSIC = { out: null, bar: 0, next: 0, timer: 0 };
+function musicTick() {
+  var now = AC.currentTime;
+  /* Mudo o pestaña oculta: silencio. Fuera de la partida: más baja */
+  var level = (muted || document.hidden) ? 0 : (G.state === 'playing' ? 1.5 : 0.7);
+  MUSIC.out.bus.gain.setTargetAtTime(level, now, 0.2);
+  if (AC.state !== 'running' || document.hidden) return;
+  if (MUSIC.next < now) MUSIC.next = now + 0.05;
+  while (MUSIC.next < now + 0.5) {
+    musicBar(AC, MUSIC.out.bus, MUSIC.out.echo, noiseBuf, MUSIC.bar++, MUSIC.next);
+    MUSIC.next += MUSIC_BAR;
+  }
+}
+function startMusic() {
+  if (!AC || MUSIC.timer) return;
+  MUSIC.out = musicOutput(AC, master);
+  MUSIC.out.bus.gain.value = 0;
+  MUSIC.next = AC.currentTime + 0.1;
+  MUSIC.timer = setInterval(musicTick, 150);
+  musicTick();
 }
 
 /* ---------------- Renderer y escena ---------------- */
@@ -5659,7 +5727,7 @@ function useBox() {
 /* Arsenal al empezar: solo la grapadora (secundaria) y los puños. Lo demás se consigue en la tienda o con cajas. */
 function startOwned(o) { var r = { grapadora: 1, punos: 1 }; if (o) for (var k in o) if (o[k] && WEAPONS[k]) r[k] = 1; return r; }
 function startSurvival() {
-  initAudio(); startHum(); clearWorld();
+  initAudio(); startMusic(); clearWorld();
   G.perks = {}; G.pap = {}; papSeen = 0; papKey = '';
   seenKinds = {}; G.mode = 'survival'; G.bambu = 0; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
@@ -5669,7 +5737,7 @@ function startSurvival() {
 }
 function startStory(fresh) {
   if (fresh) G.branch = null;
-  initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
+  initAudio(); startMusic(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {}; G.bambu = 0;
   /* Las mejoras de arma y las ventajas de Zombies no pasan a la historia */
