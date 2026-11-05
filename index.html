@@ -93,15 +93,19 @@ body {
 .bl.low .bar > i { background: var(--stamp); }
 .warn { color: var(--stamp); font-size: 12px; letter-spacing: .08em; height: 16px; margin-top: 4px; text-shadow: 0 1px 2px #000; text-transform: uppercase; }
 
-.br { position: absolute; right: 14px; bottom: 14px; text-align: right; text-shadow: 0 2px 4px #000; }
+.br { position: absolute; right: 14px; bottom: 14px; width: 252px; text-align: right; text-shadow: 0 2px 4px #000; }
 .br .big { font-family: var(--disp); font-size: 52px; line-height: 1; font-variant-numeric: tabular-nums; }
 .br .big span { font-size: 28px; color: var(--muted); }
 .br .sub { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--paper-2); }
-.wlist { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; flex-wrap: wrap; }
-.wlist span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border: 1px solid rgba(241,239,230,.45); color: var(--paper-2); background: rgba(0,0,0,.45); }
-.wlist span b { font-family: var(--disp); font-weight: 400; color: var(--stamp); margin-right: 2px; }
-.wlist span.on { background: var(--paper); color: var(--ink); border-color: var(--paper); }
-.wlist span.lock { opacity: .35; }
+/* Selector de armas: una fila por categoría (principal, secundaria, cuerpo a cuerpo); la categoría activa va en papel */
+.wlist { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; text-align: left; }
+.wlist .cat { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; padding: 3px 8px 4px; border: 1px solid rgba(241,239,230,.45); color: var(--paper-2); background: rgba(0,0,0,.5); text-shadow: none; }
+.wlist .cat em { font-style: normal; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.wlist .cat b { font-family: var(--disp); font-weight: 400; color: var(--stamp); margin-right: 4px; }
+.wlist .cat strong { font-family: var(--disp); font-weight: 400; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.wlist .cat.on { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.wlist .cat.on b { color: var(--stamp); }
+.wlist .cat.empty { opacity: .6; }
 
 .pw { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 30%; }
 .pw span { background: var(--fluor); color: var(--ink); font-family: var(--disp); font-size: 16px; letter-spacing: .06em; padding: 3px 10px; box-shadow: 2px 2px 0 rgba(0,0,0,.65); }
@@ -261,7 +265,7 @@ body {
 .revive .lab { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #4b5552; display: block; }
 .rbar { height: 12px; background: #c9c6b6; margin-top: 5px; border: 2px solid var(--ink); }
 .rbar > i { display: block; height: 100%; width: 0; background: var(--fluor); }
-.squad { position: absolute; right: 14px; bottom: 96px; width: 220px; background: var(--paper); color: var(--ink); padding: 6px 10px 8px; box-shadow: 3px 3px 0 rgba(0,0,0,.65); font-size: 12px; letter-spacing: .05em; }
+.squad { position: absolute; right: 14px; bottom: 186px; width: 220px; background: var(--paper); color: var(--ink); padding: 6px 10px 8px; box-shadow: 3px 3px 0 rgba(0,0,0,.65); font-size: 12px; letter-spacing: .05em; }
 .squad .row { padding: 4px 0; border-bottom: 1px dashed #4b5552; }
 .squad .row:last-child { border-bottom: 0; }
 .squad .top { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--disp); font-size: 16px; letter-spacing: .04em; }
@@ -303,7 +307,9 @@ body {
 .abil span.cd { opacity: .6; }
 .abil span.on { background: var(--fluor); }
 .abil span.off { opacity: .3; }
-@media (max-width: 760px) { .abil { bottom: 100px; } .abil span { font-size: 12px; padding: 2px 7px 4px; } }
+@media (max-width: 900px) { .abil span { font-size: 12px; padding: 2px 7px 4px; } }
+/* Entre 901 y 1100 px el selector ocupa más a la derecha: las habilidades suben para no pisar la vida */
+@media (min-width: 901px) and (max-width: 1100px) { .abil { bottom: 96px; } }
 
 /* Ambiente */
 #gl { transition: filter 1.2s ease; }
@@ -368,16 +374,39 @@ body {
   .death-port { flex-direction: row; align-items: flex-end; flex: 0 0 auto; }
   .death-port img { max-height: 24vh; max-width: 40%; }
   .tag b { font-size: 26px; }
-  /* En móvil el selector de armas ocupa todo el ancho inferior y tapa el nombre: aquí no se muestra */
-  .bl .pchip { display: none; }
-  .br .big { font-size: 38px; }
-  .pw { max-width: 90%; bottom: 66px; }
   .bossbar { width: 60%; top: 74px; }
-  .radio { top: 96px; max-width: 70%; }
   .dlg { flex-direction: column; align-items: stretch; gap: 8px; }
   .dlg-port { height: 34%; justify-content: center; }
   .dlg-port img { max-width: 60vw; }
   .dlg-text { font-size: 16px; min-height: 5.5em; }
+}
+/* Hasta 900 px (móvil y tableta): el HUD inferior se apila. Arriba, el nombre y la vida; abajo, el selector con el cargador.
+   Lo demás (habilidades, compañeros, interacción) se sitúa encima para que nada tape el nombre ni el selector. */
+@media (max-width: 900px) {
+  .bl, .br { left: 50%; right: auto; width: min(420px, calc(100% - 20px)); transform: translateX(-50%); }
+  .bl { bottom: 66px; }
+  .br { bottom: 10px; display: flex; align-items: flex-end; gap: 8px; text-align: left; }
+  .br .big { flex: 0 0 auto; font-size: 30px; }
+  .br .big span { font-size: 15px; }
+  .br .sub { display: none; }
+  .wlist { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 0; }
+  .wlist .cat { flex-direction: column; align-items: stretch; justify-content: center; gap: 1px; padding: 3px 5px 4px; }
+  .wlist .cat em { font-size: 9px; letter-spacing: .05em; white-space: normal; line-height: 1.15; }
+  .wlist .cat strong { font-size: 12px; letter-spacing: 0; }
+  .allytag b { font-size: 16px; }
+  .squad .top { font-size: 14px; }
+  .pw { max-width: 90%; bottom: 170px; }
+  .abil { bottom: 136px; }
+  .interact, .revive { bottom: 196px; }
+  .allytag { top: 124px; bottom: auto; min-width: 0; width: 110px; }
+  .nettag { top: 124px; bottom: auto; }
+  .squad { top: 124px; bottom: auto; width: 130px; }
+  .radio { top: 212px; max-width: 70%; }
+}
+/* Móvil apaisado (poca altura): no caben los paneles laterales; se ocultan y el radio sube */
+@media (max-height: 480px) and (max-width: 900px) {
+  .allytag, .squad { display: none; }
+  .radio { top: 124px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .stamp, .banner.go, .toast.go, .radio.go { animation-duration: 1.2s; animation-name: fadeonly; }
@@ -437,8 +466,8 @@ body {
         <p>La oficina está llena de ofertas de empleo y todas quieren contratarte. Destrúyelas antes de que te alcancen. Si tu nivel de nini llega a cero, te contratan y pierdes.</p>
       <dl class="keys">
         <dt>W A S D · Ratón</dt><dd>Moverte · Apuntar</dd>
-        <dt>Clic</dt><dd>Disparar</dd>
-        <dt>1–7 · Rueda</dt><dd>Cambiar de arma</dd>
+        <dt>Clic</dt><dd>Disparar · con los puños, golpear</dd>
+        <dt>1 · 2 · 3 · Rueda</dt><dd>Principal · Secundaria · Puños. La rueda cambia de arma</dd>
         <dt>C</dt><dd>Agacharse (esquiva lo que vuela alto)</dd>
         <dt>Z · X · V</dt><dd>Escudo de Andrés · Señuelo de Heverton · Ráfaga de Lefal</dd>
         <dt>Shift · Espacio</dt><dd>Correr · Saltar</dd>
@@ -675,7 +704,7 @@ var WEAPON_MAP = {
   4: ['grapadora', 'leche', 'bao', 'sopladora'],
   5: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos']
 };
-function weaponAllowed(k) { return G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
+function weaponAllowed(k) { return k === 'punos' || G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
 function buildLoc(loc) {
   if (loc === 0) { buildOffice(); officeExtras(); }
   else if (loc === 1) buildWarehouse();
@@ -1048,8 +1077,18 @@ var WEAPONS = {
   trituradora: { name: 'Trituradora', short: 'Trituradora', type: 'spray', mag: 80, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
     desc: 'Tritura papel a ráfagas. Alcance corto y cadencia enorme.' },
   pizza: { name: 'Cañón de Pizza', short: 'Pizza', type: 'explosive', mag: 4, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
-    desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' }
+    desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' },
+  punos: { name: 'Puños', short: 'Puños', type: 'melee', mag: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
+    desc: 'Sin balas ni cajas: golpes cortos a todo lo que tengas delante.' }
 };
+/* Categorías del selector: principal, secundaria y cuerpo a cuerpo (puños). Tabla propuesta: la parte 8 añade aquí cada arma nueva. */
+var CATS = ['principal', 'secundaria', 'cuerpo'];
+var CAT_NAME = { principal: 'Principal', secundaria: 'Secundaria', cuerpo: 'Cuerpo a cuerpo' };
+var WEAPON_CAT = { trituradora: 'principal', pizza: 'principal', taladro: 'principal', sopladora: 'principal',
+  grapadora: 'secundaria', sellos: 'secundaria', leche: 'secundaria', bao: 'secundaria', punos: 'cuerpo' };
+function catOf(k) { return WEAPON_CAT[k] || 'secundaria'; }
+/* Todo lo que puede tener el jugador: armas de disparo (WORDER, con munición) y los puños (sin munición) */
+function allKeys() { return WORDER.concat(['punos']); }
 var UPGRADES = [
   { k: 'dmg', name: 'Grapas de titanio', desc: '+25% de daño por nivel.', costs: [120, 200, 300, 450] },
   { k: 'mag', name: 'Cargador extendido', desc: '+25% de munición por nivel.', costs: [80, 140, 220] },
@@ -1061,7 +1100,7 @@ var UPGRADES = [
 
 /* ---------------- Estado ---------------- */
 var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0, scoreSnap: 0, killSnap: 0,
-  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1 }, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
+  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1, punos: 1 }, lastW: {}, punchT: 0, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
   reload: 0, reloadT: 1, fireCd: 0, rapid: 0, shield: 0, combo: 0, comboT: 0, toSpawn: [], spawnT: 0, waveDone: false, waveBreak: 0,
   enemies: [], hazards: [], pickups: [], fx: [], tracers: [], proj: [], eproj: [], radioAt: -99, hurtT: 0, shake: 0, recoil: 0, flash: 0, t: 0, lowWarn: false };
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
@@ -1124,6 +1163,7 @@ var sfx = {
   pizza: function () { tone(110, 'square', 0.18, 0.4, 0.4); noise(0.12, 0.3, 700, 0.8); },
   boom: function () { noise(0.45, 0.7, 260, 0.6); tone(70, 'sawtooth', 0.4, 0.5, 0.4); },
   hit: function () { tone(900, 'triangle', 0.05, 0.22, 0.7); },
+  punch: function () { noise(0.07, 0.35, 900, 0.9); tone(160, 'square', 0.06, 0.12, 0.6); },
   kill: function () { noise(0.28, 0.55, 1400, 0.6); tone(300, 'sawtooth', 0.18, 0.18, 0.4); },
   hurt: function () { tone(110, 'sawtooth', 0.32, 0.5, 0.5); noise(0.2, 0.3, 300, 1); },
   reload: function () { tone(500, 'square', 0.04, 0.2); tone(700, 'square', 0.05, 0.2, 1, 0.5); tone(420, 'square', 0.06, 0.25, 1, 1.0); },
@@ -1561,6 +1601,15 @@ function buildGun(kind) {
     part(new THREE.SphereGeometry(0.04, 10, 8), 0x161616, 0.045, 0.02, -0.09, head).scale.set(1.2, 1, 0.6);
     part(new THREE.SphereGeometry(0.02, 8, 6), 0x161616, 0, -0.01, -0.11, head);
     mz.position.set(0, 0, -0.3); barrel.add(mz); g.userData.base = [0.25, -0.24, -0.56];
+  } else if (kind === 'punos') {
+    /* Puños: manga de camisa de oficina, muñeca, puño cerrado con nudillos. Sin arma ni munición */
+    var arm = new THREE.Group(); arm.rotation.x = 0.2; g.add(arm); g.userData.arm = arm;
+    part(B(0.13, 0.12, 0.3), 0x2d6fb8, 0, -0.04, 0.12, arm);
+    part(B(0.14, 0.13, 0.05), 0xf1efe6, 0, -0.04, -0.02, arm);
+    part(B(0.1, 0.1, 0.08), 0xe2a77f, 0, -0.03, -0.07, arm);
+    part(new THREE.SphereGeometry(0.085, 14, 10), 0xf0b98f, 0, -0.02, -0.15, arm);
+    part(B(0.15, 0.05, 0.07), 0xf0b98f, 0, 0.035, -0.19, arm);
+    mz.position.set(0, 0, -0.24); g.add(mz); g.userData.base = [0.25, -0.26, -0.48];
   } else {
     /* Recurso de seguridad: grapadora por defecto */
     part(B(0.13, 0.07, 0.42), 0xc22d27, 0, 0, 0);
@@ -1568,7 +1617,7 @@ function buildGun(kind) {
   }
   g.userData.muzzle = mz; g.userData.kick = { grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2, sellos: 0.7 }[kind] || 1;
   /* Todas las armas se ven a un 80% para no tapar la pantalla; el taladro y la sopladora, un poco menos */
-  g.scale.setScalar(kind === 'taladro' || kind === 'sopladora' ? 0.62 : 0.8);
+  g.scale.setScalar(kind === 'taladro' || kind === 'sopladora' || kind === 'punos' ? 0.62 : 0.8);
   g.visible = false; camera.add(g); return g;
 }
 function loadCharCanvas(key, cb) {
@@ -2793,6 +2842,7 @@ function buildWorld() {
   TEX.cv = [tex(makeCV())]; TEX.carta = [tex(makeCarta())]; TEX.horas = [tex(makeHoras())]; TEX.jefe = [tex(makeJefe())]; TEX.cita = [tex(makeCita())];
 
   WORDER.forEach(function (k) { guns[k] = buildGun(k); });
+  guns.punos = buildGun('punos');
   var fc2 = mkCanvas(64, 64), fx2 = fc2.getContext('2d');
   var gr = fx2.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(255,250,200,1)'); gr.addColorStop(0.4, 'rgba(255,190,70,.8)'); gr.addColorStop(1, 'rgba(255,120,20,0)');
   fx2.fillStyle = gr; fx2.fillRect(0, 0, 64, 64);
@@ -2805,7 +2855,7 @@ function buildWorld() {
   buildMaps();
 }
 function selectGun(k) {
-  WORDER.forEach(function (n) { guns[n].visible = false; });
+  for (var gk in guns) guns[gk].visible = false;
   G.wcur = k; var g = guns[k]; g.visible = (G.state !== 'menu');
   curMuzzle = g.userData.muzzle; curMuzzle.add(flashSprite); curMuzzle.add(flashLight);
   flashSprite.position.set(0, 0, 0); flashLight.position.set(0, 0, -0.1);
@@ -2879,11 +2929,12 @@ function stampFx() {
   el.stamps.appendChild(d);
 }
 var wlistHtml = '';
+/* Selector: una fila por categoría con su arma; la categoría del arma activa va en papel */
 function renderWList() {
   var h = '';
-  WORDER.forEach(function (k, i) {
-    var cls = (G.wcur === k ? 'on ' : '') + (G.owned[k] ? '' : 'lock');
-    h += '<span class="' + cls + '"><b>' + (i + 1) + '</b> ' + WEAPONS[k].short + '</span>';
+  CATS.forEach(function (c, i) {
+    var k = catShown(c), on = catOf(G.wcur) === c;
+    h += '<span class="cat' + (on ? ' on' : '') + (k ? '' : ' empty') + '"><em><b>' + (i + 1) + '</b> ' + CAT_NAME[c] + '</em><strong>' + (k ? WEAPONS[k].short : '—') + '</strong></span>';
   });
   if (h !== wlistHtml) { wlistHtml = h; el.wlist.innerHTML = h; }
 }
@@ -2902,10 +2953,10 @@ function updateHud() {
   el.blHp.classList.toggle('low', low);
   if (Hc.hudlow !== low) { Hc.hudlow = low; $('hud').classList.toggle('low', low); }
   setText('warn', el.hpWarn, low ? 'Contratación inminente' : '');
-  var w = WEAPONS[G.wcur];
-  setText('ammo', el.ammoNow, G.reload > 0 ? '--' : String(G.ammoMap[G.wcur]));
-  setText('amag', el.ammoMag, '/ ' + magSize(G.wcur));
-  setText('asub', el.ammoSub, G.reload > 0 ? 'Recargando...' : w.name + ' · R recargar');
+  var w = WEAPONS[G.wcur], melee = w.type === 'melee';
+  setText('ammo', el.ammoNow, melee ? '—' : (G.reload > 0 ? '--' : String(G.ammoMap[G.wcur])));
+  setText('amag', el.ammoMag, melee ? '' : '/ ' + magSize(G.wcur));
+  setText('asub', el.ammoSub, melee ? 'Puños · cuerpo a cuerpo' : (G.reload > 0 ? 'Recargando...' : w.name + ' · R recargar'));
   var rp = G.rapid > 0, sh = G.shield > 0;
   el.pwCafe.hidden = !rp; el.pwSub.hidden = !sh;
   if (rp) setText('rp', el.pwCafe, 'CAFÉ ' + Math.ceil(G.rapid) + 's');
@@ -3588,6 +3639,7 @@ function updatePickups(dt) {
 var raycaster = new THREE.Raycaster();
 var tmpV = new THREE.Vector3(), tmpD = new THREE.Vector3(), tmpC = new THREE.Vector3(), xa = new THREE.Vector3(), ya = new THREE.Vector3(), za = new THREE.Vector3(), fwd = new THREE.Vector3(), tgt = new THREE.Vector3(), dirv = new THREE.Vector3();
 function startReload() {
+  if (WEAPONS[G.wcur].type === 'melee') return;
   if (G.wcur === 'bao') {
     if (G.ammoMap.bao >= magSize('bao')) return;
     if (G.bambu <= 0) { toast('BAO TIENE HAMBRE · RECOGE BAMBÚ'); sfx.empty(); return; }
@@ -3646,6 +3698,7 @@ function updateProj(dt) {
 function shoot() {
   var w = WEAPONS[G.wcur];
   if (G.reload > 0 || G.fireCd > 0 || P.down) return;
+  if (w.type === 'melee') { punch(w); return; }
   if (G.ammoMap[G.wcur] <= 0) { sfx.empty(); startReload(); return; }
   G.ammoMap[G.wcur]--; G.fireCd = w.rate * (G.rapid > 0 ? 0.5 : 1) * (G.perks.cadencia ? 0.8 : 1); G.recoil = 1; G.flash = 0.05; sfx[w.sfx]();
   camera.updateMatrixWorld(true);
@@ -3685,11 +3738,47 @@ function shoot() {
   }
   if (G.ammoMap[G.wcur] <= 0) startReload();
 }
+/* Puños: golpe corto en abanico frente a la cámara. No dispara ni gasta munición. */
+function punch(w) {
+  G.fireCd = w.rate * (G.rapid > 0 ? 0.5 : 1) * (G.perks.cadencia ? 0.8 : 1); G.punchT = 1; sfx.punch();
+  camera.updateMatrixWorld(true);
+  camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
+  var fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl, dm = dmgMult() * papMult(G.wcur);
+  var list = G.enemies.slice();
+  for (var i = 0; i < list.length; i++) {
+    var e = list[i], dx = e.x - tmpC.x, dz = e.z - tmpC.z, d = Math.hypot(dx, dz);
+    if (d - e.T.r > w.range) continue;
+    if (d > 1e-6 && (dx * fx + dz * fz) / d < w.arc) continue;
+    damageEnemy(e, w.dmg * dm);
+  }
+}
 function trySelect(k) {
   if (!G.owned[k]) { toast('TODAVÍA NO TIENES ESA ARMA'); return; }
   if (!weaponAllowed(k)) { toast('ESA ARMA NO SALE EN ESTE MAPA'); return; }
   if (k === G.wcur) return;
-  G.reload = 0; G.fireCd = 0.25; selectGun(k);
+  G.reload = 0; G.fireCd = 0.25; G.punchT = 0; G.lastW[catOf(k)] = k; selectGun(k);
+}
+/* Armas de una categoría que el jugador tiene y que salen en este mapa (en el orden de allKeys) */
+function ownedIn(c) { return allKeys().filter(function (k) { return catOf(k) === c && G.owned[k] && weaponAllowed(k); }); }
+/* Arma que muestra el selector en cada categoría: la activa, la última usada o la primera que se tiene */
+function catShown(c) {
+  if (catOf(G.wcur) === c) return G.wcur;
+  var l = ownedIn(c);
+  return G.lastW[c] && l.indexOf(G.lastW[c]) >= 0 ? G.lastW[c] : (l[0] || null);
+}
+/* Teclas 1, 2 y 3: va a la categoría. Si ya está activa, pasa a la siguiente arma de esa categoría */
+function pickCat(c) {
+  var list = ownedIn(c);
+  if (!list.length) { toast(c === 'principal' ? 'NO TIENES ARMA PRINCIPAL' : 'NO TIENES ARMA DE ESTA CATEGORÍA'); sfx.empty(); return; }
+  var k = catOf(G.wcur) === c ? list[(list.indexOf(G.wcur) + 1) % list.length] : (G.lastW[c] && list.indexOf(G.lastW[c]) >= 0 ? G.lastW[c] : list[0]);
+  trySelect(k);
+}
+/* Rueda: arma anterior o siguiente, recorriendo las categorías en orden (principal, secundaria, cuerpo a cuerpo) */
+function cycleWeapon(dir) {
+  var order = [];
+  CATS.forEach(function (c) { order = order.concat(ownedIn(c)); });
+  if (order.length < 2) return;
+  trySelect(order[(order.indexOf(G.wcur) + dir + order.length) % order.length]);
 }
 
 
@@ -3989,7 +4078,8 @@ function updateInteract(dt) {
       var m = PERKM[i];
       if (!m.g || !m.g.visible) continue;
       m.g.position.y = 0.05 * Math.sin(G.t * 2 + i);
-      if (Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4) {
+      /* Con los puños en la mano no hay nada que mejorar en la máquina de Pack-a-Punch */
+      if (Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4 && !(m.k === 'pap' && G.wcur === 'punos')) {
         var owned = m.k === 'pap' ? !!G.pap[G.wcur] : !!G.perks[m.k];
         t = 'E · ' + (m.k === 'pap' ? 'MEJORA DE ARMA' : m.name) + ' · ' + m.cost + ' PUNTOS' + (owned ? ' · YA COMPRADO' : '');
       }
@@ -4987,7 +5077,7 @@ function clearWorld() {
   G.toSpawn = []; el.stamps.innerHTML = '';
 }
 function resetPlayerState() {
-  G.hp = G.maxHp; G.reload = 0; G.fireCd = 0; G.rapid = 0; G.shield = 0; G.combo = 0; G.comboT = 0; G.hurtT = 0; G.shake = 0; G.lowWarn = false;
+  G.hp = G.maxHp; G.reload = 0; G.fireCd = 0; G.punchT = 0; G.rapid = 0; G.shield = 0; G.combo = 0; G.comboT = 0; G.hurtT = 0; G.shake = 0; G.lowWarn = false;
   P.ch = 0; P.down = false; P.x = 0; P.z = 0; P.y = 0; P.vx = 0; P.vz = 0; P.vy = 0; P.yaw = 0; P.pitch = 0; P.yawT = 0; P.pitchT = 0; P.lookVx = 0; P.lookVy = 0; P.swayX = 0; P.swayY = 0; P.bobAmp = 0;
   resetAlly(); canvas.classList.remove('dead');
 }
@@ -5041,6 +5131,7 @@ function papLevel() { return clamp(G.wave | 0, 1, PAP_MAX); }
 function papMult(w) { var l = G.pap[w] | 0; return l ? 1.8 + 0.4 * (l - 1) : 1; }
 function papCost(l) { return 1500 + 500 * (l - 1); }
 function papNext(w) {
+  if (w === 'punos') return { err: 'LOS PUÑOS NO SE MEJORAN' };
   var cur = G.pap[w] | 0;
   if (cur >= PAP_MAX) return { err: 'ESTA ARMA YA ESTÁ AL NIVEL MÁXIMO' };
   if (cur >= papLevel()) return { err: 'CAJA NIVEL ' + papLevel() + ' · SUBE EN LA PRÓXIMA RONDA' };
@@ -5159,10 +5250,12 @@ function useBox() {
     if (m.g && m.g.visible && Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= perkReach(m)) { buyPerk(m); return; }
   }
 }
+/* Arsenal al empezar: solo la grapadora (secundaria) y los puños. Lo demás se consigue en la tienda o con cajas. */
+function startOwned(o) { var r = { grapadora: 1, punos: 1 }; if (o) for (var k in o) if (o[k] && WEAPONS[k]) r[k] = 1; return r; }
 function startSurvival() {
   initAudio(); startHum(); clearWorld();
   G.perks = {}; G.pap = {}; papSeen = 0; papKey = '';
-  seenKinds = {}; G.mode = 'survival'; G.owned = { grapadora: 1, leche: 1, trituradora: 1, pizza: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
+  seenKinds = {}; G.mode = 'survival'; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
   loadZombieMap(1);
@@ -5174,8 +5267,8 @@ function startStory(fresh) {
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
   G.startWip = s && s.wip > 1 && s.wip <= ROUNDS ? s.wip : 1;
-  if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = s.owned || { grapadora: 1 }; G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
-  else { G.phase = 0; G.euros = 0; G.owned = { grapadora: 1 }; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = 0; G.kills = 0; clearSave(); }
+  if (s) { G.phase = s.phase; G.euros = s.euros || 0; G.owned = startOwned(s.owned); G.upg = s.upg || { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = s.score || 0; G.kills = s.kills || 0; }
+  else { G.phase = 0; G.euros = 0; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.score = 0; G.kills = 0; clearSave(); }
   enterPhase(G.startWip === 1);
 }
 function enterPhase(withIntro) {
@@ -5243,7 +5336,7 @@ function toMenu() {
   if (NG.r) netLeave();
   clearWorld(); mouseDown = false; G.state = 'menu'; G.mode = 'story'; applyTheme(0); canvas.classList.remove('dead');
   if (document.pointerLockElement) document.exitPointerLock();
-  WORDER.forEach(function (n) { guns[n].visible = false; });
+  for (var gk in guns) guns[gk].visible = false;
   $('hud').hidden = true; refreshMenu(); showOnly('ovStart'); updateNpcs();
 }
 var DEATH_QUOTES = [
@@ -5286,7 +5379,7 @@ function gameOver() {
   $('btnAgain').textContent = story ? 'REINTENTAR RONDA' : 'VOLVER A SER NINI';
   $('overMsg').textContent = story ? 'Una oferta te ha alcanzado. Recuperas el dinero de antes de la ronda ' + G.wip + ' y vuelves a intentarla.' : 'Una oferta te ha alcanzado. Vuelves a la oficina el lunes a las 8:00.';
   el.bossBar.hidden = true; canvas.classList.add('dead');
-  WORDER.forEach(function (n) { guns[n].visible = false; });
+  for (var gk in guns) guns[gk].visible = false;
   setTimeout(function () {
     if (G.state !== 'over') return;
     $('hud').hidden = true; showOnly('ovOver');
@@ -5424,13 +5517,16 @@ function updatePlayer(dt) {
 function updateWeapon(dt) {
   var g = guns[G.wcur], b = g.userData.base;
   G.recoil = Math.max(0, G.recoil - dt * 9);
+  /* Golpe de los puños: de 0 a 1 y de vuelta a 0 en unos 0,25 s */
+  if (G.punchT > 0) G.punchT = Math.max(0, G.punchT - dt * 4);
+  var pk = G.punchT > 0 ? Math.sin((1 - G.punchT) * Math.PI) : 0;
   var rl = G.reload > 0 ? 1 - G.reload / G.reloadT : 0, dip = G.reload > 0 ? Math.sin(rl * Math.PI) : 0;
   /* Balanceo del arma: sigue el giro con un ligero retraso */
   var sd = Math.exp(-dt * 9); P.swayX *= sd; P.swayY *= sd;
   var swx = clamp(P.swayX, -0.12, 0.12), swy = clamp(P.swayY, -0.12, 0.12);
   var kk = g.userData.kick || 1, jit = (G.wcur === 'trituradora' || G.wcur === 'taladro') && G.fireCd > 0 ? Math.sin(G.t * 60) * 0.006 : 0;
-  g.position.set(b[0] + Math.sin(P.bob * 0.5) * 0.008 * P.bobAmp - swx * 0.12 + jit, b[1] - dip * 0.22 + Math.abs(Math.sin(P.bob)) * 0.01 * P.bobAmp + swy * 0.08, b[2] + G.recoil * 0.07 * kk);
-  g.rotation.set(G.recoil * 0.12 * kk - dip * 0.8 + swy * 0.5, 0.04 + swx * 0.6, dip * 0.3 + swx * 0.4);
+  g.position.set(b[0] + Math.sin(P.bob * 0.5) * 0.008 * P.bobAmp - swx * 0.12 + jit, b[1] - dip * 0.22 + Math.abs(Math.sin(P.bob)) * 0.01 * P.bobAmp + swy * 0.08, b[2] + G.recoil * 0.07 * kk - pk * 0.22);
+  g.rotation.set(G.recoil * 0.12 * kk - dip * 0.8 - pk * 0.7 + swy * 0.5, 0.04 + swx * 0.6, dip * 0.3 + swx * 0.4);
   if (g.userData.bit) g.userData.bit.rotation.z += dt * (mouseDown && G.wcur === 'taladro' ? 45 : 6);
   if (guns.bao && guns.bao.userData.head) guns.bao.userData.head.rotation.x = -G.recoil * 0.45 + (G.reload > 0 ? Math.sin(G.t * 12) * 0.08 : 0);
   if (G.flash > 0) { G.flash -= dt; flashSprite.visible = true; flashSprite.material.rotation = rnd(0, 6); flashLight.intensity = 1.6; }
@@ -5483,7 +5579,7 @@ window.addEventListener('keydown', function (e) {
       if (e.code === 'KeyV') useAbility('rafaga');
     }
     if (e.code === 'KeyP') pause();
-    var di = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8'].indexOf(e.code); if (di >= 0) trySelect(WORDER[di]);
+    var di = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code); if (di >= 0) pickCat(CATS[di]);
   } else if (G.state === 'paused' && e.code === 'KeyP') resume();
   if (e.code === 'KeyM') { muted = !muted; if (G.state === 'playing') toast(muted ? 'SONIDO APAGADO' : 'SONIDO ENCENDIDO'); }
 });
@@ -5507,8 +5603,7 @@ canvas.addEventListener('mousedown', function (e) {
 });
 canvas.addEventListener('wheel', function (e) {
   if (G.state !== 'playing') return; e.preventDefault();
-  var i = WORDER.indexOf(G.wcur), dir = e.deltaY > 0 ? 1 : -1;
-  for (var s = 0; s < WORDER.length; s++) { i = (i + dir + WORDER.length) % WORDER.length; if (G.owned[WORDER[i]]) { trySelect(WORDER[i]); break; } }
+  cycleWeapon(e.deltaY > 0 ? 1 : -1);
 }, { passive: false });
 window.addEventListener('mouseup', function () { mouseDown = false; });
 canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
