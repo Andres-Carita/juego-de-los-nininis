@@ -1745,7 +1745,7 @@ function netInit() {
 function apiOn() { return !!NET.db || /^https:\/\//.test(NINI_API); }
 function withTimeout(p, ms) { return new Promise(function (ok, ko) { var t = setTimeout(function () { ko(new Error('timeout')); }, ms); p.then(function (v) { clearTimeout(t); ok(v); }, function (e) { clearTimeout(t); ko(e); }); }); }
 var NAME_MAX = 10;
-function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñü _-]/g, '').slice(0, NAME_MAX); }
+function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9ÁÉÍÓÚÑÜáéíóúñü _-]/g, '').slice(0, NAME_MAX); }
 /* Nombre del jugador: obligatorio y de hasta 10 caracteres. nameMem sirve también si el navegador no guarda nada */
 var nameMem = '';
 function loadName() { try { var s = localStorage.getItem('nini-name'); if (s !== null) nameMem = cleanName(s); } catch (e) {} nameMem = cleanName(nameMem).trim(); return nameMem; }
