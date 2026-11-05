@@ -1703,11 +1703,12 @@ function addGunFx(g, kind) {
 function applyGunLook(g) {
   var fx = g && g.userData.fx; if (!fx) return;
   var L = G.pap[fx.k] | 0, vk = Math.min(L, fx.rs.cap), neon = vk >= 2, lights = vk >= 3;
-  fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.06 * fx.ri + 0.16 * L); });
+  /* Brillo suave: con más emisión el modelo se queda en una silueta plana de color y pierde sus piezas */
+  fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.03 * fx.ri + 0.06 * L); });
   if (fx.shellMat) { fx.shellMat.color.setHex(fx.rs.hex); if (neon) fx.shellMat.color.lerp(whiteC(), 0.3); }
   fx.shells.forEach(function (sh) { sh.scale.setScalar(neon ? 1.1 + 0.02 * L : 1.06); });
   fx.accents.forEach(function (m) { m.material.color.setHex(m.userData.c0).lerp(whiteC(), 0.15 * L); });
-  fx.lights.forEach(function (o) { o.s.visible = o.mz ? fx.ri >= 2 : lights; });
+  fx.lights.forEach(function (o) { o.s.visible = lights; });
   if (fx.aura) fx.aura.material.opacity = 0.18 + 0.1 * L;
 }
 /* Animación del arma en uso: órbita y pulso de la legendaria, y pulso de las luces */
@@ -2952,8 +2953,11 @@ function buildWorld() {
   buildAlly(); buildMates();
   buildMaps();
 }
+/* Apaga el destello y su luz: si el juego se pausa o cambia de arma en mitad de un disparo, no debe quedarse congelado */
+function clearFlash() { G.flash = 0; if (flashSprite) flashSprite.visible = false; if (flashLight) flashLight.intensity = 0; }
 function selectGun(k) {
   for (var gk in guns) guns[gk].visible = false;
+  clearFlash();
   G.wcur = k; var g = guns[k]; g.visible = (G.state !== 'menu');
   curMuzzle = g.userData.muzzle; curMuzzle.add(flashSprite); curMuzzle.add(flashLight);
   flashSprite.position.set(0, 0, 0); flashLight.position.set(0, 0, -0.1);
@@ -4182,7 +4186,7 @@ function updateInteract(dt) {
       if (!m.g || !m.g.visible) continue;
       m.g.position.y = 0.05 * Math.sin(G.t * 2 + i);
       /* Con los puños en la mano no hay nada que mejorar en la máquina de Pack-a-Punch */
-      if (Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4 && !(m.k === 'pap' && G.wcur === 'punos')) {
+      if (Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= perkReach(m) && !(m.k === 'pap' && G.wcur === 'punos')) {
         if (m.k === 'pap') { var nx = papNext(G.wcur); t = 'E · MEJORA DE ARMA · ' + (nx.cost ? 'NV ' + nx.lv + ' · ' + nx.cost + ' PUNTOS' : nx.err); }
         else t = 'E · ' + m.name + ' · ' + m.cost + ' PUNTOS' + (G.perks[m.k] ? ' · YA COMPRADO' : '');
       }
@@ -5583,7 +5587,7 @@ $('ovShop').addEventListener('click', function (e) {
     if (lv >= up.costs.length || G.euros < up.costs[lv]) return;
     G.euros -= up.costs[lv]; G.upg[up.k] = lv + 1; $('catLine').textContent = 'Miau. Mejora instalada. Ahora a dormir.';
   }
-  sfx.pickup(); applyStats(); saveGame(G.phase + 1); renderShop();
+  sfx.pickup(); applyStats(); saveGame(G.phase + 1); renderShop(); renderWList();
 });
 
 /* ---------------- Cámara y jugador ---------------- */
@@ -5726,6 +5730,7 @@ function update(dt) {
   G.t += dt; updateNpcs(); updateDust(dt); if (G.state !== 'paused') updateMap(G.t, dt);
   followRig(); updateLights(G.t, dt);
   cellT -= dt; if (cellT <= 0) { cellT = 0.3; updateCells(false); }
+  if (G.state !== 'playing') clearFlash();
   if (G.state === 'menu') { P.yaw += dt * 0.12; P.pitch = -0.03; P.yawT = P.yaw; P.pitchT = P.pitch; applyCamera(); return; }
   if (G.state === 'paused' || G.state === 'dialog' || G.state === 'shop' || G.state === 'win') return;
   if (G.state === 'over') { G.deathT += dt; deathCam(); crowdDeath(dt); updateFx(dt); G.hurtT = Math.max(0, G.hurtT - dt * 0.3); updateHud(); return; }
