@@ -1111,26 +1111,31 @@ var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los req
 var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La leche de Raúl Becas lleva grumos de calidad.', 'Miau. Las zapatillas de sofá corren más de lo que parece.', 'Miau. Gasta rápido, que Lefillas-san te vigila.', 'Miau. Un nini informado compra mejoras.'];
 
 /* ---------------- Armas y mejoras ---------------- */
-var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos'];
+var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos', 'bazuca', 'grapaoro'];
 var WEAPONS = {
   grapadora: { name: 'Grapadora', short: 'Grapadora', rarity: 'comun', type: 'hitscan', mag: 20, reserve: 60, maxReserve: 120, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
-    desc: 'Arma inicial. Cadencia media y munición de sobra.' },
+    kick: 0.8, desc: 'Arma inicial. Cadencia media y munición de sobra.' },
   sellos: { name: 'Sellador de expedientes', short: 'Sellador', rarity: 'poco', type: 'hitscan', mag: 12, reserve: 24, maxReserve: 48, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
-    desc: 'Sella cada oferta con un golpe seco: RECHAZADA. Mucho daño por disparo.' },
+    kick: 0.7, desc: 'Sella cada oferta con un golpe seco: RECHAZADA. Mucho daño por disparo.' },
   taladro: { name: 'Taladro de oficina', short: 'Taladro', rarity: 'poco', type: 'spray', mag: 40, reserve: 80, maxReserve: 160, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
-    desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
+    kick: 0.5, view: 0.62, desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
   sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', rarity: 'rara', type: 'pellets', mag: 10, reserve: 30, maxReserve: 60, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
-    desc: 'Sopla a todo el mundo hacia atrás. No hace daño, pero se nota.' },
+    kick: 0.9, view: 0.62, desc: 'Sopla a todo el mundo hacia atrás. No hace daño, pero se nota.' },
   bao: { name: 'Bao, el panda lechero', short: 'Bao', rarity: 'rara', type: 'pellets', mag: 5, reserve: 0, maxReserve: 0, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
-    desc: 'Un panda que escupe leche. No se recarga con balas: alimentalo con bambú (tecla R).' },
+    kick: 1.2, desc: 'Un panda que escupe leche. No se recarga con balas: alimentalo con bambú (tecla R).' },
   leche: { name: 'Leche de Raúl Becas', short: 'Leche', rarity: 'poco', type: 'pellets', mag: 6, reserve: 18, maxReserve: 36, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
-    desc: 'Un vaso de leche que lanza grumos en abanico. Corta distancia y mucho daño.' },
+    kick: 1.4, desc: 'Un vaso de leche que lanza grumos en abanico. Corta distancia y mucho daño.' },
   trituradora: { name: 'Trituradora', short: 'Trituradora', rarity: 'comun', type: 'spray', mag: 80, reserve: 160, maxReserve: 320, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
-    desc: 'Tritura papel a ráfagas. Alcance corto y cadencia enorme.' },
+    kick: 0.6, desc: 'Tritura papel a ráfagas. Alcance corto y cadencia enorme.' },
   pizza: { name: 'Cañón de Pizza', short: 'Pizza', rarity: 'comun', type: 'explosive', mag: 4, reserve: 8, maxReserve: 16, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
-    desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' },
+    kick: 1.8, desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' },
   punos: { name: 'Puños', short: 'Puños', rarity: 'comun', type: 'melee', mag: 0, reserve: 0, maxReserve: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
-    desc: 'Sin balas ni cajas: golpes cortos a todo lo que tengas delante.' }
+    view: 0.62, desc: 'Sin balas ni cajas: golpes cortos a todo lo que tengas delante.' },
+  /* Ejemplos del patrón de armas nuevas (ver GUN_MODELS): principal explosiva y secundaria de disparo directo */
+  bazuca: { name: 'Bazuca de fotocopias', short: 'Bazuca', rarity: 'rara', type: 'explosive', mag: 2, reserve: 6, maxReserve: 12, rate: 1, reload: 2.4, dmg: 8, splash: 4, speed: 22, price: 700, sfx: 'pizza', kick: 1.8,
+    desc: 'Copia a los enemigos con una explosión de tóner. Pocas balas, pero cada una borra a un grupo.' },
+  grapaoro: { name: 'Pistola de grapas de oro', short: 'Grapa oro', rarity: 'poco', type: 'hitscan', mag: 10, reserve: 20, maxReserve: 40, rate: 0.22, reload: 1.1, dmg: 1.8, price: 320, sfx: 'shoot', kick: 0.7,
+    desc: 'Grapas de 24 quilates para jefes con mucho dinero. Cadencia alta y cargador de sobra.' }
 };
 /* Rareza: raíz fija de cada arma (no sube). Multiplica sus estadísticas base. cap = aspecto máximo con mejoras (1 brillo, 2 neón, 3 luces); la legendaria tiene efectos propios (aura y órbita). */
 var RARITY_ORDER = ['comun', 'poco', 'rara', 'epica', 'legendaria'];
@@ -1156,7 +1161,8 @@ Object.keys(WEAPONS).forEach(function (k) {
 var CATS = ['principal', 'secundaria', 'cuerpo'];
 var CAT_NAME = { principal: 'Principal', secundaria: 'Secundaria', cuerpo: 'Cuerpo a cuerpo' };
 var WEAPON_CAT = { trituradora: 'principal', pizza: 'principal', taladro: 'principal', sopladora: 'principal',
-  grapadora: 'secundaria', sellos: 'secundaria', leche: 'secundaria', bao: 'secundaria', punos: 'cuerpo' };
+  grapadora: 'secundaria', sellos: 'secundaria', leche: 'secundaria', bao: 'secundaria', punos: 'cuerpo',
+  bazuca: 'principal', grapaoro: 'secundaria' };
 function catOf(k) { return WEAPON_CAT[k] || 'secundaria'; }
 /* Todo lo que puede tener el jugador: armas de disparo (WORDER, con munición) y los puños (sin munición) */
 function allKeys() { return WORDER.concat(['punos']); }
@@ -1628,136 +1634,279 @@ function addDesk(x, z, rot) {
   occluders.push(body, top);
   OB.push({ x0: x - sw / 2, x1: x + sw / 2, z0: z - sd / 2, z1: z + sd / 2, h: 0.9 });
 }
+/* ---------------- Modelos de arma ----------------
+   Cada arma tiene una función de modelo en GUN_MODELS (una función por arma). buildGun crea el contexto M y la llama.
+   PATRÓN PARA AÑADIR UN ARMA (la parte 8 lo usa para todo el catálogo):
+     1. WEAPONS[clave]: name, short, rarity, type, mag, reserve, maxReserve, rate, reload, dmg, price, sfx, desc y kick.
+        Opcional: view (escala en pantalla; 0,8 por defecto, 0,62 para armas largas o pequeñas).
+     2. WEAPON_CAT[clave]: 'principal' o 'secundaria' (los puños van en 'cuerpo').
+     3. WORDER: añade la clave (orden de la tienda y de las cajas).
+     4. GUN_MODELS[clave] = function (M) { ... }: dibuja con M.part / M.glow / M.eye y las geometrías M.B, M.C, M.S, M.T.
+        - Las piezas se dibujan en orden de creación, sin test de profundidad: crea primero lo de atrás y al final los detalles.
+        - Deja M.base = [x, y, z] (posición del arma frente a la cámara) y pon la boca con M.muzzle(padre, x, y, z).
+        - Las animaciones usan M.g.userData: head (cabeza que cabecea), bit (broca que gira).
+     Así una arma nueva es solo datos + una función; no hace falta tocar buildGun. */
+var GUN_MODELS = {};
 function buildGun(kind) {
-  var g = new THREE.Group(), order = 1000, mz = new THREE.Object3D();
-  function part(geo, color, x, y, z, parent, opacity) {
+  var g = new THREE.Group(), mz = new THREE.Object3D(), order = 1000;
+  var M = { g: g, mz: mz };
+  /* Pieza opaca (Lambert): recibe la emisión y el casco de rareza */
+  M.part = function (geo, color, x, y, z, parent, opacity) {
     var mat = new THREE.MeshLambertMaterial({ color: color }); mat.depthTest = false;
     if (opacity) { mat.transparent = true; mat.opacity = opacity; }
     var m = new THREE.Mesh(geo, mat); m.renderOrder = order++; m.position.set(x, y, z); (parent || g).add(m); return m;
-  }
-  /* Acento luminoso (LED, punto de mira, tanque): no le afecta la sombra */
-  function glowPart(geo, color, x, y, z, parent) {
+  };
+  /* Acento luminoso (LED, ojos brillantes, tanque): no le afecta la sombra */
+  M.glow = function (geo, color, x, y, z, parent) {
     var mat = new THREE.MeshBasicMaterial({ color: color }); mat.depthTest = false;
     var m = new THREE.Mesh(geo, mat); m.renderOrder = order++; m.position.set(x, y, z); (parent || g).add(m); return m;
-  }
-  var B = function (w, h, d) { return new THREE.BoxGeometry(w, h, d); };
-  var C = function (rt, rb, h, seg) { return new THREE.CylinderGeometry(rt, rb, h, seg || 14); };
-  if (kind === 'grapadora') {
-    /* Grapadora roja de oficina: cuerpo, base, yunque, raíl y mango con surcos */
-    part(B(0.14, 0.04, 0.46), 0x2a2e31, 0, -0.045, 0);
-    part(B(0.13, 0.07, 0.42), 0xc22d27, 0, 0.0, -0.02);
-    part(B(0.1, 0.05, 0.14), 0xa9b1b5, 0, 0.02, -0.27);
-    part(B(0.07, 0.035, 0.16), 0x14181a, 0, -0.01, -0.29);
-    part(B(0.035, 0.012, 0.42), 0xc8cfd3, 0.0, 0.04, -0.03);
-    for (var i = 0; i < 4; i++) part(B(0.13, 0.12, 0.012), 0x1a1d20, 0, -0.06, 0.1 + i * 0.03);
-    part(B(0.12, 0.14, 0.08), 0x15191a, 0, -0.12, 0.2).rotation.x = -0.3;
-    part(B(0.04, 0.09, 0.05), 0x0f1213, 0, -0.13, 0.03).rotation.x = -0.25;
-    glowPart(B(0.02, 0.02, 0.02), 0x2fb8e8, 0.07, 0.035, 0.12);
-    mz.position.set(0, 0.0, -0.37); g.add(mz); g.userData.base = [0.27, -0.25, -0.58];
-  } else if (kind === 'leche') {
-    /* Cañón de leche: tanque de cartón con banda azul, cañón blanco y anillo de luz en la boca */
-    var wrap = new THREE.Group(); wrap.rotation.x = -1.25; g.add(wrap);
-    part(C(0.056, 0.042, 0.24, 18), 0xdfe9f2, 0, 0, 0, wrap, 0.5);
-    part(C(0.05, 0.038, 0.19, 18), 0xfaf6e8, 0, -0.02, 0, wrap);
-    part(C(0.058, 0.058, 0.035, 18), 0x2d6fb8, 0, -0.07, 0, wrap);
-    part(C(0.046, 0.046, 0.1, 18), 0xe8e2cf, 0, -0.14, 0, wrap);
-    [[-0.02, 0.11, 0.01], [0.02, 0.115, -0.015], [0.0, 0.12, 0.02]].forEach(function (p) { part(new THREE.SphereGeometry(0.022, 8, 6), 0xfaf6e8, p[0], p[1], p[2], wrap); });
-    part(C(0.02, 0.02, 0.16, 8), 0x7a8a95, 0.06, -0.1, 0.02).rotation.z = 0.4;
-    part(new THREE.TorusGeometry(0.05, 0.012, 6, 14), 0x2d6fb8, 0, -0.16, 0);
-    glowPart(new THREE.TorusGeometry(0.052, 0.008, 6, 16), 0x7fe8ff, 0, 0.126, 0, wrap);
-    mz.position.set(0, 0.13, 0); wrap.add(mz); g.userData.base = [0.24, -0.22, -0.55];
-  } else if (kind === 'trituradora') {
-    /* Trituradora de papel: carcasa gris, tapa amarilla con franjas de aviso, tambor y tolva */
-    part(B(0.2, 0.15, 0.36), 0x3a4044, 0, -0.02, 0);
-    part(B(0.21, 0.03, 0.22), 0xf2c200, 0, 0.06, -0.02);
-    for (var j = 0; j < 3; j++) part(B(0.06, 0.035, 0.24), 0x14181a, -0.06 + j * 0.06, 0.08, -0.02).rotation.y = 0.5;
-    part(B(0.16, 0.12, 0.08), 0x2b2f31, 0, 0.14, 0.06);
-    part(B(0.12, 0.04, 0.1), 0x14181a, 0, 0.2, 0.06);
-    part(C(0.04, 0.04, 0.2, 10), 0xaab3b8, 0, 0.0, -0.22).rotation.x = Math.PI / 2;
-    for (var t = 0; t < 4; t++) part(B(0.012, 0.04, 0.02), 0xd9dde0, 0.0, 0.0, -0.28 - t * 0.012).rotation.z = t * 0.8;
-    part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.12, 0.08);
-    glowPart(B(0.02, 0.02, 0.02), 0xff8a3a, 0.09, 0.02, 0.12);
-    mz.position.set(0, 0, -0.3); g.add(mz); g.userData.base = [0.26, -0.26, -0.58];
-  } else if (kind === 'pizza') {
-    /* Cañón de pizza: tubo naranja, borde de masa, queso y asa de madera */
-    var tube = new THREE.Group(); tube.rotation.x = -Math.PI / 2; g.add(tube);
-    part(C(0.065, 0.065, 0.55, 18), 0xb5301f, 0, 0, 0, tube);
-    part(C(0.082, 0.082, 0.05, 18), 0xe9a93b, 0, 0.28, 0, tube);
-    part(C(0.075, 0.075, 0.08, 18), 0x2b2f31, 0, -0.26, 0, tube);
-    part(new THREE.TorusGeometry(0.078, 0.014, 6, 18), 0xc9893a, 0, 0.27, 0, tube);
-    part(C(0.068, 0.068, 0.02, 18), 0xffd966, 0, 0.27, 0, tube);
-    part(B(0.03, 0.07, 0.22), 0x6b4a2b, 0.075, -0.05, 0.02);
-    part(new THREE.TorusGeometry(0.07, 0.01, 6, 16), 0x14181a, 0, -0.1, 0, tube);
-    part(B(0.012, 0.03, 0.02), 0x14181a, 0, 0.36, 0);
-    glowPart(B(0.02, 0.02, 0.02), 0xff5a2a, -0.06, -0.12, 0.04);
-    mz.position.set(0, 0.3, 0); tube.add(mz); g.userData.base = [0.25, -0.22, -0.45];
-  } else if (kind === 'sellos') {
-    /* Sellador de expedientes: corredera de acero, empuñadura de madera y sello rojo con banda */
-    part(B(0.12, 0.13, 0.42), 0x2b2f31, 0, 0, 0);
-    part(B(0.11, 0.07, 0.34), 0x8a9399, 0, 0.1, -0.05);
-    part(B(0.1, 0.24, 0.13), 0x6b4a2b, 0, -0.18, 0.1).rotation.x = 0.2;
-    part(C(0.075, 0.075, 0.06, 14), 0x14181a, 0, 0.16, 0.14);
-    part(C(0.07, 0.07, 0.07, 14), 0xe0382d, 0, 0.12, 0.2).rotation.x = Math.PI / 2;
-    part(B(0.06, 0.02, 0.09), 0xffffff, 0, 0.14, 0.2);
-    glowPart(B(0.014, 0.014, 0.014), 0xe0382d, 0.05, 0.05, 0.1);
-    mz.position.set(0, 0.02, -0.26); g.add(mz); g.userData.base = [0.27, -0.26, -0.56];
-  } else if (kind === 'taladro') {
-    /* Taladro de oficina: carcasa amarilla, batería, gatillo y broca que gira */
-    part(B(0.2, 0.2, 0.34), 0xf2c200, 0, 0, 0);
-    part(B(0.21, 0.04, 0.3), 0x2b2f31, 0, 0.1, 0);
-    part(B(0.12, 0.26, 0.16), 0x2b2f31, 0, -0.17, 0.08).rotation.x = 0.25;
-    part(B(0.08, 0.07, 0.12), 0x14181a, 0.1, 0.04, 0.1);
-    part(B(0.09, 0.09, 0.14), 0x14181a, 0, -0.26, 0.16);
-    glowPart(B(0.02, 0.02, 0.02), 0x7fe07a, 0.1, 0.05, 0.16);
-    var spin = new THREE.Group(); spin.position.set(0, 0, -0.2); g.add(spin); g.userData.bit = spin;
-    var bitM = part(C(0.035, 0.035, 0.3, 8), 0xd9dde0, 0, 0, -0.13, spin); bitM.rotation.x = Math.PI / 2;
-    for (var r = 0; r < 4; r++) { var ring = part(new THREE.TorusGeometry(0.038, 0.006, 4, 10), 0x9aa3a8, 0, 0, -0.07 - r * 0.05, spin); }
-    part(C(0.05, 0.05, 0.12, 10), 0x7a8a95, 0, 0, -0.04, spin).rotation.x = Math.PI / 2;
-    mz.position.set(0, 0, -0.3); g.add(mz); g.userData.base = [0.25, -0.24, -0.56];
-  } else if (kind === 'sopladora') {
-    /* Sopladora de hojas: tubo verde, carcasa, boquilla naranja y mango */
-    part(C(0.075, 0.09, 0.5, 14), 0x2f9e5a, 0, 0, -0.1).rotation.x = Math.PI / 2;
-    part(new THREE.SphereGeometry(0.13, 14, 10), 0x1f6b3c, 0, 0.02, 0.1);
-    part(C(0.055, 0.04, 0.22, 12), 0xe0863a, 0, 0, -0.42).rotation.x = Math.PI / 2;
-    part(new THREE.TorusGeometry(0.06, 0.01, 6, 14), 0xffffff, 0, 0, -0.53).rotation.y = 0;
-    part(B(0.06, 0.16, 0.06), 0x14181a, 0, -0.14, 0.02);
-    glowPart(B(0.03, 0.03, 0.03), 0xffd27a, 0, 0.12, 0.1);
-    mz.position.set(0, 0, -0.56); g.add(mz); g.userData.base = [0.24, -0.23, -0.5];
-  } else if (kind === 'bao') {
-    /* Bao: cañón de leche con cabeza de panda y brazo */
-    var barrel = new THREE.Group(); barrel.rotation.x = Math.PI / 2; g.add(barrel);
-    part(C(0.06, 0.06, 0.4, 16), 0xfaf6e8, 0, -0.02, -0.05, barrel);
-    part(C(0.075, 0.075, 0.05, 16), 0x2b2f31, 0, -0.02, -0.25, barrel);
-    part(C(0.075, 0.07, 0.14, 16), 0xf1efe6, 0, -0.1, 0.08, barrel);
-    part(new THREE.TorusGeometry(0.07, 0.01, 6, 16), 0x2d6fb8, 0, -0.1, 0.08, barrel);
-    glowPart(new THREE.TorusGeometry(0.06, 0.008, 6, 16), 0x7fe8ff, 0, -0.02, -0.26, barrel);
-    var head = new THREE.Group(); head.position.set(0, 0.06, -0.12); g.add(head); g.userData.head = head;
-    part(new THREE.SphereGeometry(0.11, 16, 12), 0xf5f5f0, 0, 0, 0, head);
-    part(new THREE.SphereGeometry(0.045, 10, 8), 0x161616, -0.085, 0.09, 0, head);
-    part(new THREE.SphereGeometry(0.045, 10, 8), 0x161616, 0.085, 0.09, 0, head);
-    part(new THREE.SphereGeometry(0.04, 10, 8), 0x161616, -0.045, 0.02, -0.09, head).scale.set(1.2, 1, 0.6);
-    part(new THREE.SphereGeometry(0.04, 10, 8), 0x161616, 0.045, 0.02, -0.09, head).scale.set(1.2, 1, 0.6);
-    part(new THREE.SphereGeometry(0.02, 8, 6), 0x161616, 0, -0.01, -0.11, head);
-    mz.position.set(0, 0, -0.3); barrel.add(mz); g.userData.base = [0.25, -0.24, -0.56];
-  } else if (kind === 'punos') {
-    /* Puños: manga de camisa de oficina, muñeca, puño cerrado con nudillos. Sin arma ni munición */
-    var arm = new THREE.Group(); arm.rotation.x = 0.2; g.add(arm); g.userData.arm = arm;
-    part(B(0.13, 0.12, 0.3), 0x2d6fb8, 0, -0.04, 0.12, arm);
-    part(B(0.14, 0.13, 0.05), 0xf1efe6, 0, -0.04, -0.02, arm);
-    part(B(0.1, 0.1, 0.08), 0xe2a77f, 0, -0.03, -0.07, arm);
-    part(new THREE.SphereGeometry(0.085, 14, 10), 0xf0b98f, 0, -0.02, -0.15, arm);
-    part(B(0.15, 0.05, 0.07), 0xf0b98f, 0, 0.035, -0.19, arm);
-    mz.position.set(0, 0, -0.24); g.add(mz); g.userData.base = [0.25, -0.26, -0.48];
-  } else {
-    /* Recurso de seguridad: grapadora por defecto */
-    part(B(0.13, 0.07, 0.42), 0xc22d27, 0, 0, 0);
-    mz.position.set(0, 0, -0.36); g.add(mz); g.userData.base = [0.27, -0.25, -0.58];
-  }
-  g.userData.muzzle = mz; g.userData.kick = ({ grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2, sellos: 0.7 }[kind] || 1) * rarityOf(kind).kick; addGunFx(g, kind);
-  /* Todas las armas se ven a un 80% para no tapar la pantalla; el taladro y la sopladora, un poco menos */
-  g.scale.setScalar(kind === 'taladro' || kind === 'sopladora' || kind === 'punos' ? 0.62 : 0.8);
+  };
+  /* Ojo de juguete: globo blanco con pupila que mira hacia delante (+z) */
+  M.eye = function (x, y, z, r, parent) {
+    M.part(new THREE.SphereGeometry(r, 10, 8), 0xffffff, x, y, z, parent);
+    M.part(new THREE.SphereGeometry(r * 0.5, 8, 6), 0x111111, x, y, z + r * 0.6, parent);
+  };
+  M.B = function (w, h, d) { return new THREE.BoxGeometry(w, h, d); };
+  M.C = function (rt, rb, h, seg) { return new THREE.CylinderGeometry(rt, rb, h, seg || 14); };
+  M.S = function (r, ws, hs) { return new THREE.SphereGeometry(r, ws || 14, hs || 10); };
+  M.T = function (r, tube, rs, ts) { return new THREE.TorusGeometry(r, tube, rs || 6, ts || 14); };
+  M.muzzle = function (parent, x, y, z) { parent.add(mz); mz.position.set(x, y, z); };
+  M.base = [0.27, -0.25, -0.58];
+  (GUN_MODELS[kind] || GUN_MODELS._fallback)(M);
+  g.userData.muzzle = mz; g.userData.base = M.base;
+  g.userData.kick = (WEAPONS[kind].kick || 1) * rarityOf(kind).kick;
+  addGunFx(g, kind);
+  g.scale.setScalar(WEAPONS[kind].view || 0.8);
   g.visible = false; camera.add(g); return g;
 }
+
+/* Reserva: arma sin modelo propio (no debería pasar) */
+GUN_MODELS._fallback = function (M) {
+  M.part(M.B(0.13, 0.07, 0.42), 0xc22d27, 0, 0, 0);
+  M.muzzle(M.g, 0, 0, -0.36); M.base = [0.27, -0.25, -0.58];
+};
+
+/* Grapadora roja de oficina: base, cuerpo, raíl, grapas en la nariz, ojos de juguete y pegatina amarilla */
+GUN_MODELS.grapadora = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, g = M.g;
+  part(B(0.14, 0.04, 0.46), 0x2a2e31, 0, -0.045, 0);
+  part(B(0.13, 0.07, 0.42), 0xc22d27, 0, 0, -0.02);
+  part(B(0.002, 0.045, 0.2), 0xffd21f, 0.0655, 0, -0.06);           /* pegatina lateral */
+  part(B(0.002, 0.045, 0.2), 0xffd21f, -0.0655, 0, -0.06);
+  part(B(0.035, 0.012, 0.42), 0xc8cfd3, 0.0, 0.04, -0.03);          /* raíl */
+  part(B(0.1, 0.05, 0.14), 0xa9b1b5, 0, 0.02, -0.27);               /* nariz */
+  part(B(0.07, 0.035, 0.16), 0x14181a, 0, -0.01, -0.29);
+  part(B(0.05, 0.012, 0.02), 0xdfe6ea, 0, -0.035, -0.355);          /* grapas asomando */
+  part(B(0.05, 0.012, 0.02), 0xdfe6ea, 0, -0.005, -0.355);
+  M.eye(-0.042, 0.05, 0.13, 0.024, g); M.eye(0.042, 0.05, 0.13, 0.024, g);
+  for (var i = 0; i < 4; i++) part(B(0.13, 0.12, 0.012), 0x1a1d20, 0, -0.06, 0.1 + i * 0.03);
+  part(B(0.12, 0.14, 0.08), 0x15191a, 0, -0.12, 0.2).rotation.x = -0.3;
+  part(B(0.04, 0.09, 0.05), 0x0f1213, 0, -0.13, 0.03).rotation.x = -0.25;
+  glow(B(0.02, 0.02, 0.02), 0x2fb8e8, 0.07, 0.035, 0.12);
+  M.muzzle(g, 0, 0, -0.37); M.base = [0.27, -0.25, -0.58];
+};
+
+/* Leche de Raúl Becas: tanque de cartón con banda azul, vacas en la pared, ojos de juguete y boca con anillo de luz */
+GUN_MODELS.leche = function (M) {
+  var part = M.part, glow = M.glow, C = M.C, g = M.g;
+  var wrap = new THREE.Group(); wrap.rotation.x = -1.25; g.add(wrap);
+  part(C(0.056, 0.042, 0.24, 18), 0xdfe9f2, 0, 0, 0, wrap, 0.5);
+  part(C(0.05, 0.038, 0.19, 18), 0xfaf6e8, 0, -0.02, 0, wrap);
+  part(C(0.058, 0.058, 0.035, 18), 0x2d6fb8, 0, -0.07, 0, wrap);
+  part(C(0.046, 0.046, 0.1, 18), 0xe8e2cf, 0, -0.14, 0, wrap);
+  /* Manchas de vaca sobre el tanque */
+  [[0.03, -0.05, 0.045], [-0.028, -0.1, 0.04], [0.01, -0.12, 0.05]].forEach(function (p) { part(new THREE.SphereGeometry(0.02, 8, 6), 0x2b2f31, p[0], p[1], p[2], wrap).scale.set(1.2, 1.4, 0.4); });
+  [[-0.02, 0.11, 0.01], [0.02, 0.115, -0.015], [0.0, 0.12, 0.02]].forEach(function (p) { part(new THREE.SphereGeometry(0.022, 8, 6), 0xfaf6e8, p[0], p[1], p[2], wrap); });
+  part(C(0.02, 0.02, 0.16, 8), 0x7a8a95, 0.06, -0.1, 0.02).rotation.z = 0.4;
+  part(new THREE.TorusGeometry(0.05, 0.012, 6, 14), 0x2d6fb8, 0, -0.16, 0);
+  M.eye(-0.022, -0.035, 0.05, 0.016, wrap); M.eye(0.022, -0.035, 0.05, 0.016, wrap);
+  glow(new THREE.TorusGeometry(0.052, 0.008, 6, 16), 0x7fe8ff, 0, 0.126, 0, wrap);
+  M.muzzle(wrap, 0, 0.13, 0); M.base = [0.24, -0.22, -0.55];
+};
+
+/* Trituradora de papel: carcasa gris con banda amarilla, tolva con ojos, un papel a medio triturar y dientes en el tambor */
+GUN_MODELS.trituradora = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.2, 0.15, 0.36), 0x3a4044, 0, -0.02, 0);
+  part(B(0.003, 0.05, 0.3), 0xf2c200, 0.1015, -0.02, 0);              /* banda amarilla lateral */
+  part(B(0.003, 0.05, 0.3), 0xf2c200, -0.1015, -0.02, 0);
+  part(B(0.21, 0.03, 0.22), 0xf2c200, 0, 0.06, -0.02);                /* tapa */
+  for (var j = 0; j < 3; j++) part(B(0.06, 0.035, 0.24), 0x14181a, -0.06 + j * 0.06, 0.08, -0.02).rotation.y = 0.5;
+  part(B(0.16, 0.12, 0.08), 0x2b2f31, 0, 0.14, 0.06);                 /* tolva */
+  part(B(0.12, 0.04, 0.1), 0x14181a, 0, 0.2, 0.06);
+  part(B(0.1, 0.003, 0.07), 0xf7f7f2, 0.01, 0.222, 0.08).rotation.x = -0.25;   /* papel asomando */
+  part(B(0.07, 0.004, 0.005), 0x9aa3a8, 0.01, 0.224, 0.09).rotation.x = -0.25;
+  M.eye(-0.04, 0.14, 0.105, 0.024, g); M.eye(0.04, 0.14, 0.105, 0.024, g);
+  part(C(0.04, 0.04, 0.2, 10), 0xaab3b8, 0, 0.0, -0.22).rotation.x = Math.PI / 2;
+  for (var t = 0; t < 6; t++) part(B(0.012, 0.04, 0.02), 0xd9dde0, 0.0, 0.0, -0.28 - (t % 3) * 0.012).rotation.z = t * 1.05;
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.12, 0.08);
+  glow(B(0.02, 0.02, 0.02), 0xff8a3a, 0.09, 0.02, 0.12);
+  M.muzzle(g, 0, 0, -0.3); M.base = [0.26, -0.26, -0.58];
+};
+
+/* Cañón de pizza: tubo naranja con pepperoni, ojos de queso y asa de madera */
+GUN_MODELS.pizza = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  var tube = new THREE.Group(); tube.rotation.x = -Math.PI / 2; g.add(tube);
+  part(C(0.065, 0.065, 0.55, 18), 0xb5301f, 0, 0, 0, tube);
+  part(C(0.082, 0.082, 0.05, 18), 0xe9a93b, 0, 0.28, 0, tube);
+  part(C(0.075, 0.075, 0.08, 18), 0x2b2f31, 0, -0.26, 0, tube);
+  part(new THREE.TorusGeometry(0.078, 0.014, 6, 18), 0xc9893a, 0, 0.27, 0, tube);
+  part(C(0.068, 0.068, 0.02, 18), 0xffd966, 0, 0.27, 0, tube);
+  /* Pepperoni sobre el tubo (cara superior, que es la que se ve) */
+  [[-0.028, -0.17], [0.03, -0.1], [-0.02, -0.03], [0.034, 0.06], [-0.03, 0.14]].forEach(function (p) {
+    part(C(0.02, 0.02, 0.012, 10), 0xc2271f, p[0], p[1], 0.062, tube).rotation.x = Math.PI / 2;
+  });
+  M.eye(-0.012, -0.21, 0.064, 0.016, tube); M.eye(0.012, -0.21, 0.064, 0.016, tube);
+  part(B(0.03, 0.07, 0.22), 0x6b4a2b, 0.075, -0.05, 0.02);
+  part(new THREE.TorusGeometry(0.07, 0.01, 6, 16), 0x14181a, 0, -0.1, 0, tube);
+  part(B(0.012, 0.03, 0.02), 0x14181a, 0, 0.36, 0);
+  glow(B(0.02, 0.02, 0.02), 0xff5a2a, -0.06, -0.12, 0.04);
+  M.muzzle(tube, 0, 0.3, 0); M.base = [0.25, -0.22, -0.45];
+};
+
+/* Sellador de expedientes: corredera de acero con ojos, empuñadura de madera con vetas y sello rojo con bigote */
+GUN_MODELS.sellos = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.12, 0.13, 0.42), 0x2b2f31, 0, 0, 0);
+  part(B(0.11, 0.07, 0.34), 0x8a9399, 0, 0.1, -0.05);
+  part(B(0.004, 0.05, 0.2), 0xe0382d, 0.0605, 0.1, -0.05);            /* pegatina RECHAZADA */
+  part(B(0.004, 0.012, 0.16), 0xffffff, 0.0615, 0.1, -0.05);
+  part(B(0.1, 0.24, 0.13), 0x6b4a2b, 0, -0.18, 0.1).rotation.x = 0.2;
+  for (var i = 0; i < 3; i++) part(B(0.11, 0.012, 0.005), 0x3d2a18, 0, -0.12 - i * 0.06, 0.165).rotation.x = 0.2;
+  part(C(0.075, 0.075, 0.06, 14), 0x14181a, 0, 0.16, 0.14);
+  M.eye(-0.03, 0.155, -0.1, 0.02, g); M.eye(0.03, 0.155, -0.1, 0.02, g);
+  part(C(0.07, 0.07, 0.07, 14), 0xe0382d, 0, 0.12, 0.2).rotation.x = Math.PI / 2;
+  part(B(0.06, 0.02, 0.09), 0xffffff, 0, 0.14, 0.2);
+  part(B(0.05, 0.012, 0.01), 0x161616, -0.02, 0.1, 0.24).rotation.z = 0.35;   /* bigote */
+  part(B(0.05, 0.012, 0.01), 0x161616, 0.02, 0.1, 0.24).rotation.z = -0.35;
+  glow(B(0.014, 0.014, 0.014), 0xe0382d, 0.05, 0.05, 0.1);
+  M.muzzle(g, 0, 0.02, -0.26); M.base = [0.27, -0.26, -0.56];
+};
+
+/* Taladro de oficina: carcasa amarilla con bandas de aviso, pegatina roja, ojos y broca que gira */
+GUN_MODELS.taladro = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.2, 0.2, 0.34), 0xf2c200, 0, 0, 0);
+  for (var s = 0; s < 4; s++) { part(B(0.004, 0.09, 0.025), 0x14181a, -0.102, -0.02, -0.12 + s * 0.08).rotation.z = 0.5; part(B(0.004, 0.09, 0.025), 0x14181a, 0.102, -0.02, -0.12 + s * 0.08).rotation.z = 0.5; }
+  part(B(0.21, 0.04, 0.3), 0x2b2f31, 0, 0.1, 0);
+  part(B(0.12, 0.26, 0.16), 0x2b2f31, 0, -0.17, 0.08).rotation.x = 0.25;
+  part(B(0.08, 0.07, 0.12), 0x14181a, 0.1, 0.04, 0.1);
+  part(B(0.09, 0.09, 0.14), 0x14181a, 0, -0.26, 0.16);
+  M.eye(-0.055, 0.125, -0.1, 0.02, g); M.eye(0.055, 0.125, -0.1, 0.02, g);
+  part(B(0.004, 0.05, 0.12), 0xe0382d, 0.102, 0.0, 0.0);
+  glow(B(0.02, 0.02, 0.02), 0x7fe07a, 0.1, 0.05, 0.16);
+  var spin = new THREE.Group(); spin.position.set(0, 0, -0.2); g.add(spin); g.userData.bit = spin;
+  var bitM = part(C(0.035, 0.035, 0.3, 8), 0xd9dde0, 0, 0, -0.13, spin); bitM.rotation.x = Math.PI / 2;
+  for (var r = 0; r < 4; r++) part(new THREE.TorusGeometry(0.038, 0.006, 4, 10), 0x9aa3a8, 0, 0, -0.07 - r * 0.05, spin);
+  part(C(0.05, 0.05, 0.12, 10), 0x7a8a95, 0, 0, -0.04, spin).rotation.x = Math.PI / 2;
+  M.muzzle(g, 0, 0, -0.3); M.base = [0.25, -0.24, -0.56];
+};
+
+/* Sopladora de hojas: tubo verde, cuerpo con ojos y bigote, boquilla naranja y hojas pegadas */
+GUN_MODELS.sopladora = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(C(0.075, 0.09, 0.5, 14), 0x2f9e5a, 0, 0, -0.1).rotation.x = Math.PI / 2;
+  part(new THREE.SphereGeometry(0.13, 14, 10), 0x1f6b3c, 0, 0.02, 0.1);
+  M.eye(-0.05, 0.06, 0.21, 0.024, g); M.eye(0.05, 0.06, 0.21, 0.024, g);
+  part(B(0.07, 0.012, 0.01), 0x161616, -0.035, -0.02, 0.225).rotation.z = 0.4;   /* bigote */
+  part(B(0.07, 0.012, 0.01), 0x161616, 0.035, -0.02, 0.225).rotation.z = -0.4;
+  part(new THREE.SphereGeometry(0.03, 8, 6), 0xe0863a, 0.04, 0.085, -0.2).scale.set(1, 0.3, 1.8);   /* hojas pegadas */
+  part(new THREE.SphereGeometry(0.03, 8, 6), 0xffc247, -0.05, 0.08, -0.3).scale.set(1, 0.3, 1.8);
+  part(new THREE.SphereGeometry(0.028, 8, 6), 0xe0863a, -0.02, 0.09, -0.08).scale.set(1.4, 0.3, 1);
+  part(C(0.055, 0.04, 0.22, 12), 0xe0863a, 0, 0, -0.42).rotation.x = Math.PI / 2;
+  part(new THREE.TorusGeometry(0.06, 0.01, 6, 14), 0xffffff, 0, 0, -0.53).rotation.y = 0;
+  part(B(0.06, 0.16, 0.06), 0x14181a, 0, -0.14, 0.02);
+  glow(B(0.03, 0.03, 0.03), 0xffd27a, 0, 0.12, 0.1);
+  M.muzzle(g, 0, 0, -0.56); M.base = [0.24, -0.23, -0.5];
+};
+
+/* Bao, el panda lechero: cañón de leche con banda azul y brazos negros; la cabeza redonda tiene orejas, antifaz y ojos,
+   y mira al jugador. La cabeza cabecea al disparar (userData.head). */
+GUN_MODELS.bao = function (M) {
+  var part = M.part, glow = M.glow, C = M.C, g = M.g;
+  /* Cañón de leche: el eje del grupo va de atrás (-y) a delante (+y) */
+  var barrel = new THREE.Group(); barrel.rotation.x = -Math.PI / 2; g.add(barrel);
+  part(C(0.06, 0.06, 0.42, 18), 0xfaf6e8, 0, 0, 0, barrel);
+  part(C(0.05, 0.05, 0.03, 18), 0xe8e2cf, 0, -0.215, 0, barrel);
+  part(C(0.0635, 0.0635, 0.05, 18), 0x2d6fb8, 0, 0.02, 0, barrel);
+  part(C(0.075, 0.075, 0.05, 18), 0x2b2f31, 0, 0.215, 0, barrel);
+  glow(new THREE.TorusGeometry(0.062, 0.008, 6, 16), 0x7fe8ff, 0, 0.242, 0, barrel).rotation.x = Math.PI / 2;
+  part(new THREE.SphereGeometry(0.035, 10, 8), 0x161616, -0.07, -0.05, 0, barrel).scale.set(0.7, 1.1, 0.9);   /* brazos */
+  part(new THREE.SphereGeometry(0.035, 10, 8), 0x161616, 0.07, -0.05, 0, barrel).scale.set(0.7, 1.1, 0.9);
+  /* Cabeza: esfera blanca, orejas, antifaz, ojos, hocico y lengua */
+  var head = new THREE.Group(); head.position.set(0, 0.085, 0.06); g.add(head); g.userData.head = head;
+  part(new THREE.SphereGeometry(0.095, 20, 14), 0xf5f5f0, 0, 0, 0, head);
+  part(new THREE.SphereGeometry(0.036, 12, 9), 0x161616, -0.07, 0.072, -0.02, head).scale.set(1, 1, 0.55);
+  part(new THREE.SphereGeometry(0.036, 12, 9), 0x161616, 0.07, 0.072, -0.02, head).scale.set(1, 1, 0.55);
+  part(new THREE.SphereGeometry(0.1, 16, 10), 0x161616, 0, 0.03, 0.035, head).scale.set(1.15, 0.42, 0.55);   /* antifaz */
+  M.eye(-0.045, 0.03, 0.086, 0.02, head); M.eye(0.045, 0.03, 0.086, 0.02, head);
+  part(new THREE.SphereGeometry(0.02, 10, 8), 0x2b1d17, 0, -0.01, 0.092, head).scale.set(1.4, 0.8, 0.6);     /* hocico */
+  part(new THREE.SphereGeometry(0.016, 8, 6), 0xff8fa3, 0, -0.05, 0.086, head).scale.set(1.2, 0.7, 0.6);     /* lengua */
+  part(new THREE.SphereGeometry(0.018, 8, 6), 0xff9bb3, -0.072, -0.03, 0.068, head);                          /* mejillas */
+  part(new THREE.SphereGeometry(0.018, 8, 6), 0xff9bb3, 0.072, -0.03, 0.068, head);
+  glow(new THREE.SphereGeometry(0.005, 6, 4), 0xffffff, -0.035, 0.04, 0.11, head);
+  M.muzzle(barrel, 0, 0.27, 0); M.base = [0.25, -0.24, -0.56];
+};
+
+/* Puños: guante de golpe rojo con muñequera blanca y azul, nudillos, pulgar y pegatina POW. Sin arma ni munición */
+GUN_MODELS.punos = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  var arm = new THREE.Group(); arm.rotation.x = 0.2; g.add(arm); g.userData.arm = arm;
+  part(C(0.075, 0.08, 0.2, 16), 0xf1efe6, 0, -0.02, 0.14, arm).rotation.x = Math.PI / 2;   /* muñequera */
+  part(C(0.082, 0.082, 0.04, 16), 0x2d6fb8, 0, -0.02, 0.205, arm).rotation.x = Math.PI / 2;
+  part(new THREE.SphereGeometry(0.095, 18, 14), 0xe0382d, 0, -0.01, -0.06, arm);             /* guante */
+  part(new THREE.SphereGeometry(0.04, 10, 8), 0xe0382d, 0.075, -0.02, -0.02, arm).scale.set(0.8, 0.9, 1.5);   /* pulgar */
+  part(B(0.02, 0.01, 0.12), 0xffffff, 0, 0.085, -0.04, arm);                                 /* costura */
+  [-0.06, -0.02, 0.02, 0.06].forEach(function (x) { part(new THREE.SphereGeometry(0.03, 10, 8), 0xf04a3d, x, 0.01, -0.165, arm); });   /* nudillos */
+  part(C(0.05, 0.05, 0.01, 12), 0xffd21f, 0, -0.02, 0.245, arm).rotation.x = Math.PI / 2;   /* pegatina POW */
+  glow(new THREE.SphereGeometry(0.018, 8, 6), 0xffffff, 0, -0.02, 0.252, arm);
+  M.muzzle(g, 0, 0, -0.24); M.base = [0.25, -0.26, -0.48];
+};
+
+/* Bazuca de fotocopias (principal, explosiva): tubo de tambor gris con anillos, tapa de fotocopiadora con ojos,
+   cristal azul, papel asomando y empuñadura. Dispara granadas de tóner. */
+GUN_MODELS.bazuca = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, T = M.T, g = M.g;
+  var tube = new THREE.Group(); tube.rotation.x = -Math.PI / 2; g.add(tube);
+  part(C(0.075, 0.08, 0.6, 18), 0x9aa3a8, 0, 0, 0, tube);
+  part(C(0.085, 0.085, 0.04, 18), 0x2b2f31, 0, -0.31, 0, tube);                   /* tapa trasera */
+  part(T(0.082, 0.012, 6, 16), 0xe0382d, 0, -0.2, 0, tube).rotation.x = Math.PI / 2;
+  part(T(0.082, 0.012, 6, 16), 0xf1efe6, 0, 0.2, 0, tube).rotation.x = Math.PI / 2;
+  part(C(0.09, 0.09, 0.03, 18), 0x2b2f31, 0, 0.31, 0, tube);                      /* boca */
+  glow(T(0.085, 0.008, 6, 16), 0xff8a3a, 0, 0.33, 0, tube).rotation.x = Math.PI / 2;
+  part(B(0.15, 0.035, 0.2), 0xdfe3e6, 0, 0.1, 0.12);                              /* tapa de la fotocopiadora */
+  glow(B(0.014, 0.01, 0.014), 0x3fd27a, 0.058, 0.12, 0.09); glow(B(0.014, 0.01, 0.014), 0xe0382d, 0.058, 0.12, 0.13);
+  part(B(0.15, 0.006, 0.18), 0x7fe8ff, 0, 0.12, 0.12, null, 0.8);                 /* cristal */
+  part(B(0.13, 0.004, 0.14), 0xffffff, 0.01, 0.14, 0.2).rotation.x = -0.2;        /* copia asomando */
+  part(B(0.1, 0.004, 0.01), 0x9aa3a8, 0.01, 0.143, 0.19).rotation.x = -0.2;
+  part(B(0.1, 0.004, 0.01), 0x9aa3a8, 0.01, 0.143, 0.22).rotation.x = -0.2;
+  M.eye(-0.045, 0.125, 0.0, 0.024, g); M.eye(0.045, 0.125, 0.0, 0.024, g);
+  part(B(0.012, 0.12, 0.18), 0xffd21f, 0.078, -0.02, 0.06);                       /* pegatina FOTOCOPIA */
+  part(B(0.07, 0.14, 0.09), 0x2b2f31, 0, -0.15, 0.1).rotation.x = -0.2;           /* empuñadura */
+  part(B(0.03, 0.06, 0.04), 0x14181a, 0, -0.1, 0.03).rotation.x = -0.2;           /* gatillo */
+  part(B(0.05, 0.14, 0.06), 0x2b2f31, 0, -0.14, -0.2);                            /* agarre delantero */
+  glow(B(0.02, 0.02, 0.02), 0xff5a2a, 0.07, 0.02, 0.25);
+  M.muzzle(tube, 0, 0.34, 0); M.base = [0.27, -0.25, -0.6];
+};
+
+/* Pistola de grapas de oro (secundaria): cuerpo dorado con raíl plateado, rubí, grapa de oro en la punta y destellos */
+GUN_MODELS.grapaoro = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, T = M.T, g = M.g;
+  part(B(0.1, 0.12, 0.3), 0xf5c542, 0, 0, -0.02);                                 /* cuerpo dorado */
+  part(B(0.08, 0.03, 0.26), 0xdfe6ea, 0, 0.075, -0.03);                           /* raíl plateado */
+  part(B(0.07, 0.07, 0.1), 0xf5c542, 0, 0.0, -0.19);                              /* morro */
+  part(B(0.06, 0.02, 0.02), 0xdfe6ea, 0, -0.01, -0.25);                           /* grapa de oro */
+  part(B(0.1, 0.22, 0.1), 0x2b2f31, 0, -0.16, 0.09).rotation.x = 0.2;             /* empuñadura */
+  part(B(0.11, 0.03, 0.12), 0xf5c542, 0, -0.28, 0.09).rotation.x = 0.2;           /* culata dorada */
+  part(T(0.04, 0.01, 6, 14), 0xf5c542, 0, -0.06, 0.02).rotation.y = Math.PI / 2;  /* guardamonte */
+  part(B(0.02, 0.05, 0.03), 0xf5c542, 0, -0.08, 0.03);                            /* gatillo */
+  part(new THREE.SphereGeometry(0.03, 10, 8), 0xe0382d, 0, 0.075, 0.12);          /* rubí */
+  glow(new THREE.SphereGeometry(0.01, 6, 4), 0xffffff, 0.05, 0.065, -0.1);        /* destellos */
+  glow(new THREE.SphereGeometry(0.01, 6, 4), 0xffffff, -0.05, 0.065, 0.05);
+  M.muzzle(g, 0, 0, -0.27); M.base = [0.27, -0.25, -0.5];
+};
+
 /* ---------------- Rareza y mejoras: aspecto del arma ----------------
    Borde de color (casco invertido) según la rareza. Las mejoras (G.pap, 1 a 3) suben el brillo de las piezas,
    el neón del borde y las luces (sprites), hasta el tope de la rareza (cap). Sin PointLights: solo materiales y sprites. */
@@ -5727,8 +5876,6 @@ $('ovShop').addEventListener('click', function (e) {
     var up = UPGRADES.filter(function (x) { return x.k === b.dataset.u; })[0], lv = G.upg[up.k] | 0;
     if (lv >= up.costs.length || G.euros < up.costs[lv]) return;
     G.euros -= up.costs[lv]; G.upg[up.k] = lv + 1; $('catLine').textContent = 'Miau. Mejora instalada. Ahora a dormir.';
-    /* Sofá ergonómico: "cura al comprar". Sube el máximo y deja la vida llena con el nuevo tope */
-    if (up.k === 'hp') { applyStats(); G.hp = G.maxHp; }
   }
   sfx.pickup(); applyStats(); saveGame(G.phase + 1); renderShop(); renderWList();
 });
