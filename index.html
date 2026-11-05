@@ -1,4 +1,9 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+/* ---- Personalización de cuerpos ---- */
+.shapes { display: grid; gap: 12px; margin: 10px 0 14px; max-height: 52vh; overflow: auto; }
+.shape-row { border-top: 1px dashed #4b5552; padding-top: 8px; display: grid; gap: 4px; }
+.shape-row b { font-family: var(--disp); font-weight: 400; font-size: 20px; letter-spacing: .05em; }
+.shape-row output { font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
 /* ---- Aviso de compra (cajas y mejoras) ---- */
 .interact { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); background: var(--paper); color: var(--ink); font-family: var(--disp); font-size: 20px; letter-spacing: .08em; padding: 6px 16px 8px; border: 3px solid var(--ink); box-shadow: 4px 4px 0 #000; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
 /* ---- Estilo épico: brillo, escaneo y animaciones ---- */
@@ -430,6 +435,7 @@ body {
         <button class="btn ghost" id="btnSurv" disabled>ZOMBIES</button>
         <button class="btn alt" id="btnOnline">ONLINE</button>
         <button class="btn ghost" id="btnBoard">CLASIFICACIÓN</button>
+        <button class="btn ghost" id="btnShape">PERSONALIZAR EQUIPO</button>
       </div>
         <p class="best" id="bestLine"></p>
       <p class="note" id="touchNote" hidden>Este juego necesita teclado y ratón, así que no funciona en un móvil o tableta.</p>
@@ -526,6 +532,15 @@ body {
         <button class="btn" id="btnBranchHard">ACEPTAR LAS PRÁCTICAS<small>Difícil · +50 €</small></button>
         <button class="btn ghost" id="btnBranchEasy">VOLVER AL SOFÁ<small>Fácil</small></button>
       </div>
+    </div>
+  </div>
+  <div class="overlay mid" id="ovShape" hidden>
+    <div class="sheet">
+      <div class="formno">Equipo · cuerpos y tamaños</div>
+      <h1>TU <em>EQUIPO</em></h1>
+      <p>Ajusta la altura y el grosor de cada personaje. Se guarda en este navegador.</p>
+      <div id="shapeList" class="shapes"></div>
+      <button class="btn ghost" id="btnShapeBack">VOLVER</button>
     </div>
   </div>
   <div class="overlay mid" id="ovWin" hidden>
@@ -1535,11 +1550,98 @@ function loadCharCanvas(key, cb) {
 function makeNpc(key, x, z, baseY, h, minPhase, pedestal) {
   var grp = CUR, mid = CURID;
   if (pedestal) addBox(x, z, 0.9, baseY, 0.7, 0x4d5a55);
-  loadCharCanvas(key, function (t, aspect) {
-    var g = new THREE.Group(); g.position.set(x, baseY, z);
-    var m = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
-    m.position.y = h / 2; g.add(m); g.visible = false; grp.add(g);
-    npcs.push({ g: g, m: m, minPhase: minPhase, h: h, phase: rnd(0, 6), map: mid });
+  if (AV_KEYS.indexOf(key) < 0) {
+    /* Sin cuerpo 3D (p. ej. el gato): la foto de siempre */
+    loadCharCanvas(key, function (t, aspect) {
+      var g = new THREE.Group(); g.position.set(x, baseY, z);
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
+      m.position.y = h / 2; g.add(m); g.visible = false; grp.add(g);
+      npcs.push({ g: g, m: m, minPhase: minPhase, h: h, phase: rnd(0, 6), map: mid });
+    });
+    return;
+  }
+  var g = new THREE.Group(); g.position.set(x, baseY, z); g.visible = false; grp.add(g);
+  var av = makeAvatar(key); g.add(av.root);
+  var anchor = new THREE.Object3D(); g.add(anchor);
+  npcs.push({ g: g, m: anchor, minPhase: minPhase, h: h, phase: rnd(0, 6), map: mid, avatar: av });
+}
+
+/* ---------------- Cuerpos 3D de los personajes (estilo Mii) ---------------- */
+var AV_KEYS = ['aliado', 'andres', 'heverton', 'lefillas', 'bucle', 'nomina'];
+var AV_STYLE = {
+  aliado: { shirt: 0xf1efe6, pants: 0x2a3550, shoes: 0x1a1a1a },
+  andres: { shirt: 0xf1efe6, pants: 0x1d1d22, shoes: 0x14181a, collar: 0x1d1d22 },
+  heverton: { shirt: 0xf2f2f2, pants: 0x5f6b3a, shoes: 0xe8e8e8 },
+  lefillas: { shirt: 0x2a2a2a, pants: 0x2a2a2a, shoes: 0x14181a, collar: 0x3b82c4 },
+  bucle: { shirt: 0x7a2a6a, pants: 0x3a3a3a, shoes: 0x14181a },
+  nomina: { shirt: 0x7a1d1d, pants: 0x2a2a2a, shoes: 0x14181a }
+};
+var SHAPES = {};
+try { SHAPES = JSON.parse(localStorage.getItem('nini-shapes') || '{}') || {}; } catch (e) { SHAPES = {}; }
+function shapeOf(key) { var sh = SHAPES[key]; return { h: sh && sh.h ? sh.h : 1, w: sh && sh.w ? sh.w : 1 }; }
+var AVATARS = [];
+/* Cabeza: solo la parte de arriba de la foto (cara y pelo) */
+function loadHeadCanvas(key, cb) {
+  var im = new Image();
+  im.onload = function () {
+    var w = im.naturalWidth || 300, hh = im.naturalHeight || 330, cut = Math.round(hh * 0.42);
+    var c = mkCanvas(w, cut); c.getContext('2d').drawImage(im, 0, 0, w, cut, 0, 0, w, cut);
+    cb(tex(c), w / cut);
+  };
+  im.src = CHARS[key].img;
+}
+function makeAvatar(key) {
+  var st = AV_STYLE[key] || AV_STYLE.aliado;
+  var root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  function bx(w, h, d, c, x, y, z) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c })); m.position.set(x, y, z); body.add(m); return m; }
+  var skin = 0xc68a5e;
+  bx(0.22, 0.8, 0.24, st.pants, -0.14, 0.4, 0); bx(0.22, 0.8, 0.24, st.pants, 0.14, 0.4, 0);
+  bx(0.24, 0.1, 0.32, st.shoes, -0.14, 0.05, 0.04); bx(0.24, 0.1, 0.32, st.shoes, 0.14, 0.05, 0.04);
+  bx(0.72, 0.86, 0.38, st.shirt, 0, 1.23, 0);
+  bx(0.72, 0.06, 0.4, 0x2a2a2a, 0, 0.84, 0);
+  if (st.collar) bx(0.22, 0.5, 0.03, st.collar, 0, 1.2, 0.21);
+  bx(0.18, 0.72, 0.2, st.shirt, -0.46, 1.2, 0); bx(0.18, 0.72, 0.2, st.shirt, 0.46, 1.2, 0);
+  [-0.46, 0.46].forEach(function (x) { var hm = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), new THREE.MeshLambertMaterial({ color: skin })); hm.position.set(x, 0.78, 0); body.add(hm); });
+  bx(0.2, 0.14, 0.2, skin, 0, 1.72, 0);
+  var head = new THREE.Group(); root.add(head);
+  var av = { key: key, root: root, body: body, head: head, onApply: null };
+  av.apply = function () {
+    var sh = shapeOf(key);
+    body.scale.set(sh.w, sh.h, sh.w);
+    head.position.set(0, 1.78 * sh.h, 0);
+    head.scale.set(0.85 + 0.15 * sh.w, 1, 1);
+    if (av.onApply) av.onApply();
+  };
+  loadHeadCanvas(key, function (t, aspect) {
+    var wd = 0.8, ht = wd / aspect;
+    var pl = new THREE.Mesh(new THREE.PlaneGeometry(wd, ht), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
+    pl.position.y = ht / 2 + 0.02; head.add(pl);
+  });
+  av.apply();
+  AVATARS.push(av);
+  return av;
+}
+function setShape(key, field, value) {
+  SHAPES[key] = SHAPES[key] || {};
+  SHAPES[key][field] = value;
+  try { localStorage.setItem('nini-shapes', JSON.stringify(SHAPES)); } catch (e) {}
+  AVATARS.forEach(function (av) { if (av.key === key) av.apply(); });
+}
+function buildShapeUI() {
+  var list = $('shapeList'); list.innerHTML = '';
+  AV_KEYS.forEach(function (key) {
+    var sh = shapeOf(key);
+    var row = document.createElement('div'); row.className = 'shape-row';
+    row.innerHTML = '<b>' + CHARS[key].name + '</b>' +
+      '<label class="sens"><span>Altura</span><input type="range" min="0.8" max="1.3" step="0.05" value="' + sh.h + '" data-k="' + key + '" data-f="h"><output>' + sh.h.toFixed(2) + '</output></label>' +
+      '<label class="sens"><span>Grosor</span><input type="range" min="0.7" max="1.5" step="0.05" value="' + sh.w + '" data-k="' + key + '" data-f="w"><output>' + sh.w.toFixed(2) + '</output></label>';
+    list.appendChild(row);
+  });
+  Array.prototype.forEach.call(list.querySelectorAll('input[type=range]'), function (inp) {
+    inp.addEventListener('input', function () {
+      var v = parseFloat(inp.value); inp.nextElementSibling.textContent = v.toFixed(2);
+      setShape(inp.getAttribute('data-k'), inp.getAttribute('data-f'), v);
+    });
   });
 }
 /* ---------------- Online: clasificación (Cloudflare Worker) ---------------- */
@@ -3584,10 +3686,7 @@ function buildMates() {
     m.g = g;
     var ringM = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.75, 32), new THREE.MeshBasicMaterial({ color: m.key === 'andres' ? 0x7fe8ff : 0xffd27a, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
     ringM.rotation.x = -Math.PI / 2; ringM.position.y = 0.04; g.add(ringM); m.ring = ringM;
-    loadCharCanvas(m.key, function (t, aspect) {
-      var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
-      pl.position.y = 0.88 + h / 2; g.add(pl);
-    });
+    var avM = makeAvatar(m.key); g.add(avM.root); m.avatar = avM; m.plane = avM.head;
   });
 }
 function resetMates() {
@@ -3769,6 +3868,7 @@ function updateMates(dt) {
     if (Math.hypot(P.x - m.x, P.z - m.z) > 22) { m.x = P.x + sy * 2; m.z = P.z + cy * 2; }
     var o = resolve(m.x, m.z, 0.4); m.x = o.x; m.z = o.z;
     m.g.position.set(m.x, 0, m.z);
+    if (m.plane) m.plane.rotation.y = Math.atan2(camera.position.x - m.x, camera.position.z - m.z);
     if (m.ring) { var pulse = 1 + 0.12 * Math.sin(G.t * 4 + i * 2); m.ring.scale.set(pulse, pulse, 1); m.ring.material.opacity = 0.55 + 0.25 * Math.sin(G.t * 4 + i * 2); }
     /* Dispara al enemigo más cercano al alcance */
     m.cd -= dt;
@@ -3903,10 +4003,7 @@ function buildAlly() {
   var em = new THREE.Sprite(new THREE.SpriteMaterial({ map: ally.emoteTex, transparent: true }));
   em.scale.set(0.62, 0.62, 1); em.position.y = 2.78; em.visible = false; g.add(em); ally.emote = em;
   ally.key = 'aliado'; ally.g = g; ally.body = body; ally.label = label; ally.hp = 100; ally.down = false; ally.revive = 0; ally.name = 'LEFAL';
-  loadCharCanvas('aliado', function (t, aspect) {
-    var h = 1.0, m = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
-    ally.planeY = 0.88 + h / 2; m.position.y = ally.planeY; g.add(m); ally.plane = m;
-  });
+  var avA = makeAvatar('aliado'); g.add(avA.root); ally.avatar = avA; ally.plane = avA.head; ally.planeY = avA.head.position.y; avA.onApply = function () { ally.planeY = avA.head.position.y; };
 }
 function resetAlly() {
   if (!ally.g) return;
@@ -4799,7 +4896,7 @@ function netHud() {
 }
 
 /* ---------------- Flujo de partida ---------------- */
-var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch'];
+var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape'];
 function showOnly(id) { screens.forEach(function (s) { $(s).hidden = s !== id; }); }
 function plainLock() {
   try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -5390,6 +5487,8 @@ function setSens(v) { CTRL.sens = clamp(v | 0, 1, 100); syncCtrl(); }
 });
 $('btnStory').addEventListener('click', function () { startStory(false); });
 $('btnBranchHard').addEventListener('click', function () { pickBranch('hard'); });
+$('btnShape').addEventListener('click', function () { buildShapeUI(); showOnly('ovShape'); });
+$('btnShapeBack').addEventListener('click', function () { showOnly('ovStart'); });
 $('btnBranchEasy').addEventListener('click', function () { pickBranch('easy'); });
 $('btnNew').addEventListener('click', function () { startStory(true); });
 $('btnSurv').addEventListener('click', zombiesMenu);
