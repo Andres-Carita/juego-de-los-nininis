@@ -1,4 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+/* ---- Aviso de compra (cajas y mejoras) ---- */
+.interact { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); background: var(--paper); color: var(--ink); font-family: var(--disp); font-size: 20px; letter-spacing: .08em; padding: 6px 16px 8px; border: 3px solid var(--ink); box-shadow: 4px 4px 0 #000; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
 /* ---- Estilo épico: brillo, escaneo y animaciones ---- */
 @keyframes flick { 0%, 100% { opacity: 1; } 47% { opacity: 1; } 48% { opacity: .84; } 50% { opacity: 1; } 73% { opacity: .95; } }
 @keyframes shine { 0% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(300%) skewX(-20deg); } }
@@ -373,6 +375,7 @@ body {
     </div>
 
     <div class="revive" id="reviveBox" hidden><span class="lab" id="reviveLab">SANANDO</span><div class="rbar"><i id="reviveFill"></i></div></div>
+    <div class="interact" id="interact" hidden></div>
     <div class="squad" id="squad" hidden></div>
     <div class="allytag" id="allyTag" hidden><span class="lab">Lefal</span><b id="allySt">Te acompaña</b><div class="am" id="allyAm"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 
@@ -608,12 +611,12 @@ var BOX_SPOTS = [
 ];
 /* Armas que salen en cada mapa (Zombies). La grapadora está en todos */
 var WEAPON_MAP = {
-  0: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro'],
+  0: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos'],
   1: ['grapadora', 'trituradora', 'pizza', 'taladro', 'sopladora'],
   2: ['grapadora', 'leche', 'bao', 'sopladora'],
-  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora'],
+  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos'],
   4: ['grapadora', 'leche', 'bao', 'sopladora'],
-  5: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro']
+  5: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos']
 };
 function weaponAllowed(k) { return G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
 function buildLoc(loc) {
@@ -636,11 +639,49 @@ function ambientGlow(loc) {
     anim(function (t) { gl.material.opacity = 0.3 + 0.25 * Math.sin(t * 2.2 + ph) + 0.1 * Math.sin(t * 9 + ph); });
   });
 }
+
+/* Objetos de cada mapa (posiciones en fracciones del tamaño del mapa) */
+var PROPS = {
+  0: [['cooler', -0.7, -0.6], ['archivador', -0.9, 0.1], ['archivador', -0.9, 0.35], ['impresora', 0.7, 0.6], ['cooler', 0.8, -0.5]],
+  1: [['barril', -0.6, -0.5], ['barril', -0.55, -0.35], ['barril', 0.55, 0.4], ['caja', 0.7, -0.2], ['caja', 0.8, -0.05], ['caja', -0.8, 0.5]],
+  2: [['rack', -0.8, -0.6], ['rack', -0.8, -0.2], ['rack', -0.8, 0.2], ['rack', 0.8, -0.6], ['rack', 0.8, 0.2], ['tanque', 0.2, -0.9]],
+  3: [['paraguas', -0.6, -0.5], ['paraguas', 0.6, -0.5], ['paraguas', -0.6, 0.5], ['paraguas', 0.6, 0.5], ['barril', 0.0, 0.9]],
+  5: [['tanque', -0.9, -0.4], ['tanque', -0.9, 0.1], ['archivador', 0.9, 0.0], ['cooler', 0.85, -0.6]]
+};
+function addProps(loc) {
+  var list = PROPS[loc] || [];
+  list.forEach(function (p, i) {
+    var x = p[1] * HALF * 0.8, z = p[2] * HALF * 0.8;
+    if (p[0] === 'cooler') {
+      solid(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 1.1, 12), LM(0xf1efe6)), x, 0.55, z, 0.6, 0.6, 1.1);
+      put(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.5, 12), BM(0x2fa8e0)), x, 1.35, z);
+    } else if (p[0] === 'archivador') {
+      solid(new THREE.Mesh(BG(0.9, 1.8, 0.55), LM(0x8a9399)), x, 0.9, z, 0.9, 0.55, 1.8);
+      put(new THREE.Mesh(BG(0.7, 0.02, 0.02), BM(0x14181a)), x, 1.2, z + 0.3);
+    } else if (p[0] === 'impresora') {
+      solid(new THREE.Mesh(BG(1.0, 0.8, 0.8), LM(0xf1f3f5)), x, 0.4, z, 1.0, 0.8, 0.8);
+      put(new THREE.Mesh(BG(0.5, 0.05, 0.3), BM(0xe0382d)), x, 0.82, z);
+    } else if (p[0] === 'barril') {
+      solid(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.9, 12), LM(0xc8642b)), x, 0.45, z, 0.7, 0.7, 0.9);
+    } else if (p[0] === 'caja') {
+      solid(new THREE.Mesh(BG(1, 1, 1), LM(0xa07a45)), x, 0.5, z, 1, 1, 1);
+    } else if (p[0] === 'rack') {
+      solid(new THREE.Mesh(BG(1.2, 2.6, 0.8), LM(0x1d2a35)), x, 1.3, z, 1.2, 0.8, 2.6);
+      var led = glow('47,184,232', x, 1.6, z + 0.45, 0.9, 0.9, 0.7);
+      var ph = i * 0.9; anim(function (t) { led.material.opacity = 0.25 + 0.6 * Math.max(0, Math.sin(t * 5 + ph)); });
+    } else if (p[0] === 'tanque') {
+      solid(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 2.2, 14), LM(0x9aa3a8)), x, 1.1, z, 1.4, 1.4, 2.2);
+    } else if (p[0] === 'paraguas') {
+      put(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2, 6), LM(0x333333)), x, 1, z);
+      put(new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.5, 10), LM(i % 2 ? 0xe0382d : 0xf1efe6)), x, 2.1, z);
+    }
+  });
+}
 function loadLoc(loc, half) {
   if (loc === curLoc && half === HALF) return;
   curLoc = loc; HALF = half;
   if (MAPS[loc].grp) scene.remove(MAPS[loc].grp);
-  beginMap(loc); buildLoc(loc); ambientGlow(loc); finishMap(MAPS[loc]);
+  beginMap(loc); buildLoc(loc); ambientGlow(loc); addProps(loc); finishMap(MAPS[loc]);
   /* La sombra del sol sigue al jugador: el área cubierta no depende del tamaño del mapa */
   var sc = sunL.shadow.camera, se = Math.min(HALF * 1.5, 40); sc.left = -se; sc.right = se; sc.top = se; sc.bottom = -se; sc.updateProjectionMatrix();
   camera.far = 160; camera.updateProjectionMatrix();
@@ -924,10 +965,12 @@ var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los req
 var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La leche de Raúl Becas lleva grumos de calidad.', 'Miau. Las zapatillas de sofá corren más de lo que parece.', 'Miau. Gasta rápido, que Lefillas-san te vigila.', 'Miau. Un nini informado compra mejoras.'];
 
 /* ---------------- Armas y mejoras ---------------- */
-var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora'];
+var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos'];
 var WEAPONS = {
   grapadora: { name: 'Grapadora', short: 'Grapadora', type: 'hitscan', mag: 20, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
     desc: 'Arma inicial. Cadencia media y munición de sobra.' },
+  sellos: { name: 'Sellador de expedientes', short: 'Sellador', type: 'hitscan', mag: 12, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
+    desc: 'Sella cada oferta con un golpe seco: RECHAZADA. Mucho daño por disparo.' },
   taladro: { name: 'Taladro de oficina', short: 'Taladro', type: 'spray', mag: 40, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
     desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
   sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', type: 'pellets', mag: 10, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
@@ -1374,6 +1417,12 @@ function buildGun(kind) {
     part(new THREE.BoxGeometry(0.2, 0.02, 0.12), 0xf2c200, 0, 0.1, -0.1);
     part(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 10), 0xc22d27, 0.11, -0.02, -0.12).rotation.z = Math.PI / 2;
     mz.position.set(0, 0, -0.27); g.add(mz); g.userData.base = [0.26, -0.26, -0.58];
+  } else if (kind === 'sellos') {
+    part(new THREE.BoxGeometry(0.12, 0.14, 0.42), 0x2b2f31, 0, 0, 0);
+    part(new THREE.BoxGeometry(0.1, 0.08, 0.3), 0x8a9399, 0, 0.1, -0.06);
+    part(new THREE.BoxGeometry(0.1, 0.24, 0.12), 0x6b4a2b, 0, -0.18, 0.1).rotation.x = 0.2;
+    part(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 12), 0xe0382d, 0, 0.12, 0.18).rotation.x = Math.PI / 2;
+    mz.position.set(0, 0.02, -0.26); g.add(mz); g.userData.base = [0.27, -0.26, -0.56];
   } else if (kind === 'taladro') {
     part(new THREE.BoxGeometry(0.2, 0.2, 0.34), 0xf2c200, 0, 0, 0);
     part(new THREE.BoxGeometry(0.12, 0.26, 0.16), 0x2b2f31, 0, -0.17, 0.08).rotation.x = 0.25;
@@ -1410,7 +1459,7 @@ function buildGun(kind) {
     part(new THREE.BoxGeometry(0.03, 0.06, 0.2), 0x14181a, 0.07, -0.05, 0.02);
     mz.position.set(0, 0.3, 0); tube.add(mz); g.userData.base = [0.25, -0.22, -0.45];
   }
-  g.userData.muzzle = mz; g.userData.kick = { grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2 }[kind] || 1;
+  g.userData.muzzle = mz; g.userData.kick = { grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2, sellos: 0.7 }[kind] || 1;
   if (kind === 'taladro' || kind === 'sopladora') g.scale.setScalar(0.72);
   g.visible = false; camera.add(g); return g;
 }
@@ -1501,10 +1550,14 @@ function publishScore(st) {
 var CUR = null, CURM = null, CURID = 0, sunL = null, pLights = [], MAPS = [], GEOC = {}, MATC = {}, GLOWC = {};
 function roundIdx() { return G.mode === 'story' ? G.phase * ROUNDS + (G.wip || 1) : (G.wave || 1); }
 /* Nivel de dificultad equivalente: en la historia sube 2 por etapa y un poco con cada ronda */
-function lvl() { return G.mode === 'story' ? G.phase * 2 + Math.ceil((G.wip || 1) / 4) : (G.wave || 1); }
+function lvl() { return G.mode === 'story' ? G.phase * 2 + Math.ceil((G.wip || 1) / 4) : (((G.wave || 1) - 1) % 8) + 1; }
 /* La dificultad sube sola con la ronda: más vida, más velocidad, más enemigos y más ritmo */
 function DF() {
-  var L = Math.max(0, G.mode === 'story' ? G.phase * 2 + ((G.wip || 1) - 1) / 4 : roundIdx() - 1);
+  var r = roundIdx(), L;
+  /* Historia: cada fase empieza con pocos enemigos y sube dentro de la fase */
+  if (G.mode === 'story') L = G.phase * 0.5 + ((G.wip || 1) - 1) * 0.6;
+  /* Zombies: cada mapa (8 rondas) empieza suave y sube; el ciclo siguiente parte un poco más alto */
+  else L = ((r - 1) % 8) + 2 * Math.floor((r - 1) / 8);
   return { hp: 1 + 0.07 * L, spd: Math.min(1.45, 1 + 0.025 * L), cnt: Math.min(2.2, 1 + 0.05 * L), rate: Math.min(1.8, 1 + 0.03 * L), drop: Math.max(0.55, 1 - 0.03 * L), score: 1, eur: 1 };
 }
 function BG(w, h, d) { var k = w + '|' + h + '|' + d; return GEOC[k] || (GEOC[k] = new THREE.BoxGeometry(w, h, d)); }
@@ -3640,6 +3693,25 @@ function downFx(m, key) {
     m.ring.material.color.setHex(key === 'andres' ? 0x7fe8ff : (key === 'heverton' ? 0xffd27a : 0xe0382d));
   }
 }
+var interactEl = $('interact');
+function updateInteract(dt) {
+  var t = null;
+  if (G.mode === 'survival' && G.state === 'playing') {
+    if (boxG && boxG.visible) boxG.position.y = 0.08 * Math.sin(G.t * 2.4);
+    if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) t = 'E · CAJA MISTERIOSA · 950 PUNTOS';
+    for (var i = 0; i < PERKM.length && !t; i++) {
+      var m = PERKM[i];
+      if (!m.g || !m.g.visible) continue;
+      m.g.position.y = 0.05 * Math.sin(G.t * 2 + i);
+      if (Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4) {
+        var owned = m.k === 'pap' ? !!G.pap[G.wcur] : !!G.perks[m.k];
+        t = 'E · ' + (m.k === 'pap' ? 'MEJORA DE ARMA' : m.name) + ' · ' + m.cost + ' PUNTOS' + (owned ? ' · YA COMPRADO' : '');
+      }
+    }
+  }
+  interactEl.hidden = !t;
+  if (t) interactEl.textContent = t;
+}
 function updateRevive(dt) {
   downFx(ally, 'aliado'); MATES.forEach(function (m) { downFx(m, m.key); });
   var list = G.online && !NG.host ? [] : [ally].concat(MATES), best = null, bd = REVIVE_R;
@@ -4017,13 +4089,15 @@ function updateAlly(dt) {
 }
 
 /* ---------------- Oleadas ---------------- */
-function startWave(n) {
-  if (G.online && NG.host) setTimeout(function () { if (NG.r) NG.r.emit('ev', { t: 'wave', n: n, ev: (MAP_EVENT[curLoc] || []).indexOf(curEv) }).catch(function () {}); }, 0);
+function startWave(n0) {
+  /* En Zombies, las cantidades se reinician en cada mapa (8 rondas); el número real sigue en n0 */
+  var n = G.mode === 'survival' ? ((n0 - 1) % 8) + 1 : n0;
+  if (G.online && NG.host) setTimeout(function () { if (NG.r) NG.r.emit('ev', { t: 'wave', n: n0, ev: (MAP_EVENT[curLoc] || []).indexOf(curEv) }).catch(function () {}); }, 0);
   if (G.mode === 'survival') {
-    var zl = ZOMBIE_ORDER[Math.floor((n - 1) / 8) % ZOMBIE_ORDER.length];
-    if (zl !== curLoc) { loadZombieMap(n); toast('MAPA · ' + MAPS[zl].name + ' · ' + curEv.t + ': ' + curEv.d); }
+    var zl = ZOMBIE_ORDER[Math.floor((n0 - 1) / 8) % ZOMBIE_ORDER.length];
+    if (zl !== curLoc) { loadZombieMap(n0); toast('MAPA · ' + MAPS[zl].name + ' · ' + curEv.t + ': ' + curEv.d); }
   }
-  G.wave = n; var q = [], ns = 4 + n * 3, nr = n >= 2 ? Math.floor(n * 1.5) : 0, nc = n >= 4 ? Math.floor((n - 3) * 1.2) : 0;
+  G.wave = n0; var q = [], ns = 4 + n * 3, nr = n >= 2 ? Math.floor(n * 1.5) : 0, nc = n >= 4 ? Math.floor((n - 3) * 1.2) : 0;
   var extra = { correo: n >= 3 ? Math.floor((n - 1) * 0.8) : 0, reunion: n >= 4 ? Math.floor((n - 2) * 0.7) : 0, factura: n >= 5 ? Math.floor((n - 3) * 0.9) : 0,
     cazatalentos: n >= 6 ? Math.floor((n - 4) * 0.7) : 0, agencia: n >= 8 ? Math.floor((n - 6) / 2) : 0 };
   for (var i = 0; i < ns; i++) q.push('solicitud'); for (var j = 0; j < nr; j++) q.push('requisito'); for (var k = 0; k < nc; k++) q.push('contrato');
@@ -4038,7 +4112,7 @@ function startWave(n) {
     else if (evCount < 1) q = q.slice(0, Math.max(3, Math.round(q.length * evCount)));
   }
   G.toSpawn = q; G.spawnT = 1.8; G.waveDone = false; G.waveBreak = 0;
-  banner((G.mode === 'survival' ? 'CONTRATOS · ' : '') + 'OLEADA ' + n, bossK && TYPES[bossK].pat ? 'Llega el jefe: ' + TYPES[bossK].name : (n % 9 === 0 ? 'Llega el contrato final' : (n % 3 === 0 ? 'Llega la entrevista de 7 rondas' : 'Rechaza todas las ofertas'))); sfx.wave();
+  banner((G.mode === 'survival' ? 'CONTRATOS · ' : '') + 'OLEADA ' + n0, bossK && TYPES[bossK].pat ? 'Llega el jefe: ' + TYPES[bossK].name : (n % 9 === 0 ? 'Llega el contrato final' : (n % 3 === 0 ? 'Llega la entrevista de 7 rondas' : 'Rechaza todas las ofertas'))); sfx.wave();
 }
 function startPhaseWave() {
   var ph = PHASES[G.phase], last = G.wip >= ROUNDS, tpl = ph.w[G.wip > ROUNDS / 2 ? 1 : 0], q = [], i;
@@ -5075,7 +5149,7 @@ function update(dt) {
   updateWaves(dt); if (G.state !== 'playing') return;
   updateEnemies(dt); if (G.state !== 'playing') return;
   updateProj(dt); updateEProj(dt); if (G.state !== 'playing') return;
-  updateHazards(dt); if (G.state !== 'playing') return; updateAbilities(dt); updateAlly(dt); updateMates(dt); updateRevive(dt); updateSquad(dt); updateBarri(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt);
+  updateHazards(dt); if (G.state !== 'playing') return; updateAbilities(dt); updateAlly(dt); updateMates(dt); updateRevive(dt); updateSquad(dt); updateBarri(dt); updateInteract(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt);
 }
 
 /* ---------------- Entrada ---------------- */
@@ -5100,7 +5174,7 @@ window.addEventListener('keydown', function (e) {
       if (e.code === 'KeyV') useAbility('rafaga');
     }
     if (e.code === 'KeyP') pause();
-    var di = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'].indexOf(e.code); if (di >= 0) trySelect(WORDER[di]);
+    var di = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8'].indexOf(e.code); if (di >= 0) trySelect(WORDER[di]);
   } else if (G.state === 'paused' && e.code === 'KeyP') resume();
   if (e.code === 'KeyM') { muted = !muted; if (G.state === 'playing') toast(muted ? 'SONIDO APAGADO' : 'SONIDO ENCENDIDO'); }
 });
