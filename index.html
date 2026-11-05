@@ -1567,7 +1567,7 @@ function makeNpc(key, x, z, baseY, h, minPhase, pedestal) {
 }
 
 /* ---------------- Cuerpos 3D de los personajes (estilo Mii) ---------------- */
-var AV_KEYS = ['bilal', 'aliado', 'andres', 'heverton', 'sonrisas', 'visto', 'respeto'];
+var AV_KEYS = ['bilal', 'aliado', 'andres', 'heverton', 'sonrisas', 'visto', 'respeto', 'lefillas', 'bucle', 'nomina'];
 var AV_STYLE = {
   bilal: { shirt: 0x2f7ab8, pants: 0x1f2a3a, shoes: 0x14181a, hand: 0xc68a5e },
   aliado: { shirt: 0xf1efe6, pants: 0x2a3550, shoes: 0x1a1a1a, hand: 0xc68a5e },
@@ -1575,7 +1575,10 @@ var AV_STYLE = {
   heverton: { shirt: 0xf2f2f2, pants: 0x5f6b3a, shoes: 0xe8e8e8, hand: 0xc68a5e },
   sonrisas: { shirt: 0x2f9e5a, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e },
   visto: { shirt: 0x2aa3df, pants: 0x1f1f1f, shoes: 0xf2f2f2, hand: 0xc68a5e },
-  respeto: { shirt: 0x3b3b3b, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e }
+  respeto: { shirt: 0x3b3b3b, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e },
+  lefillas: { shirt: 0x2a2a2a, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e },
+  bucle: { shirt: 0x7a2a6a, pants: 0x3a3a3a, shoes: 0x14181a, hand: 0xc68a5e },
+  nomina: { shirt: 0x7a1d1d, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e }
 };
 var SHAPES = {};
 try { SHAPES = JSON.parse(localStorage.getItem('nini-shapes') || '{}') || {}; } catch (e) { SHAPES = {}; }
