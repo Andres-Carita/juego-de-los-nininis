@@ -517,6 +517,17 @@ body {
     </div>
   </div>
 
+  <div class="overlay mid" id="ovBranch" hidden>
+    <div class="sheet">
+      <div class="formno">Decisión de fase · Prácticas eternas</div>
+      <h1>¿Y AHORA <em>QUÉ</em>?</h1>
+      <p>Las prácticas ya no son opcionales. La siguiente fase cambia según tu elección.</p>
+      <div class="branch">
+        <button class="btn" id="btnBranchHard">ACEPTAR LAS PRÁCTICAS<small>Difícil · +50 €</small></button>
+        <button class="btn ghost" id="btnBranchEasy">VOLVER AL SOFÁ<small>Fácil</small></button>
+      </div>
+    </div>
+  </div>
   <div class="overlay mid" id="ovWin" hidden>
     <div class="sheet">
       <div class="formno">Expediente cerrado · Rechazo completado</div>
@@ -832,6 +843,8 @@ var PHASES = [
       L('aliado', 'Mejor: he traído buena puntería.'),
       L('lefillas', 'Está bien. Si aguantas ocho rondas, hablamos. Y después te pones a estudiar.')],
     outro: [
+      L('andres', 'Ocho rondas sin una salteña. Eso es sacrificio de verdad.'),
+      L('heverton', 'Heverton: ahora tem prática de verdade. Vai dar certo!'),
       L('lefillas', 'No ha estado mal. Pero rechazar ofertas no es un plan de futuro.'),
       L('aliado', 'Se nos da bien esto de rechazar. Deberíamos cobrar por ello.'),
       L('gato', 'Sí lo es. Pásate por mi tienda, miau. Tengo leche, grapas y mala influencia.')] },
@@ -847,12 +860,16 @@ var PHASES = [
       L('bilal', 'Yo no quiero puertas. Quiero un sofá.'),
       L('gato', 'Esos papeles amarillos son requisitos. Piden cinco años de experiencia en una tecnología de dos. Dispárales sin miedo.')],
     outro: [
+      L('heverton', 'Bilalzinho, las prácticas no son tan malas. Tienen café gratis.'),
+      L('andres', 'Y salteñas en la cafetería de la tercera planta. Te lo digo yo.'),
       L('bucle', 'Muy bien. Repite conmigo: for, while, descanso. Repite. Repite.'),
       L('lefillas', 'Sigue así, Bilalzinho. Se te da mejor de lo que crees.')] },
   { name: 'LA LETRA PEQUEÑA', theme: { bg: 0x120d18, hemi: 0xdacbf0, panel: 0xeadfff },
     w: [{ sol: 8, req: 6, con: 3, cor: 2, reu: 2 }, { sol: 10, req: 6, con: 6, cor: 3, reu: 3, fac: 2 }],
     radio: [L('nomina', 'Mis contratos tienen aguante. Firma y sufre menos.'), L('aliado', 'Tranquilo, Bilalzinho. Mientras yo esté aquí, nadie te firma nada.')],
     intro: [
+      L('heverton', 'Nómina, meu amigo, es la más difícil de las tres. Pero cuenta con nosotros.'),
+      L('andres', 'Nosotros leemos la letra pequeña por Bilalzinho. Él solo mira el sofá.'),
       L('nomina', 'Soy la Directora Nómina. Tengo un contrato indefinido con tu nombre y no admite cambios.'),
       L('bilal', '¿Cuánto pagáis?'),
       L('nomina', 'Un salario competitivo. Competitivo con el de una planta.'),
@@ -865,6 +882,7 @@ var PHASES = [
     w: [{ sol: 10, req: 8, con: 5, fac: 4, reu: 2, caz: 2 }, { sol: 8, req: 6, con: 5, cor: 3, caz: 3, boss: 'entrevista' }],
     radio: [L('lefillas', 'Mantén la calma. Una entrevista es solo una conversación.'), L('bucle', 'Pregunta típica: ¿dónde te ves en cinco años? Repite, repite.')],
     intro: [
+      L('andres', 'La entrevista de siete rondas. Yo la hice en Bolivia con una salteña en la mano.'),
       L('nomina', 'Para firmar solo falta superar la entrevista de siete rondas. Es muy sencillo.'),
       L('lefillas', 'La entrevista es solo una conversación, Bilalzinho. Si te preparas, no da miedo.'),
       L('bilal', 'Si la destrozo a grapadazos, ¿cuenta como ronda superada?'),
@@ -877,6 +895,8 @@ var PHASES = [
     w: [{ sol: 12, req: 10, con: 8, fac: 4, reu: 3, caz: 3, age: 1 }, { sol: 8, req: 8, con: 6, cor: 4, caz: 3, age: 2, boss: 'final' }],
     radio: [L('lefillas', 'Es la última fase. Confía en lo que has practicado.'), L('gato', 'Miau. Yo votaría por el sofá, pero estoy contigo.')],
     intro: [
+      L('andres', 'Último contrato. Nos quedamos los cuatro, Bilalzinho.'),
+      L('heverton', 'Los cuatro, meu amigo. Vai dar certo, hasta el final!'),
       L('nomina', 'Este es el contrato definitivo. Jornada completa, sueldo en exposición y sin vacaciones.'),
       L('lefillas', 'Bilalzinho, esta vez no lo rechaces por rechazar. Léelo y decide tú.'),
       L('gato', 'Miau. Yo votaría por el sofá, pero te acompaño.'),
@@ -1558,7 +1578,7 @@ function DF() {
   if (G.mode === 'story') L = G.phase * 0.5 + ((G.wip || 1) - 1) * 0.6;
   /* Zombies: cada mapa (8 rondas) empieza suave y sube; el ciclo siguiente parte un poco más alto */
   else L = ((r - 1) % 8) + 2 * Math.floor((r - 1) / 8);
-  return { hp: 1 + 0.07 * L, spd: Math.min(1.45, 1 + 0.025 * L), cnt: Math.min(2.2, 1 + 0.05 * L), rate: Math.min(1.8, 1 + 0.03 * L), drop: Math.max(0.55, 1 - 0.03 * L), score: 1, eur: 1 };
+  return { hp: (1 + 0.07 * L) * branchMul(), spd: Math.min(1.45, 1 + 0.025 * L), cnt: Math.min(2.2, 1 + 0.05 * L) * branchMul(), rate: Math.min(1.8, 1 + 0.03 * L), drop: Math.max(0.55, 1 - 0.03 * L), score: 1, eur: 1 };
 }
 function BG(w, h, d) { var k = w + '|' + h + '|' + d; return GEOC[k] || (GEOC[k] = new THREE.BoxGeometry(w, h, d)); }
 function LM(c) { return MATC['l' + c] || (MATC['l' + c] = new THREE.MeshLambertMaterial({ color: c })); }
@@ -3182,6 +3202,32 @@ function enemyMove(e, dt, dx, dz, d) {
       e.cd -= dt; if (e.cd < 0.5 && e.cd > 0) e.tint = 0xffc080;
       if (e.cd <= 0 && e.age > 0.6) { lobShot(e, T.dmg, 'cafe'); sfx.efire(); e.cd = rnd(2.6, 3.4); }
       break; }
+    case 'grapas': {
+      /* Se mueve de lado a lado a unos 4 metros disparando grapas */
+      e.dirT -= dt; if (e.dirT <= 0) { e.dir = -e.dir; e.dirT = rnd(1.2, 2.2); }
+      var gr = d > 6 ? 1 : (d < 3.5 ? -1 : 0);
+      enemyStep(e, dt, nx * gr * 0.5 - nz * e.dir, nz * gr * 0.5 + nx * e.dir, sp * 1.2);
+      gunTick(e, dt, d);
+      break; }
+    case 'reloj': {
+      /* Se planta a unos 5 metros y lanza pitidos */
+      if (d > 5.5) enemyStep(e, dt, nx, nz, sp);
+      else if (d < 4) enemyStep(e, dt, -nx, -nz, sp * 0.6);
+      gunTick(e, dt, d);
+      break; }
+    case 'tupper': {
+      /* Camina despacio y, cuando está cerca, se lanza de golpe */
+      e.cd -= dt;
+      if (e.cd <= 0) { enemyStep(e, dt, nx, nz, sp * 2.8); if (d < 1.4) e.cd = rnd(3, 4); }
+      else enemyStep(e, dt, nx, nz, sp * 0.7);
+      break; }
+    case 'pavo': {
+      /* Carga errática: cambia de dirección sin dejar de ir hacia Bilal */
+      e.dirT -= dt; if (e.dirT <= 0) { e.dir = Math.random() < 0.5 ? 1 : -1; e.dirT = rnd(0.6, 1.2); }
+      var px = nx * 0.8 - nz * e.dir * 0.4, pz = nz * 0.8 + nx * e.dir * 0.4, pl = Math.hypot(px, pz) || 1;
+      enemyStep(e, dt, px / pl, pz / pl, sp * 1.1);
+      gunTick(e, dt, d);
+      break; }
     default:
       if (e.chg) { bossCharge(e, dt, d); break; }
       if (d > 0.01) enemyStep(e, dt, nx, nz, sp);
@@ -4665,7 +4711,7 @@ function netHud() {
 }
 
 /* ---------------- Flujo de partida ---------------- */
-var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop'];
+var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch'];
 function showOnly(id) { screens.forEach(function (s) { $(s).hidden = s !== id; }); }
 function plainLock() {
   try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -4882,6 +4928,7 @@ function startSurvival() {
   startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
 }
 function startStory(fresh) {
+  if (fresh) G.branch = null;
   initAudio(); startHum(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {};
@@ -4911,7 +4958,23 @@ function roundTalk() {
 }
 function phaseComplete() {
   G.state = 'dialog'; G.euros += 100; mouseDown = false; clearWorld();
-  showDialog(PHASES[G.phase].outro, function () { if (G.phase >= PHASES.length - 1) victory(); else openShop(); });
+  showDialog(PHASES[G.phase].outro, function () {
+    if (G.phase >= PHASES.length - 1) victory();
+    else if (G.phase === 1) askBranch(openShop);
+    else openShop();
+  });
+}
+/* Decisión de historia: la fase siguiente cambia de dificultad según lo que elijas */
+var pendingBranch = null;
+function askBranch(cb) {
+  G.state = 'branch'; mouseDown = false; pendingBranch = cb;
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('hud').hidden = true; showOnly('ovBranch');
+}
+function branchMul() { return G.mode !== 'story' || G.phase <= 1 || !G.branch ? 1 : (G.branch === 'hard' ? 1.25 : 0.85); }
+function pickBranch(b) {
+  G.branch = b; if (b === 'hard') G.euros += 50;
+  var cb = pendingBranch; pendingBranch = null; showOnly(''); if (cb) cb();
 }
 function victory() {
   G.state = 'win'; clearSave(); if (G.score > best) { best = G.score; try { localStorage.setItem('nini-best', String(best)); } catch (e) {} }
@@ -5238,6 +5301,8 @@ function setSens(v) { CTRL.sens = clamp(v | 0, 1, 100); syncCtrl(); }
   $('fov' + n).addEventListener('input', function (e) { CTRL.fov = clamp(parseInt(e.target.value, 10) | 0, 55, 100); syncCtrl(); });
 });
 $('btnStory').addEventListener('click', function () { startStory(false); });
+$('btnBranchHard').addEventListener('click', function () { pickBranch('hard'); });
+$('btnBranchEasy').addEventListener('click', function () { pickBranch('easy'); });
 $('btnNew').addEventListener('click', function () { startStory(true); });
 $('btnSurv').addEventListener('click', zombiesMenu);
 $('btnAgain').addEventListener('click', retry);
