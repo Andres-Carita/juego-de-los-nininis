@@ -190,6 +190,8 @@ body {
 .shop-head img { width: 84px; height: 84px; object-fit: cover; object-position: top; background: #cfd3c8; flex: 0 0 auto; }
 .shop-head p { margin: 0; flex: 1; min-width: 0; font-size: 16px; }
 .eur { font-family: var(--disp); font-size: 40px; letter-spacing: .03em; color: var(--ink); background: var(--fluor); padding: 2px 14px; box-shadow: 3px 3px 0 var(--ink); font-variant-numeric: tabular-nums; }
+/* En pantallas estrechas la frase del gato baja a una fila propia; el importe queda a la derecha de la foto */
+@media (max-width: 560px) { .shop-head { flex-wrap: wrap; gap: 10px 14px; } .shop-head p { flex: 1 1 100%; order: 3; font-size: 15px; } .shop-head .eur { order: 2; margin-left: auto; font-size: 32px; } }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .item { border: 2px solid var(--ink); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; background: #f8f6ee; min-width: 0; }
 .iname { font-family: var(--disp); font-size: 20px; letter-spacing: .05em; line-height: 1.1; }
