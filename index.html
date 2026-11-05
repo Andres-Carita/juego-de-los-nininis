@@ -1567,7 +1567,7 @@ function makeNpc(key, x, z, baseY, h, minPhase, pedestal) {
 }
 
 /* ---------------- Cuerpos 3D de los personajes (estilo Mii) ---------------- */
-var AV_KEYS = ['aliado', 'andres', 'heverton', 'lefillas', 'bucle', 'nomina'];
+var AV_KEYS = ['aliado', 'andres', 'heverton'];
 var AV_STYLE = {
   aliado: { shirt: 0xf1efe6, pants: 0x2a3550, shoes: 0x1a1a1a },
   andres: { shirt: 0xf1efe6, pants: 0x1d1d22, shoes: 0x14181a, collar: 0x1d1d22 },
@@ -1580,42 +1580,26 @@ var SHAPES = {};
 try { SHAPES = JSON.parse(localStorage.getItem('nini-shapes') || '{}') || {}; } catch (e) { SHAPES = {}; }
 function shapeOf(key) { var sh = SHAPES[key]; return { h: sh && sh.h ? sh.h : 1, w: sh && sh.w ? sh.w : 1 }; }
 var AVATARS = [];
-/* Cabeza: solo la parte de arriba de la foto (cara y pelo) */
-function loadHeadCanvas(key, cb) {
-  var im = new Image();
-  im.onload = function () {
-    var w = im.naturalWidth || 300, hh = im.naturalHeight || 330, cut = Math.round(hh * 0.42);
-    var c = mkCanvas(w, cut); c.getContext('2d').drawImage(im, 0, 0, w, cut, 0, 0, w, cut);
-    cb(tex(c), w / cut);
-  };
-  im.src = CHARS[key].img;
-}
+/* Avatar: la foto entera, sin recortar, con piernas y zapatos debajo (la foto ya trae torso y brazos) */
 function makeAvatar(key) {
   var st = AV_STYLE[key] || AV_STYLE.aliado;
   var root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   function bx(w, h, d, c, x, y, z) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c })); m.position.set(x, y, z); body.add(m); return m; }
-  var skin = 0xc68a5e;
   bx(0.22, 0.8, 0.24, st.pants, -0.14, 0.4, 0); bx(0.22, 0.8, 0.24, st.pants, 0.14, 0.4, 0);
   bx(0.24, 0.1, 0.32, st.shoes, -0.14, 0.05, 0.04); bx(0.24, 0.1, 0.32, st.shoes, 0.14, 0.05, 0.04);
-  bx(0.72, 0.86, 0.38, st.shirt, 0, 1.23, 0);
-  bx(0.72, 0.06, 0.4, 0x2a2a2a, 0, 0.84, 0);
-  if (st.collar) bx(0.22, 0.5, 0.03, st.collar, 0, 1.2, 0.21);
-  bx(0.18, 0.72, 0.2, st.shirt, -0.46, 1.2, 0); bx(0.18, 0.72, 0.2, st.shirt, 0.46, 1.2, 0);
-  [-0.46, 0.46].forEach(function (x) { var hm = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), new THREE.MeshLambertMaterial({ color: skin })); hm.position.set(x, 0.78, 0); body.add(hm); });
-  bx(0.2, 0.14, 0.2, skin, 0, 1.72, 0);
   var head = new THREE.Group(); root.add(head);
   var av = { key: key, root: root, body: body, head: head, onApply: null };
   av.apply = function () {
     var sh = shapeOf(key);
     body.scale.set(sh.w, sh.h, sh.w);
-    head.position.set(0, 1.78 * sh.h, 0);
-    head.scale.set(0.85 + 0.15 * sh.w, 1, 1);
+    head.position.set(0, 0.8 * sh.h, 0);
+    head.scale.set(sh.w, sh.h, 1);
     if (av.onApply) av.onApply();
   };
-  loadHeadCanvas(key, function (t, aspect) {
-    var wd = 0.8, ht = wd / aspect;
-    var pl = new THREE.Mesh(new THREE.PlaneGeometry(wd, ht), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
-    pl.position.y = ht / 2 + 0.02; head.add(pl);
+  loadCharCanvas(key, function (t, aspect) {
+    var H = 1.3;
+    var pl = new THREE.Mesh(new THREE.PlaneGeometry(H * aspect, H), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
+    pl.position.y = H / 2; head.add(pl);
   });
   av.apply();
   AVATARS.push(av);
