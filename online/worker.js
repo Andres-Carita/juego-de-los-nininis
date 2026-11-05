@@ -8,6 +8,8 @@
 //   /fotos/ver     → galería privada; sus datos piden la clave PHOTOS_KEY
 //   /api/fotos     → POST envía una foto · GET lista (con clave)
 //   /api/fotos/<id> → GET descarga · DELETE borra (con clave)
+//   /api/fotos/terminos → GET términos vigentes (público)
+//   /api/fotos/<id>/documento → GET documento de consentimiento (con clave)
 // La clasificación y las salas usan Durable Objects (capa gratuita, sin KV que configurar).
 import { DurableObject } from 'cloudflare:workers';
 
@@ -145,6 +147,26 @@ export class NiniRoom extends DurableObject {
 
 /* Buzón de fotos privado. Enviar es abierto (con límites); ver, descargar y borrar exige PHOTOS_KEY.
    Sin la clave configurada, la parte privada queda cerrada. */
+const TERMS_VERSION = '1 (5 de noviembre de 2026)';
+const TERMS_TEXT = `TÉRMINOS DE USO DE TU IMAGEN · OPERACIÓN NINI
+
+1. Quién lo organiza. Operación Nini es un juego gratuito y sin ánimo de lucro, hecho por Heverton Marques y un grupo de amigos. El responsable de tus datos es Heverton Marques. Para cualquier petición, escríbele directamente por el mismo medio por el que recibiste este enlace.
+
+2. Qué autorizas. Autorizas a usar tu imagen y el nombre o apodo que indiques para crear un personaje del juego, tanto en el juego como en capturas, imágenes y vídeos que lo muestren o lo den a conocer. La autorización es gratuita y nadie recibirá dinero por ella. Si algún día se quisiera ganar dinero con el juego, se te pedirá un permiso nuevo.
+
+3. Qué podemos hacer con la foto. Recortarla, retocarla, animarla, ponerla sobre un cuerpo dibujado y dar al personaje un nombre inventado, un papel, habilidades y frases de humor.
+
+4. Qué no haremos. No la usaremos en contenido sexual ni para humillarte por tu origen, religión, físico, género u orientación. No la venderemos ni la usaremos para otros proyectos.
+
+5. Dónde estará. La foto enviada se guarda de forma privada en Cloudflare y solo la ven los organizadores. Si se usa en el juego, será pública: cualquiera podrá verla o copiarla, y las imágenes del juego también se guardan en un repositorio público de GitHub. Estos servicios pueden tratar datos fuera de la Unión Europea.
+
+6. Qué confirmas. Que eres la persona que aparece en la foto, que no aparece nadie más y que tienes 18 años o más.
+
+7. Cómo retirar el permiso. Puedes retirarlo cuando quieras, gratis y sin dar explicaciones. Quitaremos tu imagen del juego y borraremos tu foto lo antes posible, en un máximo de 30 días. Esto no afecta al uso anterior a tu petición, y no podemos borrar las copias que otras personas hayan hecho.
+
+8. Tus derechos. La base para usar tus datos es tu consentimiento. Puedes pedir acceso, corrección, borrado, limitación u oposición, y la portabilidad de tus datos. También puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).
+
+9. Qué guardamos como prueba. Guardamos tu nombre y apellidos, tu apodo, la fecha y hora, la versión de estos términos y una huella de la foto, para poder demostrar que diste tu permiso. Este documento no incluye tu dirección IP. Lo conservaremos hasta 3 años después de borrar la foto. Si tu foto no se usa, la borraremos cuando ya no haga falta.`;
 const PHOTO_MAX_BYTES = 1800000; // una fila de SQLite admite 2 MB
 const PHOTO_MAX_COUNT = 300;
 const PHOTO_MAX_PER_HOUR = 20;
@@ -170,6 +192,30 @@ async function sameKey(a, b) {
   return diff === 0;
 }
 
+function consentDocument(c) {
+  const lines = [
+    'DOCUMENTO DE CONSENTIMIENTO · OPERACIÓN NINI',
+    '',
+    'Referencia: ' + c.id,
+    'Fecha y hora (UTC): ' + new Date(c.accepted_at).toISOString(),
+    'Nombre y apellidos: ' + c.full_name,
+    'Apodo: ' + (c.nickname || '(ninguno)'),
+    'Versión de los términos: ' + c.terms_version,
+    'Huella SHA-256 de la foto: ' + c.photo_sha256,
+    '',
+    'La persona indicada escribió su nombre, marcó estas casillas y pulsó ENVIAR FOTO:',
+    '[x] Soy la persona que aparece en la foto, no aparece nadie más y tengo 18 años o más.',
+    '[x] He leído los términos y autorizo el uso de mi imagen en las condiciones indicadas.',
+  ];
+  if (c.deleted_at) lines.push('', 'Foto borrada el (UTC): ' + new Date(c.deleted_at).toISOString());
+  lines.push('', '------------------------------------------------------------', '', c.terms_text, '');
+  return lines.join('\n');
+}
+async function sha256Hex(bytes) {
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export class NiniPhotos extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
@@ -177,6 +223,10 @@ export class NiniPhotos extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS photos (
       id TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL, mime TEXT NOT NULL,
       size INTEGER NOT NULL, created INTEGER NOT NULL, data BLOB NOT NULL)`);
+    // El documento se conserva aunque se borre la foto: es la prueba del permiso
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS consents (
+      id TEXT PRIMARY KEY, full_name TEXT NOT NULL, nickname TEXT NOT NULL, terms_version TEXT NOT NULL,
+      terms_text TEXT NOT NULL, photo_sha256 TEXT NOT NULL, accepted_at INTEGER NOT NULL, deleted_at INTEGER)`);
     this.hits = new Map(); // solo en memoria: no se guarda ninguna IP
   }
   async authorized(request) {
@@ -204,30 +254,51 @@ export class NiniPhotos extends DurableObject {
     if (count >= PHOTO_MAX_COUNT) return photoJson({ error: 'full' }, 507);
     let form;
     try { form = await request.formData(); } catch (e) { return photoJson({ error: 'form' }, 400); }
-    const name = cleanText(form.get('name'), 30);
+    const fullName = cleanText(form.get('fullname'), 80);
+    const nickname = cleanText(form.get('name'), 30);
     const note = cleanText(form.get('note'), 200);
     const file = form.get('photo');
-    if (!name) return photoJson({ error: 'name' }, 400);
-    if (form.get('consent') !== 'yes') return photoJson({ error: 'consent' }, 400);
+    if (fullName.split(' ').length < 2) return photoJson({ error: 'fullname' }, 400);
+    if (form.get('terms') !== TERMS_VERSION) return photoJson({ error: 'terms_changed' }, 409);
+    if (form.get('identity') !== 'yes' || form.get('consent') !== 'yes') return photoJson({ error: 'consent' }, 400);
     if (!file || typeof file === 'string') return photoJson({ error: 'photo' }, 400);
     if (file.size > PHOTO_MAX_BYTES) return photoJson({ error: 'too_big' }, 413);
     const bytes = new Uint8Array(await file.arrayBuffer());
     const mime = photoType(bytes);
     if (!mime) return photoJson({ error: 'type' }, 415);
     const id = crypto.randomUUID().replace(/-/g, '');
+    const now = Date.now();
+    const consent = {
+      id, full_name: fullName, nickname, terms_version: TERMS_VERSION, terms_text: TERMS_TEXT,
+      photo_sha256: await sha256Hex(bytes), accepted_at: now, deleted_at: null,
+    };
+    // Sin await entre los dos INSERT: se guardan juntos o no se guarda ninguno
     this.sql.exec('INSERT INTO photos (id, name, note, mime, size, created, data) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      id, name, note, mime, bytes.length, Date.now(), bytes.buffer);
-    return photoJson({ ok: true }, 201);
+      id, nickname || fullName, note, mime, bytes.length, now, bytes.buffer);
+    this.sql.exec('INSERT INTO consents (id, full_name, nickname, terms_version, terms_text, photo_sha256, accepted_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      consent.id, consent.full_name, consent.nickname, consent.terms_version, consent.terms_text, consent.photo_sha256, consent.accepted_at);
+    return photoJson({ ok: true, document: consentDocument(consent) }, 201);
   }
   async fetch(request) {
     const url = new URL(request.url);
     const one = url.pathname.match(/^\/api\/fotos\/([a-f0-9]{32})$/);
+    const doc = url.pathname.match(/^\/api\/fotos\/([a-f0-9]{32})\/documento$/);
+    if (url.pathname === '/api/fotos/terminos' && request.method === 'GET') {
+      return photoJson({ version: TERMS_VERSION, text: TERMS_TEXT });
+    }
     if (url.pathname === '/api/fotos' && request.method === 'POST') return this.upload(request, url);
     if (!this.env.PHOTOS_KEY) return photoJson({ error: 'not_configured' }, 503);
     if (!(await this.authorized(request))) return photoJson({ error: 'unauthorized' }, 401);
     if (url.pathname === '/api/fotos' && request.method === 'GET') {
-      const photos = this.sql.exec('SELECT id, name, note, mime, size, created FROM photos ORDER BY created DESC').toArray();
-      return photoJson({ photos, max: PHOTO_MAX_COUNT });
+      const photos = this.sql.exec(`SELECT p.id, p.name, p.note, p.mime, p.size, p.created, c.full_name, c.terms_version
+        FROM photos p LEFT JOIN consents c ON c.id = p.id ORDER BY p.created DESC`).toArray();
+      const removed = this.sql.exec('SELECT id, full_name, nickname, accepted_at, deleted_at FROM consents WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').toArray();
+      return photoJson({ photos, removed, max: PHOTO_MAX_COUNT });
+    }
+    if (doc && request.method === 'GET') {
+      const rows = this.sql.exec('SELECT * FROM consents WHERE id = ?', doc[1]).toArray();
+      if (!rows.length) return photoJson({ error: 'not_found' }, 404);
+      return new Response(consentDocument(rows[0]), { headers: { ...PHOTO_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' } });
     }
     if (one && request.method === 'GET') {
       const rows = this.sql.exec('SELECT mime, data FROM photos WHERE id = ?', one[1]).toArray();
@@ -236,6 +307,7 @@ export class NiniPhotos extends DurableObject {
     }
     if (one && request.method === 'DELETE') {
       this.sql.exec('DELETE FROM photos WHERE id = ?', one[1]);
+      this.sql.exec('UPDATE consents SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL', Date.now(), one[1]);
       return photoJson({ ok: true });
     }
     return photoJson({ error: 'not_found' }, 404);

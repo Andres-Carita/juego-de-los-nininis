@@ -24,6 +24,10 @@ textarea { min-height: 72px; resize: vertical; }
 .pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .pick b { font-family: var(--disp); font-weight: 400; font-size: 22px; letter-spacing: .05em; }
 #preview { display: block; max-width: 100%; max-height: 300px; margin: 0 auto 8px; border: 2px solid var(--ink); }
+.terms { max-height: 240px; overflow-y: auto; white-space: pre-line; background: #fff; border: 2px solid var(--ink); padding: 12px; margin: 0 0 14px; font-size: 13px; line-height: 1.45; }
+.terms:focus { outline: 3px solid var(--stamp); outline-offset: 2px; }
+h2 { font-family: var(--disp); font-weight: 400; font-size: 24px; letter-spacing: .03em; margin: 0 0 8px; }
+#copy { margin-top: 10px; font-size: 18px; background: var(--paper); color: var(--ink); box-shadow: none; padding: 8px; }
 ul.tips { margin: 0 0 18px; padding-left: 20px; font-size: 14px; line-height: 1.5; }
 .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; margin-bottom: 18px; }
 .consent input { width: 20px; height: 20px; flex: none; margin: 0; accent-color: var(--stamp); }
@@ -43,8 +47,13 @@ button:disabled { opacity: .55; cursor: default; }
 
   <form id="form" novalidate>
     <label class="field">
-      <span>Tu nombre o apodo</span>
-      <input type="text" id="name" maxlength="30" autocomplete="nickname" required>
+      <span>Tu nombre y apellidos (solo para el documento de permiso)</span>
+      <input type="text" id="fullname" maxlength="80" autocomplete="name" required>
+    </label>
+
+    <label class="field">
+      <span>Apodo para tu personaje (opcional)</span>
+      <input type="text" id="name" maxlength="30" autocomplete="nickname">
     </label>
 
     <img id="preview" alt="Vista previa de tu foto" hidden>
@@ -63,16 +72,24 @@ button:disabled { opacity: .55; cursor: default; }
       <textarea id="note" maxlength="200"></textarea>
     </label>
 
+    <h2>Términos de uso de tu imagen</h2>
+    <div class="terms" id="terms" tabindex="0" role="region" aria-label="Términos de uso de tu imagen">Cargando los términos…</div>
+
+    <label class="consent">
+      <input type="checkbox" id="identity">
+      <span>Soy la persona que aparece en la foto, no aparece nadie más y tengo 18 años o más.</span>
+    </label>
     <label class="consent">
       <input type="checkbox" id="consent">
-      <span>Esta foto es mía o tengo permiso, y acepto que se use en el juego, que es público. Si cambio de idea, puedo pedir que la quiten.</span>
+      <span>He leído los términos y autorizo el uso de mi imagen en esas condiciones. Sé que puedo retirar mi permiso cuando quiera.</span>
     </label>
 
     <button type="submit" id="send">ENVIAR FOTO</button>
     <p id="msg" role="status" aria-live="polite"></p>
+    <button type="button" id="copy" hidden>DESCARGAR MI COPIA DEL DOCUMENTO</button>
   </form>
 
-  <p class="small">Solo los organizadores pueden ver las fotos enviadas. Antes de enviarla, la imagen se reduce y se le quitan los datos ocultos, como la ubicación.</p>
+  <p class="small">Antes de enviarla, la imagen se reduce y se le quitan los datos ocultos, como la ubicación.</p>
 </main>
 
 <script>
@@ -80,9 +97,24 @@ button:disabled { opacity: .55; cursor: default; }
   'use strict';
   var MAX_SIDE = 1600, MIN_SIDE = 300, MAX_BYTES = 1700000;
   var $ = function (id) { return document.getElementById(id); };
-  var photo = null, busy = false;
+  var photo = null, busy = false, termsVersion = '', copyUrl = '';
 
   function say(text, kind) { $('msg').textContent = text; $('msg').className = kind || ''; }
+
+  async function loadTerms() {
+    $('send').disabled = true;
+    try {
+      var res = await fetch('/api/fotos/terminos');
+      if (!res.ok) throw new Error('terms');
+      var t = await res.json();
+      termsVersion = t.version;
+      $('terms').textContent = t.text + '\n\nVersión ' + t.version;
+      $('send').disabled = false;
+    } catch (e) {
+      $('terms').textContent = 'No se pudieron cargar los términos. Recarga la página para poder enviar tu foto.';
+    }
+  }
+  loadTerms();
 
   function toBlob(canvas, quality) {
     return new Promise(function (ok) { canvas.toBlob(ok, 'image/jpeg', quality); });
@@ -142,18 +174,30 @@ button:disabled { opacity: .55; cursor: default; }
     too_many: 'Has enviado muchas fotos seguidas. Inténtalo dentro de una hora.',
     full: 'El buzón de fotos está lleno. Avisa a Heverton.',
     type: 'Ese archivo no es una foto válida.',
+    terms_changed: 'Los términos han cambiado. Recarga la página y léelos de nuevo.',
   };
+
+  $('copy').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = copyUrl;
+    a.download = 'consentimiento-operacion-nini.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
 
   $('form').addEventListener('submit', async function (ev) {
     ev.preventDefault();
     if (busy) return;
-    var name = $('name').value.trim();
-    if (!name) { say('Escribe tu nombre o apodo.', 'err'); $('name').focus(); return; }
+    var fullName = $('fullname').value.trim(), name = $('name').value.trim();
+    if (fullName.split(/\s+/).length < 2) { say('Escribe tu nombre y al menos un apellido.', 'err'); $('fullname').focus(); return; }
     if (!photo) { say('Elige una foto.', 'err'); $('file').focus(); return; }
+    if (!$('identity').checked) { say('Marca la casilla que confirma que eres tú y tienes 18 años o más.', 'err'); $('identity').focus(); return; }
     if (!$('consent').checked) { say('Marca la casilla de permiso para poder enviarla.', 'err'); $('consent').focus(); return; }
 
     var data = new FormData();
+    data.append('fullname', fullName);
     data.append('name', name);
+    data.append('terms', termsVersion);
+    data.append('identity', 'yes');
     data.append('note', $('note').value.trim());
     data.append('consent', 'yes');
     data.append('photo', photo, 'foto.jpg');
@@ -162,7 +206,11 @@ button:disabled { opacity: .55; cursor: default; }
     try {
       var res = await fetch('/api/fotos', { method: 'POST', body: data });
       if (res.status === 201) {
-        say('¡Recibida! Gracias, ' + name + '.', 'good');
+        var done = await res.json();
+        if (copyUrl) URL.revokeObjectURL(copyUrl);
+        copyUrl = URL.createObjectURL(new Blob([done.document], { type: 'text/plain;charset=utf-8' }));
+        $('copy').hidden = false;
+        say('¡Recibida! Gracias, ' + (name || fullName) + '. Tu permiso ha quedado guardado.', 'good');
         photo = null;
         $('form').reset();
         $('preview').hidden = true;

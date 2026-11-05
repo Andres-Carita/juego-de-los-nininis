@@ -31,7 +31,13 @@ button:disabled { opacity: .55; cursor: default; }
 .info small { font-size: 12px; }
 .info p { margin: 2px 0; font-size: 14px; line-height: 1.35; }
 .acts { display: flex; gap: 8px; padding: 0 10px 10px; }
-.acts button { flex: 1; }
+.acts { flex-wrap: wrap; }
+.acts button { flex: 1 1 40%; }
+.acts button.doc { flex-basis: 100%; }
+.warn { color: #b3201a; font-size: 13px; }
+h2 { font-family: var(--disp); font-weight: 400; font-size: 26px; letter-spacing: .03em; margin: 32px 0 10px; }
+.removed { list-style: none; padding: 0; margin: 0; }
+.removed li { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid #3a4440; overflow-wrap: anywhere; }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -51,6 +57,10 @@ button:disabled { opacity: .55; cursor: default; }
   </div>
   <p id="msg" role="status" aria-live="polite"></p>
   <div class="grid" id="grid"></div>
+  <div id="removedBox" hidden>
+    <h2>Documentos de fotos borradas</h2>
+    <ul class="removed" id="removed"></ul>
+  </div>
 </div>
 
 <script>
@@ -67,7 +77,7 @@ button:disabled { opacity: .55; cursor: default; }
     return fetch(path, o);
   }
   function safeName(p) {
-    return (p.name.normalize('NFD').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'foto') + '-' + p.id.slice(0, 6) + (p.mime === 'image/png' ? '.png' : p.mime === 'image/webp' ? '.webp' : '.jpg');
+    return (p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'foto') + '-' + p.id.slice(0, 6) + (p.mime === 'image/png' ? '.png' : p.mime === 'image/webp' ? '.webp' : '.jpg');
   }
   async function blobUrl(p) {
     if (urls[p.id]) return urls[p.id];
@@ -89,10 +99,32 @@ button:disabled { opacity: .55; cursor: default; }
     urls = {}; photos = [];
     if (watcher) watcher.disconnect();
     $('grid').textContent = '';
+    $('removed').textContent = '';
+    $('removedBox').hidden = true;
     $('bar').hidden = true;
     $('login').hidden = false;
     $('key').value = '';
     say(text || '');
+  }
+  async function saveDocument(id, label) {
+    var res = await call('/api/fotos/' + id + '/documento');
+    if (!res.ok) throw new Error('document');
+    var url = URL.createObjectURL(await res.blob());
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'consentimiento-' + label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + id.slice(0, 6) + '.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+  function addRemoved(id, label, when) {
+    var li = document.createElement('li');
+    var text = document.createElement('span');
+    text.textContent = label + ' · foto borrada el ' + new Date(when).toLocaleString('es-ES');
+    var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'DOCUMENTO';
+    btn.addEventListener('click', function () { saveDocument(id, label).catch(function () { say('No se pudo descargar el documento.'); }); });
+    li.appendChild(text); li.appendChild(btn);
+    $('removed').appendChild(li);
+    $('removedBox').hidden = false;
   }
   function updateCount() {
     $('count').textContent = photos.length + (photos.length === 1 ? ' foto' : ' fotos');
@@ -107,22 +139,33 @@ button:disabled { opacity: .55; cursor: default; }
     var when = document.createElement('small');
     when.textContent = new Date(p.created).toLocaleString('es-ES') + ' · ' + Math.round(p.size / 1024) + ' KB';
     info.appendChild(when);
+    if (p.full_name) {
+      var who = document.createElement('small'); who.textContent = p.full_name + ' · términos v' + p.terms_version; info.appendChild(who);
+    } else {
+      var warn = document.createElement('small'); warn.className = 'warn'; warn.textContent = 'Sin documento: enviada antes de los términos. No la uses sin pedirle permiso.'; info.appendChild(warn);
+    }
     if (p.note) { var note = document.createElement('p'); note.textContent = p.note; info.appendChild(note); }
     el.appendChild(info);
     var acts = document.createElement('div'); acts.className = 'acts';
     var get = document.createElement('button'); get.type = 'button'; get.textContent = 'DESCARGAR';
     get.addEventListener('click', function () { download(p).catch(function () { say('No se pudo descargar la foto de ' + p.name + '.'); }); });
+    var doc = null;
+    if (p.full_name) {
+      doc = document.createElement('button'); doc.type = 'button'; doc.className = 'doc'; doc.textContent = 'DOCUMENTO DE PERMISO';
+      doc.addEventListener('click', function () { saveDocument(p.id, p.full_name).catch(function () { say('No se pudo descargar el documento.'); }); });
+    }
     var del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = 'BORRAR';
     del.addEventListener('click', async function () {
-      if (!confirm('¿Borrar para siempre la foto de ' + p.name + '?')) return;
+      if (!confirm('¿Borrar para siempre la foto de ' + p.name + '? El documento de permiso se conservará.')) return;
       var res = await call('/api/fotos/' + p.id, { method: 'DELETE' }).catch(function () { return null; });
       if (!res || !res.ok) { say('No se pudo borrar la foto.'); return; }
       if (urls[p.id]) { URL.revokeObjectURL(urls[p.id]); delete urls[p.id]; }
       photos = photos.filter(function (x) { return x.id !== p.id; });
       el.remove();
+      if (p.full_name) addRemoved(p.id, p.full_name, Date.now());
       updateCount();
     });
-    acts.appendChild(get); acts.appendChild(del); el.appendChild(acts);
+    acts.appendChild(get); acts.appendChild(del); if (doc) acts.appendChild(doc); el.appendChild(acts);
     return el;
   }
   async function open() {
@@ -152,6 +195,7 @@ button:disabled { opacity: .55; cursor: default; }
         }).catch(function () { pic.textContent = 'No se pudo cargar'; });
       });
     }, { rootMargin: '300px' });
+    data.removed.forEach(function (r) { addRemoved(r.id, r.full_name, r.deleted_at); });
     photos.forEach(function (p) {
       var el = card(p);
       $('grid').appendChild(el);
