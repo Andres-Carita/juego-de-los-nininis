@@ -137,8 +137,9 @@ body {
 .insp .c { position: absolute; width: 40px; height: 40px; border: 0 solid var(--rc); }
 .insp .c.tl { left: 12px; top: 12px; border-left-width: 4px; border-top-width: 4px; }
 .insp .c.tr { right: 12px; top: 12px; border-right-width: 4px; border-top-width: 4px; }
-.insp .c.bl { left: 12px; bottom: 12px; border-left-width: 4px; border-bottom-width: 4px; }
-.insp .c.br { right: 12px; bottom: 12px; border-right-width: 4px; border-bottom-width: 4px; }
+/* Las esquinas inferiores se llaman lb y rb (no bl y br): en móvil el HUD inferior usa bl y br y las desplazaría */
+.insp .c.lb { left: 12px; bottom: 12px; border-left-width: 4px; border-bottom-width: 4px; }
+.insp .c.rb { right: 12px; bottom: 12px; border-right-width: 4px; border-bottom-width: 4px; }
 .insp-t { position: absolute; left: 50%; top: 88px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 200px; padding: 6px 14px 9px; background: rgba(10,16,14,.8); border-left: 4px solid var(--rc); white-space: nowrap; }
 .insp-t .lab { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--paper-2); }
 .insp-t b { font-family: var(--disp); font-weight: 400; font-size: 24px; line-height: 1; letter-spacing: .04em; text-transform: uppercase; color: var(--paper); }
@@ -493,7 +494,7 @@ body {
     <div class="banner" id="banner"><h2 id="bnT"></h2><p id="bnS"></p></div>
     <div class="toast" id="toast"></div>
     <div class="insp" id="insp" hidden>
-      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+      <span class="c tl"></span><span class="c tr"></span><span class="c lb"></span><span class="c rb"></span>
       <div class="insp-t"><span class="lab">Inspección</span><b id="inspName"></b><span class="rar" id="inspRar"></span><small>I o disparar para cerrar</small><span class="insp-bar"><i id="inspBar"></i></span></div>
     </div>
   </div>
@@ -1170,7 +1171,7 @@ var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0,
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
 /* Movimiento del arma: balanceo suavizado (bob), subida tras cambiar de arma (raise) y arma anterior bajando (holster). Inspección (INS) */
 var WM = { bob: { x: 0, y: 0, r: 0, p: 0 }, raise: 0, holster: null };
-var INS = { on: false, k: 0, t: 0, dur: 6 };
+var INS = { on: false, k: 0, t: 0, dur: 6, yaw: 0 }, TAU = Math.PI * 2;
 /* Punto al que apuntan los enemigos: Bilalzinho, o el señuelo de Heverton cuando está activo */
 var AIM = P;
 var keys = {}, mouseDown = false, locked = false, lockFailed = false, lockErrors = 0, muted = false;
@@ -3050,7 +3051,8 @@ function selectGun(k) {
   if (WM.holster) { WM.holster.g.visible = false; WM.holster = null; }
   for (var gk in guns) if (guns[gk] !== prev && guns[gk] !== next) guns[gk].visible = false;
   /* Cambio con transición: el arma anterior baja (si se estaba jugando) y la nueva sube desde abajo */
-  if (prev && prev !== next) { if (G.state === 'playing' && prev.visible) WM.holster = { g: prev, t: 0 }; else prev.visible = false; }
+  /* El arma anterior sale desde la pose que tenía (si se inspeccionaba o se recargaba, desde ahí; el giro se lleva a su vuelta más corta) */
+  if (prev && prev !== next) { if (G.state === 'playing' && prev.visible) WM.holster = { g: prev, t: 0, p: [prev.position.x, prev.position.y, prev.position.z], r: [prev.rotation.x, prev.rotation.y - TAU * Math.round(prev.rotation.y / TAU), prev.rotation.z] }; else prev.visible = false; }
   WM.raise = G.state === 'playing' ? 1 : 0;
   clearFlash(); G.reload = 0;
   G.wcur = k; var g = next; g.visible = (G.state !== 'menu');
@@ -3914,11 +3916,12 @@ function updateProj(dt) {
   }
 }
 function shoot() {
-  endInspect();
   var w = WEX[G.wcur];
   if (G.reload > 0 || G.fireCd > 0 || P.down) return;
-  if (w.type === 'melee') { punch(w); return; }
+  /* Solo un golpe o un disparo real cierra la inspección; un clic bloqueado por la cadencia o la recarga no */
+  if (w.type === 'melee') { endInspect(); punch(w); return; }
   if (G.ammoMap[G.wcur] <= 0) { emptyClick(); return; }
+  endInspect();
   G.ammoMap[G.wcur]--; G.fireCd = w.rate * (G.rapid > 0 ? 0.5 : 1) * (G.perks.cadencia ? 0.8 : 1); G.recoil = 1; G.flash = 0.05; sfx[w.sfx]();
   camera.updateMatrixWorld(true);
   camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
@@ -5765,6 +5768,8 @@ function endInspect(instant) {
   if (instant) INS.k = 0;
   if (!INS.on) return;
   INS.on = false; $('insp').hidden = true;
+  /* Al terminar, el giro acumulado se lleva a su vuelta completa más cercana: la pose vuelve a la normal por el camino corto */
+  INS.yaw -= TAU * Math.round(INS.yaw / TAU);
 }
 function toggleInspect() { if (INS.on) endInspect(); else startInspect(); }
 function ease(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
@@ -5796,23 +5801,24 @@ function updateWeapon(dt) {
   var jit = (G.wcur === 'trituradora' || G.wcur === 'taladro') && G.fireCd > 0 ? Math.sin(G.t * 60) * 0.006 : 0;
   /* Inspección: INS.k va de 0 (pose normal) a 1 (en el centro, girando) */
   INS.k += ((INS.on ? 1 : 0) - INS.k) * (1 - Math.exp(-dt * (INS.on ? 8 : 12)));
-  if (INS.on) { INS.t += dt; if (INS.t >= INS.dur) endInspect(); }
+  if (INS.on) { INS.t += dt; INS.yaw += dt * 0.9; if (INS.t >= INS.dur) endInspect(); }
   /* En pantalla vertical el campo de visión es estrecho: el arma se acerca al centro para no salirse del encuadre */
   var lat = clamp(camera.aspect, 0.42, 1);
   var nx = b[0] * lat + bb.x - swx * 0.12 + jit, ny = b[1] + bb.y + swy * 0.08 - 0.22 * low - 0.28 * raise + tap * 0.012 * low;
   var nz = b[2] + G.recoil * 0.07 * kk - pk * 0.22 + 0.05 * low;
   var nrx = G.recoil * 0.12 * kk - 0.75 * low - 0.6 * raise - pk * 0.7 + swy * 0.5 + bb.p + tap * 0.06 * low, nry = 0.04 + swx * 0.6, nrz = 0.35 * low + 0.3 * raise + swx * 0.4 + bb.r;
   /* Presentación: centro de la pantalla, girando sobre sí mismo */
-  var s = ease(INS.k), irx = -0.12 + Math.sin(INS.t * 0.7) * 0.08, iry = INS.t * 0.9, iz = -0.62 * g.scale.x / 0.8;
+  var s = ease(INS.k), irx = -0.12 + Math.sin(INS.t * 0.7) * 0.08, iry = INS.yaw, iz = -0.62 * g.scale.x / 0.8;
   g.position.set(nx + (0 - nx) * s, ny + (0 - ny) * s, nz + (iz - nz) * s);
   g.rotation.set(nrx + (irx - nrx) * s, nry + (iry - nry) * s, nrz + (0.05 - nrz) * s);
   if (INS.on) $('inspBar').style.transform = 'scaleX(' + (1 - INS.t / INS.dur).toFixed(3) + ')';
   /* Arma anterior: baja fuera de la vista en 0,12 s y se oculta */
   if (WM.holster) {
-    var hg = WM.holster.g, hb = hg.userData.base, hh = ease(WM.holster.t / 0.12);
-    WM.holster.t += dt;
-    hg.position.set(hb[0] * lat, hb[1] - 0.3 * hh, hb[2]); hg.rotation.set(-0.8 * hh, 0.04, 0.3 * hh);
-    if (WM.holster.t >= 0.12) { hg.visible = false; WM.holster = null; }
+    var hv = WM.holster, hg = hv.g, hb = hg.userData.base, hh = ease(hv.t / 0.12);
+    hv.t += dt;
+    hg.position.set(hv.p[0] + (hb[0] * lat - hv.p[0]) * hh, hv.p[1] + (hb[1] - 0.3 - hv.p[1]) * hh, hv.p[2] + (hb[2] - hv.p[2]) * hh);
+    hg.rotation.set(hv.r[0] + (-0.8 - hv.r[0]) * hh, hv.r[1] + (0.04 - hv.r[1]) * hh, hv.r[2] + (0.3 - hv.r[2]) * hh);
+    if (hv.t >= 0.12) { hg.visible = false; WM.holster = null; }
   }
   if (g.userData.bit) g.userData.bit.rotation.z += dt * (mouseDown && G.wcur === 'taladro' ? 45 : 6);
   if (guns.bao && guns.bao.userData.head) guns.bao.userData.head.rotation.x = -G.recoil * 0.45 + (G.reload > 0 ? Math.sin(G.t * 12) * 0.08 : 0);
@@ -5895,7 +5901,7 @@ function update(dt) {
   followRig(); updateLights(G.t, dt);
   cellT -= dt; if (cellT <= 0) { cellT = 0.3; updateCells(false); }
   if (G.state !== 'playing') clearFlash();
-  if (INS.on && (G.state !== 'playing' || (G.online && NG.menu))) endInspect(true);
+  if (INS.on && (G.state !== 'playing' || P.down || (G.online && NG.menu))) endInspect(true);
   if (WM.holster && G.state !== 'playing') { WM.holster.g.visible = false; WM.holster = null; }
   if (G.state === 'menu') { P.yaw += dt * 0.12; P.pitch = -0.03; P.yawT = P.yaw; P.pitchT = P.pitch; applyCamera(); return; }
   if (G.state === 'paused' || G.state === 'dialog' || G.state === 'shop' || G.state === 'win') return;
