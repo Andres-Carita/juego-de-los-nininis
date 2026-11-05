@@ -223,7 +223,11 @@ body {
 /* En pantallas estrechas la frase del gato baja a una fila propia; el importe queda a la derecha de la foto */
 @media (max-width: 560px) { .shop-head { flex-wrap: wrap; gap: 10px 14px; } .shop-head p { flex: 1 1 100%; order: 3; font-size: 15px; } .shop-head .eur { order: 2; margin-left: auto; font-size: 32px; } }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+/* Con 34 armas en la tienda, en móvil la lista de armas tiene su propio desplazamiento: las mejoras quedan a la vista debajo */
+@media (max-width: 760px) { #shopW { max-height: 44vh; overflow-y: auto; overscroll-behavior: contain; padding: 2px 6px 6px 2px; } }
 .item { border: 2px solid var(--ink); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; background: #f8f6ee; min-width: 0; }
+.ihead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.icat { font-family: var(--disp); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #4b5552; }
 .iname { font-family: var(--disp); font-size: 20px; letter-spacing: .05em; line-height: 1.1; }
 .idesc { font-size: 13px; line-height: 1.35; flex: 1; }
 .pips { font-size: 14px; letter-spacing: .2em; color: var(--stamp); }
@@ -748,12 +752,12 @@ var BOX_SPOTS = [
 ];
 /* Armas que salen en cada mapa (Zombies). La grapadora está en todos */
 var WEAPON_MAP = {
-  0: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos'],
-  1: ['grapadora', 'trituradora', 'pizza', 'taladro', 'sopladora'],
-  2: ['grapadora', 'leche', 'bao', 'sopladora'],
-  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos'],
-  4: ['grapadora', 'leche', 'bao', 'sopladora'],
-  5: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos']
+  0: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos', 'bazuca', 'grapaoro', 'subfusil', 'impresora', 'fregona', 'ventilador', 'nominas', 'powerpoint', 'pegatinas', 'chinchetas', 'mando', 'corrector', 'boligrafo'],
+  1: ['grapadora', 'trituradora', 'pizza', 'taladro', 'sopladora', 'bazuca', 'escopeta', 'aspiradora', 'desbrozadora', 'ballesta', 'garrafa', 'tirachinas', 'revolver'],
+  2: ['grapadora', 'leche', 'bao', 'sopladora', 'subfusil', 'tildes', 'silicona', 'megafono', 'snake', 'mando', 'calcu', 'boligrafo'],
+  3: ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos', 'escopeta', 'ventilador', 'cafetera', 'megafono', 'desbrozadora', 'nominas', 'garrafa', 'chinchetas', 'tirachinas'],
+  4: ['grapadora', 'leche', 'bao', 'sopladora', 'escopeta', 'ballesta', 'cafetera', 'microondas', 'fregona', 'revolver', 'pegatinas', 'corrector', 'mando', 'garrafa'],
+  5: ['grapadora', 'leche', 'trituradora', 'pizza', 'taladro', 'sellos', 'cafetera', 'microondas', 'fregona', 'ventilador', 'garrafa', 'corrector', 'pegatinas', 'calcu']
 };
 function weaponAllowed(k) { return k === 'punos' || G.mode !== 'survival' || (WEAPON_MAP[curLoc] || []).indexOf(k) >= 0; }
 function buildLoc(loc) {
@@ -834,7 +838,7 @@ function loadZombieMap(round) {
   var loc = ZOMBIE_ORDER[Math.floor((round - 1) / 8) % ZOMBIE_ORDER.length];
   loadLoc(loc, ZOMBIE_HALF);
   buildPerks(); buildBox(); setPerkVis(true);
-  moveBoxTo(0); placeBarri();
+  placeBoxes(); placeBarri();
   curEv = pick(MAP_EVENT[loc]); evCount = curEv.cnt; evSpeed = curEv.spd; evDrop = curEv.drop;
   if (!weaponAllowed(G.wcur)) selectGun('grapadora');
 }
@@ -897,11 +901,40 @@ function updateBarri(dt) {
     return;
   }
 }
-function moveBoxTo(i) {
-  var sp = BOX_SPOTS[curLoc]; boxSpot = i;
-  var o = resolve(sp[i][0], sp[i][1], 1.2); boxG.position.set(o.x, 0, o.z); boxG.visible = true;
+/* Las dos cajas del mapa: cada una tiene su punto de BOX_SPOTS. Al empezar, la de principales en el 0 y la de secundarias en el 1 */
+function placeBoxes() { moveBoxTo('principal', 0); moveBoxTo('secundaria', 1); }
+function moveBoxTo(kind, i) {
+  var sp = BOX_SPOTS[curLoc], b = BOXES[kind]; b.spot = i;
+  var o = resolve(sp[i][0], sp[i][1], 1.2); b.g.position.set(o.x, 0, o.z); b.g.visible = true;
 }
-var boxSpot = 0;
+/* Punto nuevo tras comprar: ni el suyo ni el de la otra caja (si el mapa no da para tanto, cualquiera distinto del suyo) */
+function nextBoxSpot(kind) {
+  var n = BOX_SPOTS[curLoc].length, cur = BOXES[kind].spot, other = BOXES[kind === 'principal' ? 'secundaria' : 'principal'].spot, opts = [], i;
+  for (i = 0; i < n; i++) if (i !== cur && i !== other) opts.push(i);
+  if (!opts.length) for (i = 0; i < n; i++) if (i !== cur) opts.push(i);
+  return opts.length ? pick(opts) : cur;
+}
+/* Caja más cercana al jugador, dentro de alcance (2,4 m), o null */
+function nearBox() {
+  var best = null, bd = 2.4;
+  BOXK.forEach(function (k) {
+    var b = BOXES[k]; if (!b || !b.g.visible) return;
+    var d = Math.hypot(P.x - b.g.position.x, P.z - b.g.position.z); if (d <= bd) { bd = d; best = k; }
+  });
+  return best;
+}
+/* Tirada de una caja: primero la rareza (pool de RARITY_STATS, el mismo para las dos cajas) y luego un arma de su categoría
+   que sale en el mapa. No repite el arma en mano; si no hay otra, sale la que ya tiene. */
+function boxRoll(cat, cur) {
+  var all = WORDER.filter(function (w) { return catOf(w) === cat && weaponAllowed(w); });
+  var pool = all.filter(function (w) { return w !== cur; });
+  if (!pool.length) pool = all;
+  if (!pool.length) return 'grapadora';
+  var rs = RARITY_ORDER.filter(function (r) { return pool.some(function (w) { return WEAPONS[w].rarity === r; }); });
+  var tot = rs.reduce(function (s, r) { return s + RARITY_STATS[r].pool; }, 0), x = Math.random() * tot, r = rs[rs.length - 1], i;
+  for (i = 0; i < rs.length; i++) { if (x < RARITY_STATS[rs[i]].pool) { r = rs[i]; break; } x -= RARITY_STATS[rs[i]].pool; }
+  return pick(pool.filter(function (w) { return WEAPONS[w].rarity === r; }));
+}
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -1111,40 +1144,105 @@ var ALLY_LINES = ['¡Esa solicitud ya está rechazada!', 'Yo me ocupo de los req
 var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La leche de Raúl Becas lleva grumos de calidad.', 'Miau. Las zapatillas de sofá corren más de lo que parece.', 'Miau. Gasta rápido, que Lefillas-san te vigila.', 'Miau. Un nini informado compra mejoras.'];
 
 /* ---------------- Armas y mejoras ---------------- */
-var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos', 'bazuca', 'grapaoro'];
+var WORDER = ['trituradora', 'pizza', 'taladro', 'sopladora', 'bazuca', 'escopeta', 'subfusil', 'tildes', 'impresora', 'silicona', 'cafetera', 'fregona', 'ventilador', 'nominas', 'megafono', 'powerpoint', 'aspiradora', 'microondas', 'ballesta', 'desbrozadora',
+  'grapadora', 'leche', 'bao', 'sellos', 'grapaoro', 'garrafa', 'pegatinas', 'chinchetas', 'snake', 'mando', 'calcu', 'tirachinas', 'boligrafo', 'corrector', 'revolver'];
+/* ---- Tabla de datos del catálogo (35 armas + puños). Por arma: name y short (nombre y nombre corto del selector), rarity (fija), type
+   (hitscan, spray, pellets, explosive), mag y reserve (cargador y reserva inicial), maxReserve (tope de reserva), rate (segundos entre
+   disparos), reload, dmg, price (tienda, en €), sfx, kick (retroceso), view (escala en pantalla) y, según el tipo, range, spread,
+   pellets, speed o splash. Categoría en WEAPON_CAT; modelo en GUN_MODELS; mapas en WEAPON_MAP.
+   PRECIO DE TIENDA (€) por categoría y rareza (comun / poco / rara / epica / legendaria):
+     principal:   300 / 450 / 650 / 900 / 1300
+     secundaria:  150 / 250 / 350 / 500 / 750
+   MUNICIÓN: reserva inicial de 2 cargadores y tope de 4 (3 y 6 en grapadora, leche, sopladora y bazuca). Cada pickup de munición
+   da un cargador entero a cada arma de su categoría que tienes y que sale en el mapa (ver giveAmmo). Bao usa bambú; los puños no gastan.
+   REPARTO DE RAREZAS: 12 comunes, 11 poco comunes, 7 raras, 3 épicas y 2 legendarias (campana cargada hacia abajo). */
 var WEAPONS = {
   grapadora: { name: 'Grapadora', short: 'Grapadora', rarity: 'comun', type: 'hitscan', mag: 20, reserve: 60, maxReserve: 120, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
     kick: 0.8, desc: 'Arma inicial. Cadencia media y munición de sobra.' },
-  sellos: { name: 'Sellador de expedientes', short: 'Sellador', rarity: 'poco', type: 'hitscan', mag: 12, reserve: 24, maxReserve: 48, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
+  sellos: { name: 'Sellador de expedientes', short: 'Sellador', rarity: 'poco', type: 'hitscan', mag: 12, reserve: 24, maxReserve: 48, rate: 0.45, reload: 1.3, dmg: 3, price: 250, sfx: 'shoot',
     kick: 0.7, desc: 'Sella cada oferta con un golpe seco: RECHAZADA. Mucho daño por disparo.' },
-  taladro: { name: 'Taladro de oficina', short: 'Taladro', rarity: 'poco', type: 'spray', mag: 40, reserve: 80, maxReserve: 160, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
+  taladro: { name: 'Taladro de oficina', short: 'Taladro', rarity: 'poco', type: 'spray', mag: 40, reserve: 80, maxReserve: 160, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 450, sfx: 'shred',
     kick: 0.5, view: 0.62, desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
-  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', rarity: 'rara', type: 'pellets', mag: 10, reserve: 30, maxReserve: 60, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
+  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', rarity: 'rara', type: 'pellets', mag: 10, reserve: 30, maxReserve: 60, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 650, sfx: 'milk',
     kick: 0.9, view: 0.62, desc: 'Sopla a todo el mundo hacia atrás. No hace daño, pero se nota.' },
   bao: { name: 'Bao, el panda lechero', short: 'Bao', rarity: 'rara', type: 'pellets', mag: 5, reserve: 0, maxReserve: 0, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
     kick: 1.2, desc: 'Un panda que escupe leche. No se recarga con balas: alimentalo con bambú (tecla R).' },
-  leche: { name: 'Leche de Raúl Becas', short: 'Leche', rarity: 'poco', type: 'pellets', mag: 6, reserve: 18, maxReserve: 36, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
+  leche: { name: 'Leche de Raúl Becas', short: 'Leche', rarity: 'poco', type: 'pellets', mag: 6, reserve: 18, maxReserve: 36, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 250, sfx: 'milk',
     kick: 1.4, desc: 'Un vaso de leche que lanza grumos en abanico. Corta distancia y mucho daño.' },
   trituradora: { name: 'Trituradora', short: 'Trituradora', rarity: 'comun', type: 'spray', mag: 80, reserve: 160, maxReserve: 320, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
     kick: 0.6, desc: 'Tritura papel a ráfagas. Alcance corto y cadencia enorme.' },
-  pizza: { name: 'Cañón de Pizza', short: 'Pizza', rarity: 'comun', type: 'explosive', mag: 4, reserve: 8, maxReserve: 16, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
+  pizza: { name: 'Cañón de Pizza', short: 'Pizza', rarity: 'comun', type: 'explosive', mag: 4, reserve: 8, maxReserve: 16, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 300, sfx: 'pizza',
     kick: 1.8, desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' },
   punos: { name: 'Puños', short: 'Puños', rarity: 'comun', type: 'melee', mag: 0, reserve: 0, maxReserve: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
     view: 0.62, desc: 'Sin balas ni cajas: golpes cortos a todo lo que tengas delante.' },
   /* Ejemplos del patrón de armas nuevas (ver GUN_MODELS): principal explosiva y secundaria de disparo directo */
-  bazuca: { name: 'Bazuca de fotocopias', short: 'Bazuca', rarity: 'rara', type: 'explosive', mag: 2, reserve: 6, maxReserve: 12, rate: 1, reload: 2.4, dmg: 8, splash: 4, speed: 22, price: 700, sfx: 'pizza', kick: 1.8,
+  bazuca: { name: 'Bazuca de fotocopias', short: 'Bazuca', rarity: 'rara', type: 'explosive', mag: 2, reserve: 6, maxReserve: 12, rate: 1, reload: 2.4, dmg: 8, splash: 4, speed: 22, price: 650, sfx: 'pizza', kick: 1.8,
     desc: 'Copia a los enemigos con una explosión de tóner. Pocas balas, pero cada una borra a un grupo.' },
-  grapaoro: { name: 'Pistola de grapas de oro', short: 'Grapa oro', rarity: 'poco', type: 'hitscan', mag: 10, reserve: 20, maxReserve: 40, rate: 0.22, reload: 1.1, dmg: 1.8, price: 320, sfx: 'shoot', kick: 0.7,
-    desc: 'Grapas de 24 quilates para jefes con mucho dinero. Cadencia alta y cargador de sobra.' }
+  grapaoro: { name: 'Pistola de grapas de oro', short: 'Grapa oro', rarity: 'poco', type: 'hitscan', mag: 10, reserve: 20, maxReserve: 40, rate: 0.22, reload: 1.1, dmg: 1.8, price: 250, sfx: 'shoot', kick: 0.7,
+    desc: 'Grapas de 24 quilates para jefes con mucho dinero. Cadencia alta y cargador de sobra.' },
+  /* ---- Principales nuevas (15) ---- */
+  escopeta: { name: 'Escopeta de oficina', short: 'Escopeta', rarity: 'comun', type: 'pellets', mag: 6, reserve: 12, maxReserve: 24, rate: 0.8, reload: 1.9, dmg: 0.9, pellets: 8, spread: 0.13, speed: 24, price: 300, sfx: 'boom',
+    kick: 1.6, view: 0.75, desc: 'Ocho perdigones en abanico. Corta distancia y mucho ruido para una oficina.' },
+  subfusil: { name: 'Subfusil de oficina', short: 'Subfusil', rarity: 'poco', type: 'hitscan', mag: 30, reserve: 60, maxReserve: 120, rate: 0.1, reload: 1.5, dmg: 0.8, price: 450, sfx: 'shoot',
+    kick: 0.6, view: 0.7, desc: 'Ráfagas de cuartillas a toda velocidad. Normal, pero cumple.' },
+  tildes: { name: 'Francotirador de tildes', short: 'Tildes', rarity: 'epica', type: 'hitscan', mag: 3, reserve: 6, maxReserve: 12, rate: 1.1, reload: 2.2, dmg: 9, price: 900, sfx: 'shoot',
+    kick: 1.6, view: 0.62, desc: 'Una tilde a 300 metros. Corrige a casi cualquier enemigo de un disparo.' },
+  impresora: { name: 'Impresora ametralladora', short: 'Impresora', rarity: 'poco', type: 'spray', mag: 60, reserve: 120, maxReserve: 240, rate: 0.06, reload: 2.2, dmg: 0.5, range: 9, spread: 0.07, price: 450, sfx: 'shred',
+    kick: 0.5, view: 0.7, desc: 'Imprime balas sin parar. Se atasca cada sesenta copias.' },
+  silicona: { name: 'Fusil de silicona caliente', short: 'Silicona', rarity: 'rara', type: 'hitscan', mag: 14, reserve: 28, maxReserve: 56, rate: 0.15, reload: 1.6, dmg: 1.2, price: 650, sfx: 'shoot',
+    kick: 0.9, view: 0.7, desc: 'Pegamento a presión y muy caliente. Lo que toca se queda pegado al suelo.' },
+  cafetera: { name: 'Cafetera lanzagranadas', short: 'Cafetera', rarity: 'rara', type: 'explosive', mag: 4, reserve: 8, maxReserve: 16, rate: 1.0, reload: 2.2, dmg: 5, splash: 3.2, speed: 22, price: 650, sfx: 'pizza',
+    kick: 1.8, view: 0.75, desc: 'Cápsulas de café hirviendo que explotan al caer. Efecto secundario: despertar.' },
+  fregona: { name: 'Fregona turbo', short: 'Fregona', rarity: 'comun', type: 'spray', mag: 50, reserve: 100, maxReserve: 200, rate: 0.07, reload: 1.8, dmg: 0.5, range: 6, spread: 0.06, price: 300, sfx: 'shred',
+    kick: 0.5, view: 0.75, desc: 'Limpia el suelo a chorro. Nadie sabe de dónde saca tanta agua.' },
+  ventilador: { name: 'Ventilador del despacho', short: 'Ventilador', rarity: 'comun', type: 'pellets', mag: 12, reserve: 24, maxReserve: 48, rate: 0.35, reload: 1.6, dmg: 0.5, pellets: 6, spread: 0.22, speed: 18, price: 300, sfx: 'milk',
+    kick: 1.1, view: 0.7, desc: 'Velocidad 1, 2 y "¿quién ha dejado el ventilador en el 3?".' },
+  nominas: { name: 'Lanzanóminas', short: 'Nóminas', rarity: 'legendaria', type: 'explosive', mag: 3, reserve: 6, maxReserve: 12, rate: 1.1, reload: 2.6, dmg: 9, splash: 4.2, speed: 20, price: 1300, sfx: 'boom',
+    kick: 2.0, view: 0.75, desc: 'Sobres de nómina que explotan. Nadie sabe cuánto hay dentro.' },
+  megafono: { name: 'Megáfono del jefe', short: 'Megáfono', rarity: 'poco', type: 'pellets', mag: 4, reserve: 8, maxReserve: 16, rate: 0.9, reload: 2.0, dmg: 1.5, pellets: 4, spread: 0.05, speed: 16, price: 450, sfx: 'boom',
+    kick: 1.3, view: 0.7, desc: 'Grita "¿tienes un minuto?" a todo volumen. Se oye en toda la planta.' },
+  powerpoint: { name: 'Rifle de PowerPoint', short: 'PowerPoint', rarity: 'rara', type: 'hitscan', mag: 20, reserve: 40, maxReserve: 80, rate: 0.12, reload: 1.9, dmg: 1.0, price: 650, sfx: 'shoot',
+    kick: 0.8, view: 0.7, desc: 'Cada disparo es una diapositiva con animación. Hay 97. Vas por la 1.' },
+  aspiradora: { name: 'Aspiradora industrial', short: 'Vacío', rarity: 'poco', type: 'spray', mag: 45, reserve: 90, maxReserve: 180, rate: 0.065, reload: 2.0, dmg: 0.55, range: 8, spread: 0.04, price: 450, sfx: 'shred',
+    kick: 0.5, view: 0.7, desc: 'Se traga el polvo, las grapas y a los becarios. Bolsa llena a los 45.' },
+  microondas: { name: 'Microondas portátil', short: 'Microondas', rarity: 'epica', type: 'explosive', mag: 3, reserve: 6, maxReserve: 12, rate: 1.2, reload: 2.5, dmg: 8, splash: 4.4, speed: 18, price: 900, sfx: 'boom',
+    kick: 1.8, view: 0.66, desc: 'Calienta a los enemigos dos minutos y medio. Pita al terminar.' },
+  ballesta: { name: 'Ballesta de clips', short: 'Ballesta', rarity: 'comun', type: 'hitscan', mag: 8, reserve: 16, maxReserve: 32, rate: 0.5, reload: 1.6, dmg: 3.5, price: 300, sfx: 'shoot',
+    kick: 1.2, view: 0.75, desc: 'Un clip con mucha tensión. Cuando dispara, el clip se queda de recuerdo.' },
+  desbrozadora: { name: 'Desbrozadora de brainstorming', short: 'Brainstorm', rarity: 'comun', type: 'spray', mag: 40, reserve: 80, maxReserve: 160, rate: 0.09, reload: 2.4, dmg: 0.8, range: 7, spread: 0.1, price: 300, sfx: 'shred',
+    kick: 0.7, view: 0.7, desc: 'Arranca todas las ideas malas de raíz. Y alguna buena.' },
+  /* ---- Secundarias nuevas (10) ---- */
+  garrafa: { name: 'Garrafa de agua fría', short: 'Garrafa', rarity: 'comun', type: 'pellets', mag: 8, reserve: 16, maxReserve: 32, rate: 0.55, reload: 1.3, dmg: 0.9, pellets: 4, spread: 0.1, speed: 22, price: 150, sfx: 'milk',
+    kick: 1.0, view: 0.8, desc: 'Agua de la garrafa de la oficina. Está fría y lo sabe todo el mundo.' },
+  pegatinas: { name: 'Pistola de pegatinas', short: 'Pegatinas', rarity: 'comun', type: 'spray', mag: 24, reserve: 48, maxReserve: 96, rate: 0.14, reload: 1.2, dmg: 0.8, range: 8, spread: 0.03, price: 150, sfx: 'shred',
+    kick: 0.5, view: 0.7, desc: 'Pegatinas de "NO CONTRATADO" en serie. No necesitan pegamento.' },
+  chinchetas: { name: 'Pistola de chinchetas', short: 'Chinche', rarity: 'poco', type: 'pellets', mag: 5, reserve: 10, maxReserve: 20, rate: 0.6, reload: 1.4, dmg: 1.0, pellets: 3, spread: 0.07, speed: 26, price: 250, sfx: 'milk',
+    kick: 1.1, view: 0.7, desc: 'Tres chinchetas por disparo. El tablón de anuncios no vuelve a ser el mismo.' },
+  snake: { name: 'Móvil con Snake', short: 'Snake', rarity: 'epica', type: 'hitscan', mag: 18, reserve: 36, maxReserve: 72, rate: 0.16, reload: 1.1, dmg: 1.0, price: 500, sfx: 'shoot',
+    kick: 0.6, view: 0.62, desc: 'Batería de dos días y pantalla verde. Nunca falla: es un clásico.' },
+  mando: { name: 'Mando a distancia', short: 'Mando', rarity: 'poco', type: 'hitscan', mag: 15, reserve: 30, maxReserve: 60, rate: 0.13, reload: 1.3, dmg: 0.9, price: 250, sfx: 'shoot',
+    kick: 0.5, view: 0.62, desc: 'Cambia de canal a los enemigos. Ninguno vuelve a su sitio.' },
+  calcu: { name: 'Calculadora científica', short: 'Calcu', rarity: 'comun', type: 'hitscan', mag: 10, reserve: 20, maxReserve: 40, rate: 0.28, reload: 1.2, dmg: 2.0, price: 150, sfx: 'shoot',
+    kick: 0.6, view: 0.62, desc: 'Calcula cuánto daño necesitas. El resultado es un disparo que no sobra.' },
+  tirachinas: { name: 'Tirachinas de facturas', short: 'Tirachinas', rarity: 'comun', type: 'pellets', mag: 10, reserve: 20, maxReserve: 40, rate: 0.5, reload: 1.2, dmg: 1.4, pellets: 2, spread: 0.06, speed: 26, price: 150, sfx: 'milk',
+    kick: 0.9, view: 0.7, desc: 'Facturas arrugadas a toda velocidad. Como las de la luz, duelen.' },
+  boligrafo: { name: 'Bolígrafo láser de firma', short: 'Bolígrafo', rarity: 'legendaria', type: 'hitscan', mag: 12, reserve: 24, maxReserve: 48, rate: 0.2, reload: 1.2, dmg: 1.0, price: 750, sfx: 'shoot',
+    kick: 0.8, view: 0.62, desc: 'Firma tu despido. Y el de los demás, si te lo piden.' },
+  corrector: { name: 'Corrector de estilo', short: 'Corrector', rarity: 'rara', type: 'spray', mag: 30, reserve: 60, maxReserve: 120, rate: 0.08, reload: 1.5, dmg: 0.6, range: 8, spread: 0.04, price: 350, sfx: 'shred',
+    kick: 0.6, view: 0.7, desc: 'Tacha lo que sobra: contratos, correos y enemigos. Cubre bien.' },
+  revolver: { name: 'Revólver del conserje', short: 'Revólver', rarity: 'poco', type: 'hitscan', mag: 6, reserve: 12, maxReserve: 24, rate: 0.4, reload: 1.8, dmg: 3.0, price: 250, sfx: 'shoot',
+    kick: 1.0, view: 0.7, desc: 'Normal y corriente. Seis balas, cinco problemas.' }
 };
-/* Rareza: raíz fija de cada arma (no sube). Multiplica sus estadísticas base. cap = aspecto máximo con mejoras (1 brillo, 2 neón, 3 luces); la legendaria tiene efectos propios (aura y órbita). */
+/* Rareza: raíz fija de cada arma (no sube). Multiplica sus estadísticas base. cap = aspecto máximo con mejoras (1 brillo, 2 neón, 3 luces).
+   aura = halo de color detrás del arma (épica y legendaria); orbit = chispas girando (solo la legendaria).
+   pool = peso al sacar una rareza en las cajas (las dos cajas usan este mismo pool). Reparto del catálogo: 12 / 11 / 7 / 3 / 2. */
 var RARITY_ORDER = ['comun', 'poco', 'rara', 'epica', 'legendaria'];
 var RARITY_STATS = {
-  comun: { label: 'COMÚN', css: '#cfd3c8', hex: 0xcfd3c8, dmg: 1, rate: 1, mag: 1, range: 1, kick: 1, cap: 1, aura: false },
-  poco: { label: 'POCO COMÚN', css: '#5fd17a', hex: 0x5fd17a, dmg: 1.15, rate: 0.97, mag: 1.1, range: 1.05, kick: 1.1, cap: 2, aura: false },
-  rara: { label: 'RARA', css: '#4aa8ff', hex: 0x4aa8ff, dmg: 1.35, rate: 0.93, mag: 1.2, range: 1.1, kick: 1.2, cap: 3, aura: false },
-  epica: { label: 'ÉPICA', css: '#b56cff', hex: 0xb56cff, dmg: 1.6, rate: 0.9, mag: 1.35, range: 1.15, kick: 1.3, cap: 3, aura: false },
-  legendaria: { label: 'LEGENDARIA', css: '#ffb020', hex: 0xffb020, dmg: 2, rate: 0.85, mag: 1.5, range: 1.25, kick: 1.5, cap: 3, aura: true }
+  comun: { label: 'COMÚN', css: '#cfd3c8', hex: 0xcfd3c8, dmg: 1, rate: 1, mag: 1, range: 1, kick: 1, cap: 1, aura: false, orbit: false, pool: 40 },
+  poco: { label: 'POCO COMÚN', css: '#5fd17a', hex: 0x5fd17a, dmg: 1.15, rate: 0.97, mag: 1.1, range: 1.05, kick: 1.1, cap: 2, aura: false, orbit: false, pool: 32 },
+  rara: { label: 'RARA', css: '#4aa8ff', hex: 0x4aa8ff, dmg: 1.35, rate: 0.93, mag: 1.2, range: 1.1, kick: 1.2, cap: 3, aura: false, orbit: false, pool: 18 },
+  epica: { label: 'ÉPICA', css: '#b56cff', hex: 0xb56cff, dmg: 1.6, rate: 0.9, mag: 1.35, range: 1.15, kick: 1.3, cap: 3, aura: true, orbit: false, pool: 7 },
+  legendaria: { label: 'LEGENDARIA', css: '#ffb020', hex: 0xffb020, dmg: 2, rate: 0.85, mag: 1.5, range: 1.25, kick: 1.5, cap: 3, aura: true, orbit: true, pool: 3 }
 };
 function rarityOf(k) { return RARITY_STATS[(WEAPONS[k] && WEAPONS[k].rarity) || 'comun']; }
 /* Campo de arma que multiplica cada estadística de la rareza (el alcance afecta a rango, radio o velocidad) */
@@ -1160,9 +1258,16 @@ Object.keys(WEAPONS).forEach(function (k) {
 /* Categorías del selector: principal, secundaria y cuerpo a cuerpo (puños). Tabla propuesta: la parte 8 añade aquí cada arma nueva. */
 var CATS = ['principal', 'secundaria', 'cuerpo'];
 var CAT_NAME = { principal: 'Principal', secundaria: 'Secundaria', cuerpo: 'Cuerpo a cuerpo' };
-var WEAPON_CAT = { trituradora: 'principal', pizza: 'principal', taladro: 'principal', sopladora: 'principal',
-  grapadora: 'secundaria', sellos: 'secundaria', leche: 'secundaria', bao: 'secundaria', punos: 'cuerpo',
-  bazuca: 'principal', grapaoro: 'secundaria' };
+var WEAPON_CAT = {
+  trituradora: 'principal', pizza: 'principal', taladro: 'principal', sopladora: 'principal', bazuca: 'principal',
+  escopeta: 'principal', subfusil: 'principal', tildes: 'principal', impresora: 'principal', silicona: 'principal', cafetera: 'principal',
+  fregona: 'principal', ventilador: 'principal', nominas: 'principal', megafono: 'principal', powerpoint: 'principal', aspiradora: 'principal',
+  microondas: 'principal', ballesta: 'principal', desbrozadora: 'principal',
+  grapadora: 'secundaria', leche: 'secundaria', bao: 'secundaria', sellos: 'secundaria', grapaoro: 'secundaria',
+  garrafa: 'secundaria', pegatinas: 'secundaria', chinchetas: 'secundaria', snake: 'secundaria', mando: 'secundaria', calcu: 'secundaria',
+  tirachinas: 'secundaria', boligrafo: 'secundaria', corrector: 'secundaria', revolver: 'secundaria',
+  punos: 'cuerpo'
+};
 function catOf(k) { return WEAPON_CAT[k] || 'secundaria'; }
 /* Todo lo que puede tener el jugador: armas de disparo (WORDER, con munición) y los puños (sin munición) */
 function allKeys() { return WORDER.concat(['punos']); }
@@ -1208,9 +1313,8 @@ function applyStats() { G.maxHp = 100 + 20 * G.upg.hp + (G.perks.vida ? 40 : 0);
 function initAmmo() { WORDER.forEach(function (k) { G.ammoMap[k] = magSize(k); G.reserve[k] = WEAPONS[k].reserve | 0; }); }
 /* ---------------- Munición de reserva ----------------
    Cada arma tiene su cargador (G.ammoMap) y su reserva (G.reserve, con tope WEAPONS.maxReserve). La munición no se compra:
-   los enemigos la sueltan al azar, y cada pickup da una cantidad fija a cada arma de su categoría que usa munición.
+   los enemigos la sueltan al azar. Cada pickup da un cargador entero a cada arma de su categoría que tienes y que sale en el mapa.
    Bao se alimenta con bambú y los puños no usan munición. */
-var AMMO_PICK = { principal: 8, secundaria: 12 };
 var AMMO_DROP = 0.1; /* probabilidad base por enemigo abatido (se multiplica por DF().drop) */
 var MUN_INFO = {
   munP: { cat: 'principal', label: 'PRINCIPAL', css: '#ff5c8a', hex: 0xff5c8a },
@@ -1224,12 +1328,12 @@ function ammoOf(k) { return (G.ammoMap[k] | 0) + (G.reserve[k] | 0); }
 /* Arma nueva o de caja: cargador lleno y, si no tenía reserva, su reserva inicial */
 function refillWeapon(k) { G.ammoMap[k] = magSize(k); if (usesAmmo(k)) G.reserve[k] = Math.max(G.reserve[k] | 0, WEAPONS[k].reserve | 0); }
 /* Armas de una categoría que el jugador tiene y gastan munición de reserva */
-function ammoWeaponsIn(c) { return allKeys().filter(function (k) { return catOf(k) === c && G.owned[k] && usesAmmo(k); }); }
+function ammoWeaponsIn(c) { return allKeys().filter(function (k) { return catOf(k) === c && G.owned[k] && usesAmmo(k) && weaponAllowed(k); }); }
 /* Reparte un pickup de munición entre las armas de su categoría que el jugador tiene. Devuelve cuántas subieron */
 function giveAmmo(c) {
   var n = 0;
   ammoWeaponsIn(c).forEach(function (k) {
-    var before = G.reserve[k] | 0, after = Math.min(WEAPONS[k].maxReserve, before + AMMO_PICK[c]);
+    var before = G.reserve[k] | 0, after = Math.min(WEAPONS[k].maxReserve, before + magSize(k));
     G.reserve[k] = after; if (after > before) n++;
   });
   return n;
@@ -1264,7 +1368,7 @@ function munCrate(kind) {
     x.fillStyle = mi.css; x.fillRect(0, 0, 256, 54); x.fillRect(0, 202, 256, 54);
     x.textAlign = 'center'; x.fillStyle = '#14181a'; x.font = '36px Anton, Impact, sans-serif'; x.fillText('MUNICIÓN', 128, 42);
     x.fillStyle = mi.css; x.font = '44px Anton, Impact, sans-serif'; x.fillText(mi.label, 128, 150, 236);
-    x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('+' + AMMO_PICK[mi.cat] + ' POR ARMA', 128, 234, 236);
+    x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('+1 CARGADOR', 128, 234, 236);
     MUN_TEX[kind] = tex(c);
   }
   return new THREE.Mesh(BG(0.5, 0.5, 0.5), MUN_MAT[kind] || (MUN_MAT[kind] = new THREE.MeshBasicMaterial({ map: MUN_TEX[kind] })));
@@ -1712,7 +1816,7 @@ function addDesk(x, z, rot) {
      4. GUN_MODELS[clave] = function (M) { ... }: dibuja con M.part / M.glow / M.eye y las geometrías M.B, M.C, M.S, M.T.
         - Las piezas se dibujan en orden de creación, sin test de profundidad: crea primero lo de atrás y al final los detalles.
         - Deja M.base = [x, y, z] (posición del arma frente a la cámara) y pon la boca con M.muzzle(padre, x, y, z).
-        - Las animaciones usan M.g.userData: head (cabeza que cabecea), bit (broca que gira).
+        - Las animaciones usan M.g.userData: head (cabeza que cabecea), bit (broca o hélice que gira, en el origen del grupo que lo contiene).
      Así una arma nueva es solo datos + una función; no hace falta tocar buildGun. */
 var GUN_MODELS = {};
 function buildGun(kind) {
@@ -1975,6 +2079,368 @@ GUN_MODELS.grapaoro = function (M) {
   M.muzzle(g, 0, 0, -0.27); M.base = [0.27, -0.25, -0.5];
 };
 
+/* ---- Modelos del catálogo de la parte 8 (principales, luego secundarias). Mismo patrón que las armas de arriba. ---- */
+/* Escopeta de oficina (comun): dos cañones paralelos, cajón y culata de madera, pegatina "NO DEVOLVER" y ojos en el cajón */
+GUN_MODELS.escopeta = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g, wood = 0x6b4a2b, steel = 0x2b2f31;
+  part(B(0.12, 0.13, 0.24), steel, 0, 0, 0.02);
+  part(B(0.1, 0.12, 0.2), wood, 0, -0.02, 0.25);
+  part(B(0.06, 0.14, 0.06), wood, 0, -0.12, 0.1).rotation.x = -0.25;
+  part(B(0.1, 0.06, 0.2), wood, 0, -0.08, -0.2);
+  part(C(0.032, 0.032, 0.5, 12), 0x3b4348, -0.03, 0.035, -0.33).rotation.x = Math.PI / 2;
+  part(C(0.032, 0.032, 0.5, 12), 0x3b4348, 0.03, 0.035, -0.33).rotation.x = Math.PI / 2;
+  part(B(0.003, 0.05, 0.12), 0xffd21f, 0.061, 0, 0.02);
+  M.eye(-0.03, -0.03, -0.105, 0.017, g); M.eye(0.03, -0.03, -0.105, 0.017, g);
+  M.muzzle(g, 0, 0.035, -0.6); M.base = [0.27, -0.25, -0.6];
+};
+
+/* Subfusil de oficina (poco): cuerpo gris con raíl, bandeja de folios encima, cargador curvo y culata plegada */
+GUN_MODELS.subfusil = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.1, 0.12, 0.34), 0x3b4348, 0, 0, -0.04);
+  part(B(0.09, 0.02, 0.2), 0x9aa3a8, 0, 0.07, -0.1);
+  part(B(0.12, 0.03, 0.14), 0xf1efe6, 0, 0.085, -0.02);
+  part(B(0.11, 0.004, 0.13), 0xffffff, 0, 0.102, -0.02);
+  part(C(0.018, 0.018, 0.16, 10), 0x2b2f31, 0, 0, -0.3).rotation.x = Math.PI / 2;
+  part(B(0.05, 0.16, 0.07), 0x9aa3a8, 0, -0.14, -0.06).rotation.x = -0.2;
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.12, 0.1).rotation.x = -0.25;
+  part(B(0.07, 0.06, 0.14), 0x2b2f31, 0, 0, 0.2);
+  M.eye(-0.035, 0, -0.215, 0.017, g); M.eye(0.035, 0, -0.215, 0.017, g);
+  glow(B(0.012, 0.012, 0.012), 0x2fb8e8, 0.055, -0.04, 0.05);
+  M.muzzle(g, 0, 0, -0.4); M.base = [0.26, -0.25, -0.5];
+};
+
+/* Francotirador de tildes (épica): cañón largo con freno de boca, mira con lente azul, culata de madera con una tilde y bípode */
+GUN_MODELS.tildes = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g, wood = 0x6b4a2b;
+  part(C(0.022, 0.026, 0.72, 12), 0x2b2f31, 0, 0, -0.36).rotation.x = Math.PI / 2;
+  part(B(0.09, 0.1, 0.26), 0x3b4348, 0, 0, 0.02);
+  part(C(0.034, 0.034, 0.24, 14), 0x14181a, 0, 0.1, -0.1).rotation.x = Math.PI / 2;
+  part(C(0.04, 0.04, 0.03, 14), 0x14181a, 0, 0.1, -0.22).rotation.x = Math.PI / 2;
+  glow(C(0.03, 0.03, 0.01, 14), 0x7fe8ff, 0, 0.1, -0.238).rotation.x = Math.PI / 2;
+  part(B(0.08, 0.16, 0.36), wood, 0, -0.04, 0.22).rotation.x = 0.06;
+  part(B(0.05, 0.14, 0.06), wood, 0, -0.14, 0.08).rotation.x = -0.25;
+  part(B(0.004, 0.012, 0.04), 0xf1efe6, 0.041, -0.02, 0.2).rotation.z = 0.3;
+  part(B(0.004, 0.012, 0.04), 0xf1efe6, 0.041, -0.02, 0.24).rotation.z = -0.3;
+  part(B(0.01, 0.1, 0.01), 0x2b2f31, -0.025, -0.08, -0.5).rotation.z = 0.2;
+  part(B(0.01, 0.1, 0.01), 0x2b2f31, 0.025, -0.08, -0.5).rotation.z = -0.2;
+  part(C(0.03, 0.03, 0.06, 10), 0x14181a, 0, 0, -0.7).rotation.x = Math.PI / 2;
+  M.eye(-0.025, 0.04, 0.155, 0.014, g); M.eye(0.025, 0.04, 0.155, 0.014, g);
+  M.muzzle(g, 0, 0, -0.74); M.base = [0.25, -0.24, -0.5];
+};
+
+/* Impresora ametralladora (poco): carcasa blanca con bandeja, hoja asomando, pantalla verde de tinta, boquilla negra y ojos */
+GUN_MODELS.impresora = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.2, 0.14, 0.3), 0xe4e4e0, 0, 0, -0.02);
+  part(B(0.2, 0.012, 0.22), 0xc9cdd0, 0, -0.078, -0.02);
+  part(B(0.17, 0.01, 0.16), 0x2b2f31, 0, 0.078, -0.06);
+  part(B(0.15, 0.003, 0.12), 0xffffff, 0, 0.1, -0.1).rotation.x = -0.12;
+  part(C(0.03, 0.045, 0.12, 12), 0x2b2f31, 0, -0.01, -0.25).rotation.x = -Math.PI / 2;
+  part(C(0.05, 0.05, 0.2, 12), 0xf1efe6, 0, 0.12, 0.08).rotation.x = Math.PI / 2;
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.14, 0.12).rotation.x = -0.25;
+  part(B(0.004, 0.05, 0.12), 0xffd21f, 0.101, 0, -0.02);
+  glow(B(0.04, 0.02, 0.01), 0x3fd27a, -0.05, 0.02, 0.152);
+  M.eye(-0.05, -0.03, -0.172, 0.018, g); M.eye(0.05, -0.03, -0.172, 0.018, g);
+  M.muzzle(g, 0, -0.01, -0.32); M.base = [0.26, -0.25, -0.5];
+};
+
+/* Fusil de silicona caliente (rara): pistola amarilla con barra de silicona ámbar detrás, calefactor con piloto rojo y boquilla */
+GUN_MODELS.silicona = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, S = M.S, g = M.g;
+  part(C(0.035, 0.035, 0.26, 14), 0xe8a33a, 0, 0.01, 0.2).rotation.x = Math.PI / 2;
+  part(B(0.11, 0.12, 0.22), 0xf2c200, 0, 0, -0.02);
+  part(B(0.1, 0.08, 0.1), 0x3d4448, 0, -0.03, -0.14);
+  part(C(0.012, 0.02, 0.1, 10), 0xb0b8bc, 0, -0.01, -0.23).rotation.x = -Math.PI / 2;
+  part(B(0.03, 0.08, 0.04), 0x2b2f31, 0, -0.1, 0.06).rotation.x = -0.2;
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.15, 0.1).rotation.x = -0.2;
+  glow(B(0.014, 0.014, 0.014), 0xe0382d, 0.04, 0.03, -0.16);
+  glow(S(0.012, 8, 6), 0xffffff, 0, -0.04, -0.29);
+  M.eye(-0.025, -0.03, -0.195, 0.016, g); M.eye(0.025, -0.03, -0.195, 0.016, g);
+  M.muzzle(g, 0, -0.01, -0.29); M.base = [0.26, -0.24, -0.52];
+};
+
+/* Cafetera lanzagranadas (rara): tubo cromado, depósito de agua translúcido con ojos, jarra de café y piloto rojo */
+GUN_MODELS.cafetera = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.18, 0.2, 0.22), 0x2b2f31, 0, -0.03, 0.04);
+  part(B(0.12, 0.14, 0.08), 0x7fd3ef, 0, 0.1, 0.1, null, 0.6);
+  part(C(0.055, 0.055, 0.5, 14), 0xc9ced3, 0, 0.02, -0.28).rotation.x = Math.PI / 2;
+  part(C(0.06, 0.06, 0.04, 14), 0x8a9399, 0, 0.02, -0.12).rotation.x = Math.PI / 2;
+  part(C(0.05, 0.04, 0.12, 14), 0x5a3a1a, 0, -0.14, -0.22);
+  part(B(0.14, 0.02, 0.14), 0x3d4448, 0, 0.13, 0.04);
+  part(B(0.06, 0.14, 0.07), 0x14181a, 0, -0.16, 0.12).rotation.x = -0.2;
+  glow(B(0.014, 0.014, 0.014), 0xe0382d, 0.092, 0.02, 0.05);
+  M.eye(-0.03, 0.1, 0.146, 0.016, g); M.eye(0.03, 0.1, 0.146, 0.016, g);
+  M.muzzle(g, 0, 0.02, -0.55); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Fregona turbo (comun): palo metálico, motor amarillo con piloto verde, cabezal de flecos y ojos en el motor */
+GUN_MODELS.fregona = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(C(0.016, 0.016, 0.62, 10), 0x9aa3a8, 0, 0.02, 0.06).rotation.x = Math.PI / 2;
+  part(B(0.2, 0.02, 0.04), 0x9aa3a8, 0, -0.02, -0.3);
+  for (var i = 0; i < 7; i++) part(B(0.018, 0.1, 0.025), 0xf1efe6, -0.09 + i * 0.03, -0.075, -0.3 - (i % 2) * 0.02);
+  part(B(0.12, 0.12, 0.14), 0xf2c200, 0, -0.02, 0.2);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.13, 0.12).rotation.x = -0.2;
+  glow(B(0.02, 0.02, 0.02), 0x7fe07a, 0.065, 0.02, 0.2);
+  M.eye(-0.03, 0.035, 0.27, 0.018, g); M.eye(0.03, 0.035, 0.27, 0.018, g);
+  M.muzzle(g, 0, 0, -0.36); M.base = [0.26, -0.26, -0.5];
+};
+
+/* Ventilador del despacho (comun): carcasa redonda blanca, rejilla con aro, hélice azul que gira (userData.bit) y ojos en la tapa */
+GUN_MODELS.ventilador = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, T = M.T, g = M.g;
+  part(C(0.11, 0.11, 0.12, 18), 0xf1efe6, 0, 0, 0.05).rotation.x = Math.PI / 2;
+  part(B(0.12, 0.12, 0.1), 0xd9dde0, 0, -0.1, 0.12);
+  part(T(0.12, 0.01, 6, 22), 0x9aa3a8, 0, 0, -0.11);
+  part(B(0.24, 0.007, 0.008), 0x9aa3a8, 0, 0, -0.11);
+  part(B(0.008, 0.24, 0.008), 0x9aa3a8, 0, 0, -0.11);
+  var spin = new THREE.Group(); spin.position.set(0, 0, -0.1); g.add(spin); g.userData.bit = spin;
+  for (var k = 0; k < 3; k++) {
+    var a = k * Math.PI * 2 / 3;
+    part(B(0.035, 0.19, 0.012), 0x3b82c4, Math.sin(a) * 0.1, Math.cos(a) * 0.1, 0, spin).rotation.z = -a;
+  }
+  part(C(0.02, 0.02, 0.03, 10), 0x2b2f31, 0, 0, 0.01, spin).rotation.x = Math.PI / 2;
+  M.eye(-0.04, 0.03, 0.12, 0.018, g); M.eye(0.04, 0.03, 0.12, 0.018, g);
+  glow(B(0.02, 0.02, 0.01), 0xffd27a, 0, -0.06, 0.12);
+  M.muzzle(g, 0, 0, -0.13); M.base = [0.26, -0.25, -0.5];
+};
+
+/* Lanzanóminas (legendaria): cuerpo verde billete con monedas doradas, sobres apilados, cañón con anilla de oro y ojos */
+GUN_MODELS.nominas = function (M) {
+  var part = M.part, B = M.B, C = M.C, T = M.T, g = M.g;
+  part(B(0.15, 0.15, 0.36), 0x2f7d4a, 0, 0, -0.02);
+  part(B(0.17, 0.03, 0.26), 0xf1efe6, 0, 0.09, -0.02);
+  part(B(0.05, 0.13, 0.06), 0x2b2f31, 0, -0.14, 0.12).rotation.x = -0.2;
+  part(C(0.05, 0.05, 0.24, 14), 0x14181a, 0, -0.005, -0.34).rotation.x = Math.PI / 2;
+  part(T(0.05, 0.01, 6, 14), 0xf5c542, 0, -0.005, -0.46);
+  part(C(0.04, 0.04, 0.012, 16), 0xf5c542, 0.078, 0, 0.04).rotation.z = Math.PI / 2;
+  part(C(0.04, 0.04, 0.012, 16), 0xf5c542, -0.078, 0, 0.04).rotation.z = Math.PI / 2;
+  M.eye(-0.035, 0.03, 0.17, 0.016, g); M.eye(0.035, 0.03, 0.17, 0.016, g);
+  M.muzzle(g, 0, -0.005, -0.48); M.base = [0.27, -0.25, -0.6];
+};
+
+/* Megáfono del jefe (poco): corneta roja que se ensancha hacia la boca blanca, aro amarillo, franja y luz de alarma */
+GUN_MODELS.megafono = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, T = M.T, g = M.g;
+  part(C(0.022, 0.11, 0.32, 18), 0xc22d27, 0, 0, -0.14).rotation.x = Math.PI / 2;
+  part(C(0.112, 0.112, 0.03, 18), 0xf1efe6, 0, 0, -0.3).rotation.x = Math.PI / 2;
+  part(T(0.1, 0.01, 6, 18), 0xffd21f, 0, 0, -0.316);
+  part(C(0.05, 0.05, 0.02, 14), 0xffd21f, 0, 0, -0.06).rotation.x = Math.PI / 2;
+  part(B(0.05, 0.13, 0.06), 0x2b2f31, 0, -0.12, 0).rotation.x = -0.2;
+  glow(B(0.02, 0.02, 0.02), 0xff5a2a, 0, 0, 0.02);
+  M.muzzle(g, 0, 0, -0.33); M.base = [0.26, -0.26, -0.5];
+};
+
+/* Rifle de PowerPoint (rara): cuerpo naranja, diapositiva con gráfico encima mirando al jugador, cañón y puntero láser */
+GUN_MODELS.powerpoint = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, S = M.S, g = M.g;
+  part(B(0.11, 0.12, 0.44), 0xc2431b, 0, 0, -0.04);
+  part(C(0.02, 0.02, 0.26, 10), 0x9aa3a8, 0, 0.01, -0.33).rotation.x = Math.PI / 2;
+  part(B(0.04, 0.06, 0.04), 0x14181a, 0, 0.06, 0.2);
+  part(B(0.2, 0.14, 0.02), 0x14181a, 0, 0.11, 0.2);
+  part(B(0.17, 0.11, 0.004), 0xffffff, 0, 0.11, 0.212);
+  part(B(0.03, 0.04, 0.002), 0xe0382d, -0.04, 0.09, 0.216);
+  part(B(0.03, 0.06, 0.002), 0x2f7fb8, 0, 0.1, 0.216);
+  part(B(0.03, 0.03, 0.002), 0x3fd27a, 0.04, 0.095, 0.216);
+  part(B(0.12, 0.012, 0.002), 0x2b2f31, 0, 0.15, 0.216);
+  part(B(0.07, 0.1, 0.14), 0x14181a, 0, -0.02, 0.3);
+  part(B(0.05, 0.13, 0.06), 0x14181a, 0, -0.13, 0.08).rotation.x = -0.2;
+  glow(S(0.012, 8, 6), 0xe0382d, 0, 0, -0.46);
+  M.eye(-0.025, -0.02, 0.37, 0.016, g); M.eye(0.025, -0.02, 0.37, 0.016, g);
+  M.muzzle(g, 0, 0, -0.46); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Aspiradora industrial (poco): bidón blanco con ventana de polvo, embudo amarillo con boca y asa */
+GUN_MODELS.aspiradora = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, T = M.T, g = M.g;
+  part(C(0.105, 0.105, 0.26, 18), 0xe8e8e0, 0, 0, 0.05).rotation.x = Math.PI / 2;
+  glow(B(0.004, 0.1, 0.1), 0x9fe3ff, 0.106, 0, 0.05);
+  part(C(0.05, 0.03, 0.16, 14), 0x14181a, 0, 0, -0.2).rotation.x = -Math.PI / 2;
+  part(T(0.05, 0.012, 6, 16), 0xf2c200, 0, 0, -0.28);
+  part(B(0.04, 0.1, 0.04), 0x2b2f31, 0, 0.16, 0.05);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.14, 0.1).rotation.x = -0.2;
+  M.eye(-0.04, 0.03, 0.19, 0.02, g); M.eye(0.04, 0.03, 0.19, 0.02, g);
+  M.muzzle(g, 0, 0, -0.3); M.base = [0.26, -0.26, -0.5];
+};
+
+/* Microondas portátil (épica): carcasa de acero con puerta de cristal encendida (la boca), botones, campana y ojos en la trasera */
+GUN_MODELS.microondas = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, S = M.S, g = M.g;
+  part(B(0.2, 0.15, 0.28), 0xd9dde0, 0, 0, 0);
+  part(B(0.13, 0.09, 0.01), 0x14181a, -0.02, 0, -0.145);
+  glow(B(0.11, 0.07, 0.004), 0xff8a3a, -0.02, 0, -0.15);
+  for (var i = 0; i < 3; i++) part(B(0.022, 0.022, 0.01), 0x2b2f31, 0.07, 0.04 - i * 0.04, -0.145);
+  part(S(0.02, 10, 8), 0xffd27a, 0, 0.1, 0.02).scale.set(1, 0.6, 1);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.13, 0.12).rotation.x = -0.2;
+  M.eye(-0.04, 0.02, 0.145, 0.018, g); M.eye(0.04, 0.02, 0.145, 0.018, g);
+  M.muzzle(g, -0.02, 0, -0.17); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Ballesta de clips (comun): culata de madera, arco de alambre con cuerda, clip de bala sobre la culata y ojos */
+GUN_MODELS.ballesta = function (M) {
+  var part = M.part, B = M.B, g = M.g, wood = 0x6b4a2b;
+  part(B(0.07, 0.07, 0.42), wood, 0, -0.02, -0.02);
+  part(B(0.05, 0.12, 0.06), wood, 0, -0.12, 0.08).rotation.x = -0.25;
+  part(B(0.02, 0.05, 0.02), 0x14181a, 0, -0.07, 0.03);
+  part(B(0.05, 0.05, 0.08), wood, 0, 0.0, -0.2);                                    /* soporte del arco */
+  part(new THREE.TorusGeometry(0.17, 0.011, 6, 18, Math.PI), 0x9aa3a8, 0, 0.04, -0.2).rotation.x = -Math.PI / 2;
+  part(B(0.34, 0.003, 0.003), 0xf1efe6, 0, 0.04, -0.2);
+  part(B(0.03, 0.02, 0.14), 0xc8cfd3, 0, 0.03, -0.1);
+  M.eye(-0.03, -0.01, 0.2, 0.016, g); M.eye(0.03, -0.01, 0.2, 0.016, g);
+  M.muzzle(g, 0, 0.04, -0.2); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Desbrozadora de brainstorming (comun): eje metálico, motor rojo con ojos y cabezal de cuchillas verdes que gira (userData.bit) */
+GUN_MODELS.desbrozadora = function (M) {
+  var part = M.part, B = M.B, C = M.C, g = M.g;
+  part(C(0.018, 0.018, 0.46, 10), 0x9aa3a8, 0, 0, -0.2).rotation.x = Math.PI / 2;
+  part(B(0.13, 0.12, 0.16), 0xe0382d, 0, 0, 0.1);
+  part(B(0.05, 0.14, 0.06), 0x2b2f31, 0, -0.14, 0.1).rotation.x = -0.2;
+  M.eye(-0.035, 0.03, 0.182, 0.016, g); M.eye(0.035, 0.03, 0.182, 0.016, g);
+  var spin = new THREE.Group(); spin.position.set(0, 0, -0.44); g.add(spin); g.userData.bit = spin;
+  part(C(0.07, 0.07, 0.05, 14), 0x2b2f31, 0, 0, 0, spin).rotation.x = Math.PI / 2;
+  for (var k = 0; k < 3; k++) {
+    var a = k * Math.PI * 2 / 3;
+    part(B(0.14, 0.012, 0.02), 0x3fd27a, Math.cos(a) * 0.07, Math.sin(a) * 0.07, 0, spin).rotation.z = a;
+  }
+  M.muzzle(g, 0, 0, -0.52); M.base = [0.26, -0.24, -0.52];
+};
+
+/* Garrafa de agua fría (comun): botella azul translúcida con agua, cuello, tapón rojo al frente y asa */
+GUN_MODELS.garrafa = function (M) {
+  var part = M.part, B = M.B, C = M.C, g = M.g;
+  part(C(0.07, 0.07, 0.3, 16), 0x6ec6ff, 0, 0, 0, null, 0.7).rotation.x = Math.PI / 2;
+  part(C(0.068, 0.068, 0.12, 16), 0x2b8fd6, 0, -0.03, 0.04).rotation.x = Math.PI / 2;
+  part(C(0.032, 0.05, 0.04, 12), 0x6ec6ff, 0, 0, -0.18).rotation.x = -Math.PI / 2;
+  part(C(0.034, 0.034, 0.04, 12), 0xe0382d, 0, 0, -0.22).rotation.x = Math.PI / 2;
+  part(B(0.12, 0.03, 0.03), 0x2b8fd6, 0, 0.1, 0.02);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.13, 0.1).rotation.x = -0.2;
+  M.muzzle(g, 0, 0, -0.245); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Pistola de pegatinas (comun): pistola amarilla con rollo de pegatinas en el costado, boquilla negra con una pegatina roja y ojos */
+GUN_MODELS.pegatinas = function (M) {
+  var part = M.part, B = M.B, C = M.C, g = M.g;
+  part(B(0.09, 0.12, 0.26), 0xffd21f, 0, 0, -0.04);
+  part(C(0.055, 0.055, 0.03, 14), 0xf7f7f2, 0.052, 0.05, 0).rotation.z = Math.PI / 2;
+  part(B(0.07, 0.07, 0.1), 0x14181a, 0, 0, -0.22);
+  part(B(0.05, 0.03, 0.004), 0xe0382d, 0, 0, -0.272);
+  part(B(0.05, 0.12, 0.06), 0x14181a, 0, -0.13, 0.08).rotation.x = -0.2;
+  M.eye(-0.025, 0.03, 0.095, 0.015, g); M.eye(0.025, 0.03, 0.095, 0.015, g);
+  M.muzzle(g, 0, 0, -0.28); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Pistola de chinchetas (poco): cuerpo rojo con cargador de corcho, ranura y tres alfileres con cabeza roja al frente */
+GUN_MODELS.chinchetas = function (M) {
+  var part = M.part, B = M.B, C = M.C, S = M.S, g = M.g;
+  part(B(0.1, 0.12, 0.22), 0xe0382d, 0, 0, -0.02);
+  part(B(0.1, 0.16, 0.09), 0xc9a06a, 0, -0.1, 0.1).rotation.x = -0.15;
+  part(B(0.09, 0.02, 0.02), 0x2b2f31, 0, 0.07, -0.12);
+  for (var i = -1; i <= 1; i++) {
+    part(C(0.01, 0.01, 0.14, 8), 0xc8cfd3, i * 0.03, 0, -0.24).rotation.x = Math.PI / 2;
+    part(S(0.016, 8, 6), 0xe0382d, i * 0.03, 0, -0.32);
+  }
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.12, 0.12).rotation.x = -0.2;
+  M.eye(-0.03, 0.02, 0.1, 0.016, g); M.eye(0.03, 0.02, 0.1, 0.016, g);
+  M.muzzle(g, 0, 0, -0.34); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Móvil con Snake (épica): teléfono de teclas con pantalla verde y serpiente, antena que hace de cañón y ojos en la pantalla */
+GUN_MODELS.snake = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, g = M.g;
+  part(B(0.12, 0.22, 0.05), 0x2b2f31, 0, 0, 0);
+  part(B(0.08, 0.08, 0.004), 0x9bcf6b, 0, 0.05, 0.027);
+  glow(B(0.012, 0.012, 0.004), 0x2f4a1f, -0.03, 0.02, 0.03); glow(B(0.012, 0.012, 0.004), 0x2f4a1f, -0.015, 0.02, 0.03);
+  for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) part(B(0.02, 0.012, 0.004), 0xdfe6ea, -0.025 + c * 0.025, -0.04 - r * 0.025, 0.027);
+  part(C(0.008, 0.008, 0.2, 8), 0x14181a, 0.03, 0.08, -0.12).rotation.x = Math.PI / 2;
+  part(B(0.05, 0.12, 0.05), 0x2b2f31, 0, -0.17, 0);
+  glow(B(0.012, 0.012, 0.004), 0x3fd27a, -0.04, 0.09, 0.03);
+  M.eye(-0.02, 0.055, 0.03, 0.013, g); M.eye(0.02, 0.055, 0.03, 0.013, g);
+  M.muzzle(g, 0.03, 0.08, -0.225); M.base = [0.26, -0.22, -0.5];
+};
+
+/* Mando a distancia (poco): mando negro con botones de colores y teclado, emisor infrarrojo azul al frente y empuñadura */
+GUN_MODELS.mando = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, S = M.S, g = M.g;
+  part(B(0.08, 0.035, 0.3), 0x2b2f31, 0, 0, -0.05);
+  var cols = [0xe0382d, 0x3fd27a, 0x2f7fb8, 0xffd21f];
+  for (var i = 0; i < 4; i++) part(B(0.014, 0.008, 0.014), cols[i], -0.02 + (i % 2) * 0.04, 0.02, -0.15 + Math.floor(i / 2) * 0.04);
+  for (var j = 0; j < 6; j++) part(B(0.012, 0.008, 0.012), 0x9aa3a8, -0.025 + (j % 3) * 0.025, 0.02, Math.floor(j / 3) * 0.03);
+  glow(S(0.013, 8, 6), 0x7fe8ff, 0, 0, -0.21);
+  part(B(0.05, 0.13, 0.06), 0x2b2f31, 0, -0.1, 0.1).rotation.x = -0.25;
+  M.muzzle(g, 0, 0, -0.22); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Calculadora científica (comun): carcasa gris con pantalla LCD verde, teclas de colores y boquilla al frente con ojos */
+GUN_MODELS.calcu = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, g = M.g;
+  part(B(0.12, 0.04, 0.24), 0x3a4044, 0, 0, -0.02);
+  glow(B(0.09, 0.004, 0.05), 0x9bcf6b, 0, 0.022, 0.07);
+  for (var r = 0; r < 3; r++) for (var c = 0; c < 4; c++) part(B(0.018, 0.008, 0.016), (r + c) % 3 === 0 ? 0xff9a1f : 0xdfe6ea, -0.036 + c * 0.024, 0.024, -0.06 + r * 0.03);
+  part(B(0.06, 0.06, 0.06), 0x2b2f31, 0, -0.01, -0.17);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.13, 0.1).rotation.x = -0.2;
+  M.eye(-0.02, 0, -0.2, 0.014, g); M.eye(0.02, 0, -0.2, 0.014, g);
+  M.muzzle(g, 0, -0.01, -0.22); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Tirachinas de facturas (comun): horquilla de madera con goma roja, bolsa con una factura blanca y ojos en el mango */
+GUN_MODELS.tirachinas = function (M) {
+  var part = M.part, B = M.B, S = M.S, g = M.g, wood = 0x6b4a2b;
+  part(B(0.05, 0.13, 0.06), wood, 0, -0.1, 0.08).rotation.x = -0.2;
+  part(B(0.02, 0.28, 0.02), wood, -0.04, 0.09, -0.07).rotation.set(-0.9, 0, 0.25);
+  part(B(0.02, 0.28, 0.02), wood, 0.04, 0.09, -0.07).rotation.set(-0.9, 0, -0.25);
+  part(S(0.018, 8, 6), wood, -0.08, 0.15, -0.2);
+  part(S(0.018, 8, 6), wood, 0.08, 0.15, -0.2);
+  part(B(0.16, 0.008, 0.008), 0xe0382d, 0, 0.15, -0.2);
+  part(B(0.06, 0.004, 0.04), 0xf1efe6, 0, 0.13, -0.2);
+  M.eye(-0.025, -0.02, 0.115, 0.016, g); M.eye(0.025, -0.02, 0.115, 0.016, g);
+  M.muzzle(g, 0, 0.13, -0.22); M.base = [0.26, -0.22, -0.5];
+};
+
+/* Bolígrafo láser de firma (legendaria): cuerpo azul, clip plateado, anilla dorada, punta de metal, botón de firma y láser rojo */
+GUN_MODELS.boligrafo = function (M) {
+  var part = M.part, glow = M.glow, B = M.B, C = M.C, T = M.T, S = M.S, g = M.g;
+  part(C(0.03, 0.03, 0.4, 14), 0x1d5ca8, 0, 0, -0.04).rotation.x = Math.PI / 2;
+  part(B(0.006, 0.02, 0.22), 0xdfe6ea, 0.028, 0.012, -0.08);
+  part(T(0.03, 0.006, 6, 14), 0xf5c542, 0, 0, -0.2);
+  part(C(0.012, 0.03, 0.08, 10), 0xdfe6ea, 0, 0, -0.28).rotation.x = -Math.PI / 2;
+  part(S(0.012, 8, 6), 0xf5c542, 0, 0, 0.17);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.1, 0.1).rotation.x = -0.2;
+  glow(S(0.008, 8, 6), 0xff3b3b, 0, 0, -0.33);
+  M.muzzle(g, 0, 0, -0.34); M.base = [0.25, -0.24, -0.5];
+};
+
+/* Corrector de estilo (rara): roller blanco con tapa roja, cinta visible en el costado, boquilla roja y ojos en la trasera */
+GUN_MODELS.corrector = function (M) {
+  var part = M.part, B = M.B, C = M.C, g = M.g;
+  part(B(0.1, 0.12, 0.26), 0xf7f7f2, 0, 0, -0.02);
+  part(B(0.104, 0.03, 0.27), 0xe0382d, 0, 0.075, -0.02);
+  part(C(0.04, 0.04, 0.02, 16), 0xdfe6ea, 0.056, -0.01, 0.04).rotation.z = Math.PI / 2;
+  part(B(0.05, 0.05, 0.1), 0xe0382d, 0, -0.01, -0.2);
+  part(B(0.05, 0.12, 0.06), 0x2b2f31, 0, -0.13, 0.1).rotation.x = -0.2;
+  M.eye(-0.025, 0.02, 0.12, 0.016, g); M.eye(0.025, 0.02, 0.12, 0.016, g);
+  M.muzzle(g, 0, -0.01, -0.27); M.base = [0.26, -0.24, -0.5];
+};
+
+/* Revólver del conserje (poco): armazón de metal, tambor con seis recámaras, cañón, martillo, guardamonte y empuñadura de madera */
+GUN_MODELS.revolver = function (M) {
+  var part = M.part, B = M.B, C = M.C, g = M.g, wood = 0x6b4a2b;
+  part(B(0.09, 0.09, 0.2), 0x3b4348, 0, 0, -0.02);
+  part(C(0.02, 0.02, 0.2, 10), 0x2b2f31, 0, 0.01, -0.22).rotation.x = Math.PI / 2;
+  part(C(0.05, 0.05, 0.08, 14), 0x9aa3a8, 0, 0, -0.04).rotation.x = Math.PI / 2;
+  for (var h = 0; h < 6; h++) {
+    var a = h * Math.PI / 3;
+    part(C(0.012, 0.012, 0.09, 8), 0x14181a, Math.cos(a) * 0.03, Math.sin(a) * 0.03, -0.04).rotation.x = Math.PI / 2;
+  }
+  part(B(0.024, 0.05, 0.03), 0x2b2f31, 0, 0.07, 0.09);
+  part(B(0.012, 0.03, 0.08), 0x2b2f31, 0, -0.07, 0.02);
+  part(B(0.06, 0.16, 0.09), wood, 0, -0.12, 0.1).rotation.x = -0.2;
+  M.eye(-0.02, 0.02, 0.085, 0.014, g); M.eye(0.02, 0.02, 0.085, 0.014, g);
+  M.muzzle(g, 0, 0.01, -0.33); M.base = [0.26, -0.24, -0.5];
+};
+
 /* ---------------- Rareza y mejoras: aspecto del arma ----------------
    Borde de color (casco invertido) según la rareza. Las mejoras (G.pap, 1 a 3) suben el brillo de las piezas,
    el neón del borde y las luces (sprites), hasta el tope de la rareza (cap). Sin PointLights: solo materiales y sprites. */
@@ -2005,10 +2471,8 @@ function addGunFx(g, kind) {
     }
   });
   if (ri >= 2) { var ms = glowSprite(rs.hex, 0.12 + 0.03 * ri, 0.55); g.userData.muzzle.add(ms); fx.lights.push({ s: ms, ph: 0, mz: true }); }
-  if (rs.aura) {
-    fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.position.set(0, 0, -0.15); g.add(fx.aura);
-    for (var i = 0; i < 6; i++) { var o = glowSprite(0xfff1b0, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * 1.047, sp: 1.4 + (i % 3) * 0.35 }); }
-  }
+  if (rs.aura) { fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.position.set(0, 0, -0.15); g.add(fx.aura); }
+  if (rs.orbit) { for (var i = 0; i < 6; i++) { var o = glowSprite(0xfff1b0, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * 1.047, sp: 1.4 + (i % 3) * 0.35 }); } }
   g.userData.fx = fx;
   applyGunLook(g);
 }
@@ -4070,7 +4534,7 @@ function applyPickup(p, byAlly) {
   else if (p.kind === 'cafe') { G.rapid = 8; toast(who + 'CAFÉ · DISPARO RÁPIDO'); }
   else if (p.kind === 'bambu') { G.bambu = Math.min(5, (G.bambu || 0) + 1); toast(who + 'BAMBÚ · ALIMENTO DE BAO'); }
   else if (p.kind === 'chatgpt') { G.rapid = 10; toast(who + 'CHAT IA · CATALIZADOR · DISPARO RÁPIDO'); }
-  else if (MUN_INFO[p.kind]) { var mc = MUN_INFO[p.kind].cat, got = giveAmmo(mc); toast(who + 'MUNICIÓN ' + CAT_NAME[mc].toUpperCase() + (got ? ' · +' + AMMO_PICK[mc] + ' POR ARMA' : ammoWeaponsIn(mc).length ? ' · RESERVAS LLENAS' : ' · NO TIENES ARMA DE ESTA CATEGORÍA')); }
+  else if (MUN_INFO[p.kind]) { var mc = MUN_INFO[p.kind].cat, got = giveAmmo(mc); toast(who + 'MUNICIÓN ' + CAT_NAME[mc].toUpperCase() + (got ? ' · UN CARGADOR POR ARMA' : ammoWeaponsIn(mc).length ? ' · RESERVAS LLENAS' : ' · NO TIENES ARMA DE ESTA CATEGORÍA')); }
   else { G.shield = 6; toast(who + 'SUBSIDIO · INVULNERABLE'); }
   if (byAlly) setEmote('+', '#2f9e5a', 1.2);
 }
@@ -4535,8 +4999,8 @@ var interactEl = $('interact');
 function updateInteract(dt) {
   var t = null;
   if (G.mode === 'survival' && G.state === 'playing') {
-    if (boxG && boxG.visible) boxG.position.y = 0.08 * Math.sin(G.t * 2.4);
-    if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) t = 'E · CAJA MISTERIOSA · 950 PUNTOS';
+    BOXK.forEach(function (k) { var b = BOXES[k]; if (b && b.g.visible) b.g.position.y = 0.08 * Math.sin(G.t * 2.4 + (k === 'principal' ? 0 : 1.6)); });
+    var bn = nearBox(); if (bn) t = 'E · CAJA DE ' + BOXT[bn].name + ' · ' + BOXT[bn].cost + ' PUNTOS';
     for (var i = 0; i < PERKM.length && !t; i++) {
       var m = PERKM[i];
       if (!m.g || !m.g.visible) continue;
@@ -5218,11 +5682,12 @@ function netOnReq(msg) {
       NG.r.emit('ev', { t: 'took', to: msg.peer, k: pk.kind }).catch(function () {}); break;
     }
   } else if (d.t === 'box') {
-    if (G.score < 950) { netGrantTo(msg.peer, { err: 'CAJA · OS FALTAN PUNTOS (950)' }); return; }
-    G.score -= 950;
-    var pool = WORDER.filter(function (w) { return w !== d.cur && weaponAllowed(w); }), k = pool.length ? pick(pool) : 'grapadora';
-    var nx = boxSpot; while (nx === boxSpot && BOX_SPOTS[curLoc].length > 1) nx = Math.floor(Math.random() * BOX_SPOTS[curLoc].length);
-    moveBoxTo(nx); netGrantTo(msg.peer, { w: k });
+    var bk = BOXK.indexOf(d.bt) >= 0 ? d.bt : null; if (!bk) return;
+    var bt = BOXT[bk];
+    if (G.score < bt.cost) { netGrantTo(msg.peer, { err: 'CAJA DE ' + bt.name + ' · OS FALTAN PUNTOS (' + bt.cost + ')' }); return; }
+    G.score -= bt.cost;
+    var k = boxRoll(bt.cat, d.cur);
+    moveBoxTo(bk, nextBoxSpot(bk)); netGrantTo(msg.peer, { w: k });
   } else if (d.t === 'perk') {
     var m = PERKM.filter(function (x) { return x.k === d.k; })[0]; if (!m) return;
     var plv = d.lv | 0, pcost = m.k === 'pap' ? papCost(plv) : m.cost;
@@ -5246,7 +5711,7 @@ function netGrant(d) {
   if (WEAPONS[d.w]) { G.owned[d.w] = 1; refillWeapon(d.w); trySelect(d.w); sfx.pickup(); toast('CAJA · ' + WEAPONS[d.w].name.toUpperCase()); }
 }
 function netUseBox() {
-  if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) { NG.r.emit('req', { t: 'box', cur: G.wcur }).catch(function () {}); return; }
+  var bk = nearBox(); if (bk) { NG.r.emit('req', { t: 'box', bt: bk, cur: G.wcur }).catch(function () {}); return; }
   for (var i = 0; i < PERKM.length; i++) {
     var m = PERKM[i];
     if (m.k === 'pap' && G.wcur === 'punos') continue;
@@ -5265,7 +5730,7 @@ function netUseBox() {
 function netSendSnap() {
   var s = { w: G.wave, sc: G.score, k: G.kills, e: [], a: [], p: [], pk: [], h: NG.hurtBuf, br: BARRI.map(function (b) { return Math.ceil(b.hp); }) };
   NG.hurtBuf = {};
-  if (boxG && boxG.visible) s.bx = [r1(boxG.position.x), r1(boxG.position.z)];
+  BOXK.forEach(function (k) { var b = BOXES[k]; if (b && b.g.visible) s[k === 'principal' ? 'bx' : 'bs'] = [r1(b.g.position.x), r1(b.g.position.z)]; });
   G.enemies.forEach(function (e) { s.e.push([e.id, e.kind, r1(e.x), r1(e.z), Math.max(1, Math.round(e.hp / e.maxHp * 100)), e.tint !== 0xffffff ? 1 : 0]); });
   if (!netClaimed('aliado') && ally.g) s.a.push(['aliado', r1(ally.x), r1(ally.z), ally.down ? 1 : 0, Math.round(ally.hp)]);
   MATES.forEach(function (m) { if (mateIn(m)) s.a.push([m.key, r1(m.x), r1(m.z), m.down ? 1 : 0, Math.round(m.hp)]); });
@@ -5301,7 +5766,7 @@ function netOnSnap(msg) {
   });
   Object.keys(NG.pks).forEach(function (id) { if (!sp[id]) { scene.remove(NG.pks[id].g); delete NG.pks[id]; } });
   if (d.h && NG.me && d.h[NG.me]) hurtPlayer(Math.min(200, +d.h[NG.me] || 0));
-  if (Array.isArray(d.bx) && boxG) { boxG.position.set(+d.bx[0] || 0, 0, +d.bx[1] || 0); boxG.visible = true; }
+  BOXK.forEach(function (k) { var b = BOXES[k], a = d[k === 'principal' ? 'bx' : 'bs']; if (b && Array.isArray(a)) { b.g.position.set(+a[0] || 0, 0, +a[1] || 0); b.g.visible = true; } });
   if (Array.isArray(d.br)) BARRI.forEach(function (b, i) { var v = +d.br[i]; if (isFinite(v) && b.hp !== v) { b.hp = v; barriVis(b); } });
 }
 function netKillFx(e) {
@@ -5556,18 +6021,37 @@ function loadSave() {
 }
 function clearSave() { try { localStorage.removeItem('nini-save'); } catch (e) {} }
 
-var boxG = null;
+/* Cajas de armas (Zombies): dos tipos, cada uno con su color y su etiqueta. La de principales cuesta más y solo da principales;
+   la de secundarias, menos y solo da secundarias. Las dos usan el mismo pool de rareza (RARITY_STATS.pool). */
+var BOXK = ['principal', 'secundaria'];
+var BOXT = {
+  principal: { name: 'PRINCIPALES', cat: 'principal', cost: 1000, css: '#f2b632', body: 0x7a2418, lid: 0xb8432f, band: 0xf2b632, mm: '#f2b632' },
+  secundaria: { name: 'SECUNDARIAS', cat: 'secundaria', cost: 500, css: '#59b8ff', body: 0x1f4c78, lid: 0x3d7fbf, band: 0x59b8ff, mm: '#59b8ff' }
+};
+var BOXES = {};
+/* Etiqueta de la caja: tipo y precio, en el color del tipo */
+function boxSign(t) {
+  var c = mkCanvas(512, 180), x = c.getContext('2d');
+  x.fillStyle = '#0f1412'; x.fillRect(0, 0, 512, 180); x.strokeStyle = t.css; x.lineWidth = 8; x.strokeRect(4, 4, 504, 172);
+  x.textAlign = 'center'; x.fillStyle = t.css; x.font = '46px Anton, Impact, sans-serif'; x.fillText('CAJA DE ' + t.name, 256, 74);
+  x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText(t.cost + ' PUNTOS · E', 256, 134);
+  return c;
+}
 function buildBox() {
-  if (!boxG) {
-    boxG = new THREE.Group();
-    var body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.9, 0.9), new THREE.MeshLambertMaterial({ color: 0x3d5a2a })); body.position.y = 0.45; boxG.add(body);
-    var lid = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.14, 0.96), new THREE.MeshLambertMaterial({ color: 0x6e8f3a })); lid.position.y = 0.97; boxG.add(lid);
-    var band = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.92, 0.94), new THREE.MeshLambertMaterial({ color: 0xe0382d })); band.position.y = 0.45; boxG.add(band);
-    var sign = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.3), new THREE.MeshBasicMaterial({ map: tex(posterCanvas('CAJA', '950 PUNTOS · E', '#e0382d')) }));
-    sign.position.set(0, 1.35, 0); boxG.add(sign);
-  }
-  if (!boxG.parent) scene.add(boxG);
-  boxG.visible = false;
+  BOXK.forEach(function (k) {
+    var t = BOXT[k], b = BOXES[k];
+    if (!b) {
+      var g = new THREE.Group();
+      var body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.9, 0.9), new THREE.MeshLambertMaterial({ color: t.body })); body.position.y = 0.45; g.add(body);
+      var lid = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.14, 0.96), new THREE.MeshLambertMaterial({ color: t.lid })); lid.position.y = 0.97; g.add(lid);
+      var band = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.92, 0.94), new THREE.MeshLambertMaterial({ color: t.band })); band.position.y = 0.45; g.add(band);
+      var sign = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.32), new THREE.MeshBasicMaterial({ map: tex(boxSign(t)) }));
+      sign.position.set(0, 1.35, 0); g.add(sign);
+      b = BOXES[k] = { g: g, spot: 0, t: t };
+    }
+    if (!b.g.parent) scene.add(b.g);
+    b.g.visible = false;
+  });
 }
 var PERKM = [
   { k: 'vida', name: 'VIDA', sub: '+40 de nini · 2000', cost: 2000, c: 0x2f9e5a, x: 8, z: -8 },
@@ -5706,15 +6190,15 @@ function buyPerk(m) {
 function useBox() {
   if (G.mode !== 'survival' || G.state !== 'playing' || P.down) return;
   if (G.online && !NG.host) { netUseBox(); return; }
-  if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) {
-    if (G.score < 950) { toast('CAJA · NECESITAS 950 PUNTOS'); sfx.empty(); return; }
-    G.score -= 950;
-    var pool = WORDER.filter(function (w) { return w !== G.wcur && weaponAllowed(w); });
-    var k = pool.length ? pick(pool) : 'grapadora';
+  var bk = nearBox();
+  if (bk) {
+    var bt = BOXT[bk];
+    if (G.score < bt.cost) { toast('CAJA DE ' + bt.name + ' · NECESITAS ' + bt.cost + ' PUNTOS'); sfx.empty(); return; }
+    G.score -= bt.cost;
+    var k = boxRoll(bt.cat, G.wcur);
     G.owned[k] = 1; refillWeapon(k); trySelect(k); sfx.pickup();
     toast('CAJA · ' + WEAPONS[k].name.toUpperCase());
-    var nxt = boxSpot; while (nxt === boxSpot && BOX_SPOTS[curLoc].length > 1) nxt = Math.floor(Math.random() * BOX_SPOTS[curLoc].length);
-    moveBoxTo(nxt);
+    moveBoxTo(bk, nextBoxSpot(bk));
     return;
   }
   for (var i = 0; i < PERKM.length; i++) {
@@ -5733,11 +6217,11 @@ function startSurvival() {
   applyStats(); initAmmo(); resetPlayerState(); G.score = 0; G.kills = 0; G.phase = 0;
   applyTheme(0); G.state = 'playing'; selectGun('grapadora'); showOnly(''); $('hud').hidden = false;
   loadZombieMap(1);
-  startWave(1); requestLock(); toast('ZOMBIES · Caja misteriosa abajo a la izquierda · E');
+  startWave(1); requestLock(); toast('ZOMBIES · Dos cajas de armas en el mapa · E para comprar');
 }
 function startStory(fresh) {
   if (fresh) G.branch = null;
-  initAudio(); startMusic(); if (boxG) boxG.visible = false; setPerkVis(false); unbarri();
+  initAudio(); startMusic(); BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
   G.mode = 'story'; seenKinds = {}; G.bambu = 0;
   /* Las mejoras de arma y las ventajas de Zombies no pasan a la historia */
@@ -5915,7 +6399,7 @@ function renderShop() {
   WORDER.forEach(function (k) {
     var d = WEAPONS[k]; if (k === 'grapadora') return;
     var owned = !!G.owned[k], can = G.euros >= d.price;
-    w += '<div class="item" style="--rc:' + rarityOf(k).css + ';border-top:6px solid ' + rarityOf(k).css + '"><span class="rar">' + rarityOf(k).label + '</span><div class="iname">' + d.name + '</div><div class="idesc">' + d.desc + '</div>' +
+    w += '<div class="item" style="--rc:' + rarityOf(k).css + ';border-top:6px solid ' + rarityOf(k).css + '"><div class="ihead"><span class="rar">' + rarityOf(k).label + '</span><span class="icat">' + CAT_NAME[catOf(k)] + '</span></div><div class="iname">' + d.name + '</div><div class="idesc">' + d.desc + '</div>' +
       '<button class="buy' + (owned ? ' owned' : '') + '" data-w="' + k + '"' + ((owned || !can) ? ' disabled' : '') + '>' + (owned ? 'COMPRADA' : 'COMPRAR · ' + d.price + ' €') + '</button></div>';
   });
   $('shopW').innerHTML = w;
@@ -6123,7 +6607,7 @@ function minimapTick(dt) {
   x.drawImage(mmBg(), 0, 0);
   G.pickups.forEach(function (p) { mmDot(x, p.x, p.z, 6, '#ffd27a'); });
   if (G.online) Object.keys(NG.pks).forEach(function (id) { mmDot(x, NG.pks[id].x, NG.pks[id].z, 6, '#ffd27a'); });
-  if (boxG && boxG.visible) mmSquare(x, boxG.position.x, boxG.position.z, 9, '#3d8f2a');
+  BOXK.forEach(function (k) { var b = BOXES[k]; if (b && b.g.visible) mmSquare(x, b.g.position.x, b.g.position.z, 9, b.t.mm); });
   var pap = PERKM[PERKM.length - 1];
   if (pap.g && pap.g.visible) mmSquare(x, pap.g.position.x, pap.g.position.z, 10, '#c026d3');
   for (i = 0; i < G.enemies.length; i++) {
