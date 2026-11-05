@@ -1,4 +1,20 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+/* ---- Estilo épico: brillo, escaneo y animaciones ---- */
+@keyframes flick { 0%, 100% { opacity: 1; } 47% { opacity: 1; } 48% { opacity: .84; } 50% { opacity: 1; } 73% { opacity: .95; } }
+@keyframes shine { 0% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(300%) skewX(-20deg); } }
+@keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 rgba(224,56,45,0), 4px 4px 0 #000; } 50% { box-shadow: 0 0 24px rgba(224,56,45,.6), 4px 4px 0 #000; } }
+.sheet { position: relative; animation: flick 6s infinite; }
+.sheet::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; }
+.sheet h1 { text-shadow: 3px 3px 0 rgba(224,56,45,.28); }
+.btn { position: relative; overflow: hidden; transition: transform .15s, box-shadow .15s, background .2s; }
+.btn::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 35%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); transform: translateX(-120%) skewX(-20deg); pointer-events: none; }
+.btn:hover:not(:disabled)::before { animation: shine .8s ease; }
+.btn:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.mapcard:hover { transform: translateY(-3px); }
+.mapcard[aria-checked="true"] { animation: pulseGlow 2s infinite; }
+.diffbtn:hover { transform: translateY(-2px); }
+</style></head><body>
 <title>Operación Nini</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -395,6 +411,7 @@ body {
       <label class="sens" for="sensA"><span>Sensibilidad</span><input type="range" id="sensA" min="1" max="100" step="1" value="40"><b id="sensAv">40</b></label>
       <label class="sens" for="smA"><span>Suavizado</span><input type="range" id="smA" min="0" max="10" step="1" value="3"><b id="smAv">3</b></label>
       <label class="sens chk" for="invA"><input type="checkbox" id="invA"><span>Invertir eje vertical</span></label>
+      <label class="sens" for="fovA"><span>Campo de visión</span><input type="range" id="fovA" min="55" max="100" step="1" value="75"><b id="fovAv">75</b></label>
       </div>
       <div class="menu-r">
         <div id="mapPick" hidden>
@@ -462,6 +479,7 @@ body {
       <label class="sens" for="sensB"><span>Sensibilidad</span><input type="range" id="sensB" min="1" max="100" step="1" value="40"><b id="sensBv">40</b></label>
       <label class="sens" for="smB"><span>Suavizado</span><input type="range" id="smB" min="0" max="10" step="1" value="3"><b id="smBv">3</b></label>
       <label class="sens chk" for="invB"><input type="checkbox" id="invB"><span>Invertir eje vertical</span></label>
+      <label class="sens" for="fovB"><span>Campo de visión</span><input type="range" id="fovB" min="55" max="100" step="1" value="75"><b id="fovBv">75</b></label>
       <div class="btnrow">
         <button class="btn" id="btnResume">SEGUIR RECHAZANDO</button>
         <button class="btn ghost" id="btnQuit">MENÚ</button>
@@ -942,11 +960,12 @@ var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitc
 var AIM = P;
 var keys = {}, mouseDown = false, locked = false, lockFailed = false, lockErrors = 0, muted = false;
 /* Ajustes de control: sensibilidad con escala exponencial (pasos finos), suavizado de cámara e inversión del eje Y */
-var CTRL = { sens: 40, smooth: 3, invY: false };
+var CTRL = { sens: 40, smooth: 3, invY: false, fov: 75 };
 try {
   var sv = parseInt(localStorage.getItem('nini-sens2'), 10); if (sv >= 1 && sv <= 100) CTRL.sens = sv;
   var sm = parseInt(localStorage.getItem('nini-smooth'), 10); if (sm >= 0 && sm <= 10) CTRL.smooth = sm;
   CTRL.invY = localStorage.getItem('nini-invy') === '1';
+  var fv = parseInt(localStorage.getItem('nini-fov'), 10); if (fv >= 55 && fv <= 100) CTRL.fov = fv;
 } catch (e) {}
 function sensK() { return 0.0002 * Math.pow(20, (CTRL.sens - 1) / 99); } /* 1 → 0,0002 rad/px · 100 → 0,004 rad/px */
 function smoothTau() { return CTRL.smooth * 0.007; } /* constante de tiempo en segundos (0 = respuesta directa) */
@@ -3601,7 +3620,28 @@ function mateTakes(p) {
   return false;
 }
 var reviveBoxEl = $('reviveBox'), reviveLabEl = $('reviveLab'), reviveFillEl = $('reviveFill');
+/* Compañeros caídos: halo rojo que pulsa y anillo rojo en el suelo */
+function downFx(m, key) {
+  if (!m.g) return;
+  if (!m.dglow) {
+    m.dglow = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(255,40,30,1)', 'rgba(255,40,30,0)'), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.dglow.position.y = 0.9; m.dglow.visible = false; m.g.add(m.dglow);
+  }
+  if (!m.ring) {
+    m.ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.75, 32), new THREE.MeshBasicMaterial({ color: 0x7fe8ff, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
+    m.ring.rotation.x = -Math.PI / 2; m.ring.position.y = 0.04; m.g.add(m.ring);
+  }
+  if (m.down) {
+    var pulse = 0.55 + 0.45 * Math.sin(G.t * 8);
+    m.dglow.visible = true; m.dglow.material.opacity = pulse; m.dglow.scale.set(2.4 + 0.5 * pulse, 2.4 + 0.5 * pulse, 1);
+    m.ring.material.color.setHex(0xff2a1a); m.ring.material.opacity = 0.6 + 0.4 * pulse;
+  } else {
+    m.dglow.visible = false;
+    m.ring.material.color.setHex(key === 'andres' ? 0x7fe8ff : (key === 'heverton' ? 0xffd27a : 0xe0382d));
+  }
+}
 function updateRevive(dt) {
+  downFx(ally, 'aliado'); MATES.forEach(function (m) { downFx(m, m.key); });
   var list = G.online && !NG.host ? [] : [ally].concat(MATES), best = null, bd = REVIVE_R;
   if (G.online) Object.keys(NG.pup).forEach(function (k) { list.push(NG.pup[k]); });
   if (P.down) list = [];
@@ -4839,7 +4879,7 @@ function deathCam() {
   var k = Math.min(1, G.deathT / 1.3), e = 1 - Math.pow(1 - k, 3);
   camera.position.set(P.x, 1.7 + P.y - 1.3 * e, P.z);
   camera.rotation.set(P.pitch + 0.55 * e, P.yaw, 1.2 * e);
-  var f = 75 + 20 * e; if (Math.abs(camera.fov - f) > 0.1) { camera.fov = f; camera.updateProjectionMatrix(); }
+  var f = CTRL.fov + 20 * e; if (Math.abs(camera.fov - f) > 0.1) { camera.fov = f; camera.updateProjectionMatrix(); }
 }
 function crowdDeath(dt) {
   for (var i = 0; i < G.enemies.length; i++) {
@@ -4997,7 +5037,7 @@ function updatePlayer(dt) {
   P.lookVx += (lx * lspd - P.lookVx) * lk; P.lookVy += (ly * lspd - P.lookVy) * lk;
   P.yawT += P.lookVx * dt; P.pitchT = clamp(P.pitchT + P.lookVy * dt, -1.5, 1.5);
   lookSmoothing(dt);
-  var targetFov = sprint && moving ? 80 : 75;
+  var targetFov = sprint && moving ? CTRL.fov + 5 : CTRL.fov;
   if (Math.abs(camera.fov - targetFov) > 0.1) { camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8); camera.updateProjectionMatrix(); }
 }
 function updateWeapon(dt) {
@@ -5105,10 +5145,12 @@ function syncCtrl() {
     $('sens' + n).value = CTRL.sens; $('sens' + n + 'v').textContent = CTRL.sens;
     $('sm' + n).value = CTRL.smooth; $('sm' + n + 'v').textContent = CTRL.smooth;
     $('inv' + n).checked = CTRL.invY;
+    $('fov' + n).value = CTRL.fov; $('fov' + n + 'v').textContent = CTRL.fov;
   });
+  camera.fov = CTRL.fov; camera.updateProjectionMatrix();
   try {
     localStorage.setItem('nini-sens2', String(CTRL.sens)); localStorage.setItem('nini-smooth', String(CTRL.smooth));
-    localStorage.setItem('nini-invy', CTRL.invY ? '1' : '0');
+    localStorage.setItem('nini-invy', CTRL.invY ? '1' : '0'); localStorage.setItem('nini-fov', String(CTRL.fov));
   } catch (e) {}
 }
 function setSens(v) { CTRL.sens = clamp(v | 0, 1, 100); syncCtrl(); }
@@ -5116,6 +5158,7 @@ function setSens(v) { CTRL.sens = clamp(v | 0, 1, 100); syncCtrl(); }
   $('sens' + n).addEventListener('input', function (e) { setSens(parseInt(e.target.value, 10)); });
   $('sm' + n).addEventListener('input', function (e) { CTRL.smooth = clamp(parseInt(e.target.value, 10) | 0, 0, 10); syncCtrl(); });
   $('inv' + n).addEventListener('change', function (e) { CTRL.invY = e.target.checked; syncCtrl(); });
+  $('fov' + n).addEventListener('input', function (e) { CTRL.fov = clamp(parseInt(e.target.value, 10) | 0, 55, 100); syncCtrl(); });
 });
 $('btnStory').addEventListener('click', function () { startStory(false); });
 $('btnNew').addEventListener('click', function () { startStory(true); });
