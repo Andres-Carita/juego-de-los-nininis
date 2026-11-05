@@ -96,6 +96,8 @@ body {
 .br { position: absolute; right: 14px; bottom: 14px; width: 252px; text-align: right; text-shadow: 0 2px 4px #000; }
 .br .big { font-family: var(--disp); font-size: 52px; line-height: 1; font-variant-numeric: tabular-nums; }
 .br .big span { font-size: 28px; color: var(--muted); }
+/* Cargador: el número principal, a tamaño del bloque y en color claro; la reserva (/ n) queda atenuada */
+#ammoNow { font-size: 1em; color: var(--paper); }
 .br .sub { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--paper-2); }
 /* Selector de armas: una fila por categoría (principal, secundaria, cuerpo a cuerpo); la categoría activa va en papel */
 .wlist { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; text-align: left; }
@@ -1084,23 +1086,23 @@ var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La l
 /* ---------------- Armas y mejoras ---------------- */
 var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos'];
 var WEAPONS = {
-  grapadora: { name: 'Grapadora', short: 'Grapadora', rarity: 'comun', type: 'hitscan', mag: 20, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
+  grapadora: { name: 'Grapadora', short: 'Grapadora', rarity: 'comun', type: 'hitscan', mag: 20, reserve: 60, maxReserve: 120, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
     desc: 'Arma inicial. Cadencia media y munición de sobra.' },
-  sellos: { name: 'Sellador de expedientes', short: 'Sellador', rarity: 'poco', type: 'hitscan', mag: 12, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
+  sellos: { name: 'Sellador de expedientes', short: 'Sellador', rarity: 'poco', type: 'hitscan', mag: 12, reserve: 24, maxReserve: 48, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
     desc: 'Sella cada oferta con un golpe seco: RECHAZADA. Mucho daño por disparo.' },
-  taladro: { name: 'Taladro de oficina', short: 'Taladro', rarity: 'poco', type: 'spray', mag: 40, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
+  taladro: { name: 'Taladro de oficina', short: 'Taladro', rarity: 'poco', type: 'spray', mag: 40, reserve: 80, maxReserve: 160, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
     desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
-  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', rarity: 'rara', type: 'pellets', mag: 10, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
+  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', rarity: 'rara', type: 'pellets', mag: 10, reserve: 30, maxReserve: 60, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
     desc: 'Sopla a todo el mundo hacia atrás. No hace daño, pero se nota.' },
-  bao: { name: 'Bao, el panda lechero', short: 'Bao', rarity: 'rara', type: 'pellets', mag: 5, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
+  bao: { name: 'Bao, el panda lechero', short: 'Bao', rarity: 'rara', type: 'pellets', mag: 5, reserve: 0, maxReserve: 0, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
     desc: 'Un panda que escupe leche. No se recarga con balas: alimentalo con bambú (tecla R).' },
-  leche: { name: 'Leche de Raúl Becas', short: 'Leche', rarity: 'poco', type: 'pellets', mag: 6, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
+  leche: { name: 'Leche de Raúl Becas', short: 'Leche', rarity: 'poco', type: 'pellets', mag: 6, reserve: 18, maxReserve: 36, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
     desc: 'Un vaso de leche que lanza grumos en abanico. Corta distancia y mucho daño.' },
-  trituradora: { name: 'Trituradora', short: 'Trituradora', rarity: 'comun', type: 'spray', mag: 80, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
+  trituradora: { name: 'Trituradora', short: 'Trituradora', rarity: 'comun', type: 'spray', mag: 80, reserve: 160, maxReserve: 320, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
     desc: 'Tritura papel a ráfagas. Alcance corto y cadencia enorme.' },
-  pizza: { name: 'Cañón de Pizza', short: 'Pizza', rarity: 'comun', type: 'explosive', mag: 4, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
+  pizza: { name: 'Cañón de Pizza', short: 'Pizza', rarity: 'comun', type: 'explosive', mag: 4, reserve: 8, maxReserve: 16, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
     desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' },
-  punos: { name: 'Puños', short: 'Puños', rarity: 'comun', type: 'melee', mag: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
+  punos: { name: 'Puños', short: 'Puños', rarity: 'comun', type: 'melee', mag: 0, reserve: 0, maxReserve: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
     desc: 'Sin balas ni cajas: golpes cortos a todo lo que tengas delante.' }
 };
 /* Rareza: raíz fija de cada arma (no sube). Multiplica sus estadísticas base. cap = aspecto máximo con mejoras (1 brillo, 2 neón, 3 luces); la legendaria tiene efectos propios (aura y órbita). */
@@ -1133,7 +1135,7 @@ function catOf(k) { return WEAPON_CAT[k] || 'secundaria'; }
 function allKeys() { return WORDER.concat(['punos']); }
 var UPGRADES = [
   { k: 'dmg', name: 'Grapas de titanio', desc: '+25% de daño por nivel.', costs: [120, 200, 300, 450] },
-  { k: 'mag', name: 'Cargador extendido', desc: '+25% de munición por nivel.', costs: [80, 140, 220] },
+  { k: 'mag', name: 'Cargador extendido', desc: '+25% de balas en el cargador por nivel.', costs: [80, 140, 220] },
   { k: 'rel', name: 'Recarga exprés', desc: '-20% de tiempo de recarga por nivel.', costs: [80, 140, 220] },
   { k: 'speed', name: 'Zapatillas de sofá', desc: '+8% de velocidad por nivel.', costs: [100, 180, 260] },
   { k: 'hp', name: 'Sofá ergonómico', desc: '+20 de nivel de nini máximo por nivel y cura al comprar.', costs: [120, 200, 300] },
@@ -1142,7 +1144,7 @@ var UPGRADES = [
 
 /* ---------------- Estado ---------------- */
 var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0, scoreSnap: 0, killSnap: 0,
-  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1, punos: 1 }, lastW: {}, punchT: 0, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
+  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, reserve: {}, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1, punos: 1 }, lastW: {}, punchT: 0, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
   reload: 0, reloadT: 1, fireCd: 0, rapid: 0, shield: 0, combo: 0, comboT: 0, toSpawn: [], spawnT: 0, waveDone: false, waveBreak: 0,
   enemies: [], hazards: [], pickups: [], fx: [], tracers: [], proj: [], eproj: [], radioAt: -99, hurtT: 0, shake: 0, recoil: 0, flash: 0, t: 0, lowWarn: false };
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
@@ -1167,7 +1169,68 @@ function magSize(k) { return Math.ceil(WEX[k].mag * (1 + 0.25 * G.upg.mag)); }
 function dmgMult() { return 1 + 0.25 * G.upg.dmg; }
 function reloadTime() { return WEAPONS[G.wcur].reload * (1 - 0.2 * G.upg.rel) * (G.perks.recarga ? 0.7 : 1); }
 function applyStats() { G.maxHp = 100 + 20 * G.upg.hp + (G.perks.vida ? 40 : 0); }
-function initAmmo() { WORDER.forEach(function (k) { G.ammoMap[k] = magSize(k); }); }
+function initAmmo() { WORDER.forEach(function (k) { G.ammoMap[k] = magSize(k); G.reserve[k] = WEAPONS[k].reserve | 0; }); }
+/* ---------------- Munición de reserva ----------------
+   Cada arma tiene su cargador (G.ammoMap) y su reserva (G.reserve, con tope WEAPONS.maxReserve). La munición no se compra:
+   los enemigos la sueltan al azar, y cada pickup da una cantidad fija a cada arma de su categoría que usa munición.
+   Bao se alimenta con bambú y los puños no usan munición. */
+var AMMO_PICK = { principal: 8, secundaria: 12 };
+var AMMO_DROP = 0.1; /* probabilidad base por enemigo abatido (se multiplica por DF().drop) */
+var MUN_INFO = {
+  munP: { cat: 'principal', label: 'PRINCIPAL', css: '#ff5c8a', hex: 0xff5c8a },
+  munS: { cat: 'secundaria', label: 'SECUNDARIA', css: '#59b8ff', hex: 0x59b8ff }
+};
+var MUN_KIND = { principal: 'munP', secundaria: 'munS' };
+var MUN_TEX = {};
+/* Arma que gasta munición de reserva (no los puños ni Bao) */
+function usesAmmo(k) { return WEAPONS[k].type !== 'melee' && k !== 'bao' && (WEAPONS[k].maxReserve | 0) > 0; }
+function ammoOf(k) { return (G.ammoMap[k] | 0) + (G.reserve[k] | 0); }
+/* Arma nueva o de caja: cargador lleno y, si no tenía reserva, su reserva inicial */
+function refillWeapon(k) { G.ammoMap[k] = magSize(k); if (usesAmmo(k)) G.reserve[k] = Math.max(G.reserve[k] | 0, WEAPONS[k].reserve | 0); }
+/* Reparte un pickup de munición entre las armas de su categoría que el jugador tiene. Devuelve cuántas subieron */
+function giveAmmo(c) {
+  var n = 0;
+  allKeys().forEach(function (k) {
+    if (catOf(k) !== c || !G.owned[k] || !usesAmmo(k)) return;
+    var before = G.reserve[k] | 0, after = Math.min(WEAPONS[k].maxReserve, before + AMMO_PICK[c]);
+    G.reserve[k] = after; if (after > before) n++;
+  });
+  return n;
+}
+/* Recarga terminada: el cargador se llena desde la reserva */
+function reloadNow() {
+  var k = G.wcur, take = Math.min(magSize(k) - (G.ammoMap[k] | 0), G.reserve[k] | 0);
+  if (take > 0) { G.ammoMap[k] = (G.ammoMap[k] | 0) + take; G.reserve[k] -= take; }
+}
+/* Pickup que necesita el arma en mano si se queda sin cargador y sin reserva (Bao: bambú) */
+function starvedKind() {
+  var k = G.wcur;
+  if (k === 'bao') return (G.ammoMap.bao | 0) === 0 && !(G.bambu > 0) ? 'bambu' : null;
+  if (!usesAmmo(k)) return null;
+  return ammoOf(k) === 0 ? MUN_KIND[catOf(k)] : null;
+}
+/* Al morir un enemigo: munición de una categoría que el jugador tiene, con probabilidad que escala con DF().drop.
+   Si el arma en mano está vacía, el siguiente enemigo la suelta seguro (sin acumular más de un pickup de ese tipo). */
+function dropAmmo(x, z) {
+  var need = starvedKind();
+  if (need) { if (!G.pickups.some(function (p) { return p.kind === need; })) dropPickup(need, x, z); return; }
+  var cats = CATS.filter(function (c) { return MUN_KIND[c] && allKeys().some(function (k) { return catOf(k) === c && G.owned[k] && usesAmmo(k); }); });
+  if (cats.length && Math.random() < AMMO_DROP * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(MUN_KIND[pick(cats)], x, z);
+}
+/* Caja de munición con su etiqueta (una textura por categoría, reutilizada) */
+function munCrate(kind) {
+  var mi = MUN_INFO[kind];
+  if (!MUN_TEX[kind]) {
+    var c = mkCanvas(256, 256), x = c.getContext('2d');
+    x.fillStyle = '#14181a'; x.fillRect(0, 0, 256, 256);
+    x.fillStyle = mi.css; x.fillRect(0, 0, 256, 54); x.fillRect(0, 202, 256, 54);
+    x.textAlign = 'center'; x.fillStyle = '#14181a'; x.font = '36px Anton, Impact, sans-serif'; x.fillText('MUNICIÓN', 128, 42);
+    x.fillStyle = mi.css; x.font = '44px Anton, Impact, sans-serif'; x.fillText(mi.label, 128, 150, 236);
+    x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('+' + AMMO_PICK[mi.cat] + ' POR ARMA', 128, 234, 236);
+    MUN_TEX[kind] = tex(c);
+  }
+  return new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ map: MUN_TEX[kind] }));
+}
 
 /* ---------------- Audio ---------------- */
 var AC = null, master = null, noiseBuf = null, humOsc = null;
@@ -2957,7 +3020,7 @@ function buildWorld() {
 function clearFlash() { G.flash = 0; if (flashSprite) flashSprite.visible = false; if (flashLight) flashLight.intensity = 0; }
 function selectGun(k) {
   for (var gk in guns) guns[gk].visible = false;
-  clearFlash();
+  clearFlash(); G.reload = 0;
   G.wcur = k; var g = guns[k]; g.visible = (G.state !== 'menu');
   curMuzzle = g.userData.muzzle; curMuzzle.add(flashSprite); curMuzzle.add(flashLight);
   flashSprite.position.set(0, 0, 0); flashLight.position.set(0, 0, -0.1);
@@ -3060,10 +3123,11 @@ function updateHud() {
   el.blHp.classList.toggle('low', low);
   if (Hc.hudlow !== low) { Hc.hudlow = low; $('hud').classList.toggle('low', low); }
   setText('warn', el.hpWarn, low ? 'Contratación inminente' : '');
-  var w = WEAPONS[G.wcur], melee = w.type === 'melee';
-  setText('ammo', el.ammoNow, melee ? '—' : (G.reload > 0 ? '--' : String(G.ammoMap[G.wcur])));
-  setText('amag', el.ammoMag, melee ? '' : '/ ' + magSize(G.wcur));
-  setText('asub', el.ammoSub, melee ? 'Puños · cuerpo a cuerpo' : (G.reload > 0 ? 'Recargando...' : w.name + ' · R recargar'));
+  var w = WEAPONS[G.wcur], melee = w.type === 'melee', bao = G.wcur === 'bao', res = G.reserve[G.wcur] | 0;
+  /* Cargador / reserva (p. ej. 20 / 60). Los puños no tienen munición y Bao muestra el bambú que le queda */
+  setText('ammo', el.ammoNow, melee ? '—' : (G.reload > 0 ? '--' : String(G.ammoMap[G.wcur] | 0)));
+  setText('amag', el.ammoMag, melee ? '' : '/ ' + (bao ? (G.bambu | 0) : res));
+  setText('asub', el.ammoSub, melee ? 'Puños · cuerpo a cuerpo' : bao ? 'Bao · R le da bambú' : (G.reload > 0 ? 'Recargando...' : w.name + (res > 0 ? ' · R recargar' : ' · SIN RESERVA')));
   var rp = G.rapid > 0, sh = G.shield > 0;
   el.pwCafe.hidden = !rp; el.pwSub.hidden = !sh;
   if (rp) setText('rp', el.pwCafe, 'CAFÉ ' + Math.ceil(G.rapid) + 's');
@@ -3165,6 +3229,7 @@ function killEnemy(e, byAlly) {
   else if (Math.random() < 0.14 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(pick(['pizza', 'pizza', 'cafe', 'subsidio']), e.x, e.z);
   if ((e.kind === 'cv' || e.kind === 'carta') && Math.random() < 0.35) dropPickup('chatgpt', e.x, e.z);
   if (Math.random() < 0.06 * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup('bambu', e.x, e.z);
+  dropAmmo(e.x, e.z);
 }
 function hurtPlayer(d) {
   if (G.shield > 0 || G.state !== 'playing' || P.down || !(d > 0)) return;
@@ -3703,6 +3768,8 @@ function dropPickup(kind, x, z) {
     col = 0xc79b6a;
     var cup = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.13, 0.3, 14), new THREE.MeshLambertMaterial({ color: 0xf1efe6 })); body.add(cup);
     var cf = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.02, 14), new THREE.MeshLambertMaterial({ color: 0x4a2c17 })); cf.position.y = 0.14; body.add(cf);
+  } else if (MUN_INFO[kind]) {
+    col = MUN_INFO[kind].hex; body.add(munCrate(kind));
   } else {
     col = 0x6dff9e;
     var c = mkCanvas(128, 80), x2 = c.getContext('2d'); x2.fillStyle = '#2f9e5a'; x2.fillRect(0, 0, 128, 80); x2.strokeStyle = '#d9f7e2'; x2.lineWidth = 4; x2.strokeRect(6, 6, 116, 68);
@@ -3726,6 +3793,7 @@ function applyPickup(p, byAlly) {
   else if (p.kind === 'cafe') { G.rapid = 8; toast(who + 'CAFÉ · DISPARO RÁPIDO'); }
   else if (p.kind === 'bambu') { G.bambu = Math.min(5, (G.bambu || 0) + 1); toast(who + 'BAMBÚ · ALIMENTO DE BAO'); }
   else if (p.kind === 'chatgpt') { G.rapid = 10; toast(who + 'CHAT IA · CATALIZADOR · DISPARO RÁPIDO'); }
+  else if (MUN_INFO[p.kind]) { var mc = MUN_INFO[p.kind].cat, got = giveAmmo(mc); toast(who + 'MUNICIÓN ' + CAT_NAME[mc].toUpperCase() + (got ? ' · +' + AMMO_PICK[mc] + ' POR ARMA' : ' · RESERVAS LLENAS')); }
   else { G.shield = 6; toast(who + 'SUBSIDIO · INVULNERABLE'); }
   if (byAlly) setEmote('+', '#2f9e5a', 1.2);
 }
@@ -3753,7 +3821,16 @@ function startReload() {
     G.bambu--; G.ammoMap.bao = magSize('bao'); G.recoil = 0; sfx.pickup(); toast('BAO SE ALIMENTA · -1 BAMBÚ'); return;
   }
   if (G.reload > 0 || G.ammoMap[G.wcur] >= magSize(G.wcur)) return;
+  /* Sin reserva, R avisa y no hace nada */
+  if (!(G.reserve[G.wcur] > 0)) { toast('SIN RESERVA · NO QUEDAN BALAS DE ' + WEAPONS[G.wcur].short.toUpperCase()); sfx.empty(); return; }
   G.reloadT = reloadTime(); G.reload = G.reloadT; sfx.reload();
+}
+/* Disparar con el cargador vacío: clic seco. Recarga si hay reserva; si no, avisa */
+function emptyClick() {
+  sfx.empty(); G.fireCd = 0.4;
+  if (G.wcur === 'bao') { startReload(); return; }
+  if (G.reserve[G.wcur] > 0) { toast('CARGADOR VACÍO · RECARGANDO'); startReload(); return; }
+  toast('CARGADOR VACÍO · SIN RESERVA');
 }
 function spawnProj(kind, pos, dir, speed, dmg, splash) {
   var m = kind === 'milk' ? new THREE.Mesh(lumpGeo, lumpMat) : new THREE.Mesh(sliceGeo, sliceMat);
@@ -3806,7 +3883,7 @@ function shoot() {
   var w = WEX[G.wcur];
   if (G.reload > 0 || G.fireCd > 0 || P.down) return;
   if (w.type === 'melee') { punch(w); return; }
-  if (G.ammoMap[G.wcur] <= 0) { sfx.empty(); startReload(); return; }
+  if (G.ammoMap[G.wcur] <= 0) { emptyClick(); return; }
   G.ammoMap[G.wcur]--; G.fireCd = w.rate * (G.rapid > 0 ? 0.5 : 1) * (G.perks.cadencia ? 0.8 : 1); G.recoil = 1; G.flash = 0.05; sfx[w.sfx]();
   camera.updateMatrixWorld(true);
   camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
@@ -4885,7 +4962,7 @@ function netGrant(d) {
     else { G.perks[m.k] = true; if (m.k === 'vida') { applyStats(); G.hp = G.maxHp; } toast('PERK · ' + m.name); }
     sfx.pickup(); return;
   }
-  if (WEAPONS[d.w]) { G.owned[d.w] = 1; G.ammoMap[d.w] = magSize(d.w); trySelect(d.w); sfx.pickup(); toast('CAJA · ' + WEAPONS[d.w].name.toUpperCase()); }
+  if (WEAPONS[d.w]) { G.owned[d.w] = 1; refillWeapon(d.w); trySelect(d.w); sfx.pickup(); toast('CAJA · ' + WEAPONS[d.w].name.toUpperCase()); }
 }
 function netUseBox() {
   if (boxG && boxG.visible && Math.hypot(P.x - boxG.position.x, P.z - boxG.position.z) <= 2.4) { NG.r.emit('req', { t: 'box', cur: G.wcur }).catch(function () {}); return; }
@@ -5353,7 +5430,7 @@ function useBox() {
     G.score -= 950;
     var pool = WORDER.filter(function (w) { return w !== G.wcur && weaponAllowed(w); });
     var k = pool.length ? pick(pool) : 'grapadora';
-    G.owned[k] = 1; G.ammoMap[k] = magSize(k); trySelect(k); sfx.pickup();
+    G.owned[k] = 1; refillWeapon(k); trySelect(k); sfx.pickup();
     toast('CAJA · ' + WEAPONS[k].name.toUpperCase());
     var nxt = boxSpot; while (nxt === boxSpot && BOX_SPOTS[curLoc].length > 1) nxt = Math.floor(Math.random() * BOX_SPOTS[curLoc].length);
     moveBoxTo(nxt);
@@ -5737,7 +5814,7 @@ function update(dt) {
   G.fireCd = Math.max(0, G.fireCd - dt); G.rapid = Math.max(0, G.rapid - dt); G.shield = Math.max(0, G.shield - dt);
   G.hurtT = Math.max(0, G.hurtT - dt); G.shake = Math.max(0, G.shake - dt);
   if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
-  if (G.reload > 0) { G.reload -= dt; if (G.reload <= 0) { G.reload = 0; G.ammoMap[G.wcur] = magSize(G.wcur); } }
+  if (G.reload > 0) { G.reload -= dt; if (G.reload <= 0) { G.reload = 0; reloadNow(); } }
   updatePlayer(dt); applyCamera();
   if (mouseDown) shoot();
   if (G.state !== 'playing') return;
