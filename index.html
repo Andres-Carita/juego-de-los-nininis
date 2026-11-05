@@ -152,6 +152,7 @@ body {
 .keys { display: grid; grid-template-columns: max-content 1fr; gap: 3px 16px; margin: 14px 0; font-size: 14px; border-top: 2px dashed var(--ink); border-bottom: 2px dashed var(--ink); padding: 10px 0; }
 .keys dt { font-weight: bold; letter-spacing: .08em; }
 .keys dd { margin: 0; }
+@media (max-width: 480px) { .keys { grid-template-columns: 1fr; gap: 0; } .keys dt { margin-top: 6px; } .keys dd { margin-bottom: 2px; } }
 .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
 .btn { font-family: var(--disp); font-size: 24px; letter-spacing: .06em; text-transform: uppercase; background: #c52a20; color: #fff; border: 4px solid var(--ink); padding: 8px 22px 9px; cursor: pointer; box-shadow: 5px 5px 0 var(--ink); }
 .btn.alt { background: var(--ink); color: var(--paper); }
@@ -1698,7 +1699,7 @@ var NAME_MAX = 10;
 function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñü _-]/g, '').slice(0, NAME_MAX); }
 /* Nombre del jugador: obligatorio y de hasta 10 caracteres. nameMem sirve también si el navegador no guarda nada */
 var nameMem = '';
-function loadName() { try { var s = localStorage.getItem('nini-name'); if (s !== null) nameMem = cleanName(s); } catch (e) {} return cleanName(nameMem).trim(); }
+function loadName() { try { var s = localStorage.getItem('nini-name'); if (s !== null) nameMem = cleanName(s); } catch (e) {} nameMem = cleanName(nameMem).trim(); return nameMem; }
 function saveName(v) { nameMem = cleanName(v); try { localStorage.setItem('nini-name', nameMem); } catch (e) {} return nameMem; }
 function nameUI() {
   var ok = !!nameMem.trim();
@@ -5460,6 +5461,8 @@ function update(dt) {
 
 /* ---------------- Entrada ---------------- */
 window.addEventListener('keydown', function (e) {
+  /* Mientras se escribe en el campo de nombre, las teclas no son atajos (la M no debe silenciar el juego) */
+  if (e.target && (e.target.tagName === 'TEXTAREA' || (e.target.tagName === 'INPUT' && e.target.type === 'text'))) return;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0 && (G.state === 'playing' || G.state === 'dialog')) e.preventDefault();
   if (G.state === 'dialog') {
     if (e.repeat) return;
