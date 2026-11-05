@@ -3727,8 +3727,11 @@ function updateRevive(dt) {
   if (!best) { reviveBoxEl.hidden = true; return; }
   var nm = best === ally ? 'LEFAL' : best.name;
   reviveBoxEl.hidden = false;
-  if (keys['KeyF'] && G.state === 'playing') best.revive = Math.min(REVIVE_T, best.revive + dt);
-  reviveLabEl.textContent = keys['KeyF'] ? 'SANANDO A ' + nm + ' · ' + Math.ceil(REVIVE_T - best.revive) + ' s' : 'MANTÉN F PARA SANAR A ' + nm;
+  /* Cada compañero vivo y cercano ayuda y acelera la sanación */
+  var helpers = best.peer ? 0 : [ally].concat(MATES).filter(function (h) { return h !== best && h.g && !h.down && Math.hypot(h.x - best.x, h.z - best.z) < 3.5; }).length;
+  var rate = 1 + 0.6 * helpers;
+  if (keys['KeyF'] && G.state === 'playing') best.revive = Math.min(REVIVE_T, best.revive + dt * rate);
+  reviveLabEl.textContent = keys['KeyF'] ? 'SANANDO A ' + nm + ' · ' + Math.ceil(REVIVE_T - best.revive) + ' s' + (helpers ? ' · AYUDA x' + rate.toFixed(1) : '') : 'MANTÉN F PARA SANAR A ' + nm;
   reviveFillEl.style.width = (best.revive / REVIVE_T * 100) + '%';
   if (best.revive >= REVIVE_T) {
     if (best.peer) { best.revive = 0; netRevive(best.peer); sfx.pickup(); toast('HAS SANADO A ' + best.name); reviveBoxEl.hidden = true; return; }
