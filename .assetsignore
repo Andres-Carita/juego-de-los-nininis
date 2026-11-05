@@ -3,6 +3,7 @@ online
 .github
 .vs
 .wrangler
+.dev.vars
 node_modules
 wrangler.toml
 .assetsignore

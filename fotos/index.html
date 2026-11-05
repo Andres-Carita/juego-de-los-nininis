@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Envía tu foto · Operación Nini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Special+Elite&display=swap">
+<style>
+:root { --bg: #0a100e; --ink: #14181a; --paper: #f1efe6; --paper-2: #d8d5c6; --stamp: #e0382d; --ok: #1f7a45; --disp: 'Anton', Impact, 'Arial Narrow', sans-serif; --body: 'Special Elite', 'Courier New', monospace; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--body); padding: 24px 16px 48px; }
+main { max-width: 520px; margin: 0 auto; background: var(--paper); border: 3px solid var(--ink); box-shadow: 6px 6px 0 #000; padding: 24px; }
+h1 { font-family: var(--disp); font-weight: 400; font-size: 40px; line-height: 1.05; letter-spacing: .02em; margin: 0 0 8px; text-transform: uppercase; }
+.lead { margin: 0 0 20px; line-height: 1.45; }
+label.field { display: block; margin-bottom: 18px; font-size: 15px; }
+label.field span { display: block; margin-bottom: 6px; }
+input[type=text], textarea { width: 100%; font: inherit; font-size: 16px; padding: 10px; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 0; }
+textarea { min-height: 72px; resize: vertical; }
+.pick { display: block; border: 2px dashed var(--ink); background: var(--paper-2); padding: 18px; text-align: center; cursor: pointer; margin-bottom: 8px; }
+.pick:focus-within { outline: 3px solid var(--stamp); outline-offset: 2px; }
+.pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pick b { font-family: var(--disp); font-weight: 400; font-size: 22px; letter-spacing: .05em; }
+#preview { display: block; max-width: 100%; max-height: 300px; margin: 0 auto 8px; border: 2px solid var(--ink); }
+ul.tips { margin: 0 0 18px; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; margin-bottom: 18px; }
+.consent input { width: 20px; height: 20px; flex: none; margin: 0; accent-color: var(--stamp); }
+button { width: 100%; font-family: var(--disp); font-size: 24px; letter-spacing: .06em; padding: 12px; background: var(--stamp); color: #fff; border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); border-radius: 0; cursor: pointer; }
+button:disabled { opacity: .55; cursor: default; }
+#msg { min-height: 22px; margin: 14px 0 0; line-height: 1.4; }
+#msg.err { color: #b3201a; }
+#msg.good { color: var(--ok); }
+.small { font-size: 13px; line-height: 1.4; margin: 18px 0 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Entra en Operación Nini</h1>
+  <p class="lead">Envía tu foto y podremos convertirte en un personaje del juego.</p>
+
+  <form id="form" novalidate>
+    <label class="field">
+      <span>Tu nombre o apodo</span>
+      <input type="text" id="name" maxlength="30" autocomplete="nickname" required>
+    </label>
+
+    <img id="preview" alt="Vista previa de tu foto" hidden>
+    <label class="pick">
+      <input type="file" id="file" accept="image/*">
+      <b id="pickText">ELEGIR FOTO</b>
+    </label>
+    <ul class="tips">
+      <li>De frente, con buena luz y la cara bien visible.</li>
+      <li>Mejor con fondo liso y de cintura para arriba.</li>
+      <li>Solo tú en la foto, sin filtros ni gafas de sol.</li>
+    </ul>
+
+    <label class="field">
+      <span>¿Alguna idea para tu personaje? (opcional)</span>
+      <textarea id="note" maxlength="200"></textarea>
+    </label>
+
+    <label class="consent">
+      <input type="checkbox" id="consent">
+      <span>Esta foto es mía o tengo permiso, y acepto que se use en el juego, que es público. Si cambio de idea, puedo pedir que la quiten.</span>
+    </label>
+
+    <button type="submit" id="send">ENVIAR FOTO</button>
+    <p id="msg" role="status" aria-live="polite"></p>
+  </form>
+
+  <p class="small">Solo los organizadores pueden ver las fotos enviadas. Antes de enviarla, la imagen se reduce y se le quitan los datos ocultos, como la ubicación.</p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var MAX_SIDE = 1600, MIN_SIDE = 300, MAX_BYTES = 1700000;
+  var $ = function (id) { return document.getElementById(id); };
+  var photo = null, busy = false;
+
+  function say(text, kind) { $('msg').textContent = text; $('msg').className = kind || ''; }
+
+  function toBlob(canvas, quality) {
+    return new Promise(function (ok) { canvas.toBlob(ok, 'image/jpeg', quality); });
+  }
+  function loadImage(file) {
+    return new Promise(function (ok, fail) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { ok({ img: img, url: url }); };
+      img.onerror = function () { URL.revokeObjectURL(url); fail(new Error('decode')); };
+      img.src = url;
+    });
+  }
+  // Redibujar la imagen en un canvas elimina los datos EXIF, entre ellos el GPS
+  async function shrink(img) {
+    var side = Math.max(img.naturalWidth, img.naturalHeight);
+    var scale = Math.min(1, MAX_SIDE / side);
+    for (var round = 0; round < 5; round++) {
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      var x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(img, 0, 0, c.width, c.height);
+      var blob = await toBlob(c, 0.9 - round * 0.08);
+      if (blob && blob.size <= MAX_BYTES) return blob;
+      scale *= 0.8;
+    }
+    throw new Error('too_big');
+  }
+
+  $('file').addEventListener('change', async function () {
+    var file = this.files[0];
+    photo = null;
+    $('preview').hidden = true;
+    $('pickText').textContent = 'ELEGIR FOTO';
+    if (!file) return;
+    say('Preparando la foto…');
+    try {
+      var loaded = await loadImage(file);
+      if (Math.max(loaded.img.naturalWidth, loaded.img.naturalHeight) < MIN_SIDE) {
+        URL.revokeObjectURL(loaded.url);
+        say('La foto es demasiado pequeña. Prueba con otra de más calidad.', 'err');
+        return;
+      }
+      photo = await shrink(loaded.img);
+      $('preview').src = loaded.url;
+      $('preview').hidden = false;
+      $('pickText').textContent = 'CAMBIAR FOTO';
+      say('');
+    } catch (e) {
+      say('No se pudo abrir ese archivo. Prueba con una foto JPG o PNG (en iPhone, hazle una captura de pantalla y envía la captura).', 'err');
+    }
+  });
+
+  var ERRORS = {
+    too_big: 'La foto pesa demasiado. Prueba con otra.',
+    too_many: 'Has enviado muchas fotos seguidas. Inténtalo dentro de una hora.',
+    full: 'El buzón de fotos está lleno. Avisa a Heverton.',
+    type: 'Ese archivo no es una foto válida.',
+  };
+
+  $('form').addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    if (busy) return;
+    var name = $('name').value.trim();
+    if (!name) { say('Escribe tu nombre o apodo.', 'err'); $('name').focus(); return; }
+    if (!photo) { say('Elige una foto.', 'err'); $('file').focus(); return; }
+    if (!$('consent').checked) { say('Marca la casilla de permiso para poder enviarla.', 'err'); $('consent').focus(); return; }
+
+    var data = new FormData();
+    data.append('name', name);
+    data.append('note', $('note').value.trim());
+    data.append('consent', 'yes');
+    data.append('photo', photo, 'foto.jpg');
+
+    busy = true; $('send').disabled = true; say('Enviando…');
+    try {
+      var res = await fetch('/api/fotos', { method: 'POST', body: data });
+      if (res.status === 201) {
+        say('¡Recibida! Gracias, ' + name + '.', 'good');
+        photo = null;
+        $('form').reset();
+        $('preview').hidden = true;
+        $('pickText').textContent = 'ELEGIR FOTO';
+      } else {
+        var info = await res.json().catch(function () { return {}; });
+        say(ERRORS[info.error] || 'No se pudo enviar. Inténtalo otra vez.', 'err');
+      }
+    } catch (e) {
+      say('No hay conexión. Inténtalo otra vez.', 'err');
+    }
+    busy = false; $('send').disabled = false;
+  });
+})();
+</script>
+</body>
+</html>

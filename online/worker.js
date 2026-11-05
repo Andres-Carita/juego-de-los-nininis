@@ -4,6 +4,10 @@
 //   /api/top       → GET  ?mode=story|survival · diez mejores puntuaciones
 //   /api/score     → POST publica una puntuación
 //   /ws/<código>   → sala del modo cooperativo (WebSocket)
+//   /fotos         → página para enviar una foto (archivo estático)
+//   /fotos/ver     → galería privada; sus datos piden la clave PHOTOS_KEY
+//   /api/fotos     → POST envía una foto · GET lista (con clave)
+//   /api/fotos/<id> → GET descarga · DELETE borra (con clave)
 // La clasificación y las salas usan Durable Objects (capa gratuita, sin KV que configurar).
 import { DurableObject } from 'cloudflare:workers';
 
@@ -33,6 +37,9 @@ export default {
     if (url.pathname === '/api/top' || url.pathname === '/api/score') {
       if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
       return env.BOARD.get(env.BOARD.idFromName('global')).fetch(request);
+    }
+    if (url.pathname === '/api/fotos' || url.pathname.startsWith('/api/fotos/')) {
+      return env.PHOTOS.get(env.PHOTOS.idFromName('global')).fetch(request);
     }
     const room = url.pathname.match(/^\/ws\/([a-z0-9]{3,6})$/);
     if (room) {
@@ -133,5 +140,104 @@ export class NiniRoom extends DurableObject {
     const a = ws.deserializeAttachment();
     try { ws.close(1000, 'adios'); } catch (e) { /* ya cerrada */ }
     if (a) this.broadcast({ t: 'left', peer: a.peer }, ws);
+  }
+}
+
+/* Buzón de fotos privado. Enviar es abierto (con límites); ver, descargar y borrar exige PHOTOS_KEY.
+   Sin la clave configurada, la parte privada queda cerrada. */
+const PHOTO_MAX_BYTES = 1800000; // una fila de SQLite admite 2 MB
+const PHOTO_MAX_COUNT = 300;
+const PHOTO_MAX_PER_HOUR = 20;
+const PHOTO_HEADERS = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' };
+function photoJson(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: { ...PHOTO_HEADERS, 'Content-Type': 'application/json; charset=utf-8' } });
+}
+function cleanText(s, max) {
+  return String(s || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+// Se mira el contenido real del archivo, no lo que diga el navegador
+function photoType(b) {
+  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
+  if (b.length > 12 && String.fromCharCode(...b.slice(0, 4)) === 'RIFF' && String.fromCharCode(...b.slice(8, 12)) === 'WEBP') return 'image/webp';
+  return null;
+}
+async function sameKey(a, b) {
+  const hash = async (s) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+  const x = await hash(a), y = await hash(b);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
+export class NiniPhotos extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS photos (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL, mime TEXT NOT NULL,
+      size INTEGER NOT NULL, created INTEGER NOT NULL, data BLOB NOT NULL)`);
+    this.hits = new Map(); // solo en memoria: no se guarda ninguna IP
+  }
+  async authorized(request) {
+    const key = this.env.PHOTOS_KEY;
+    const auth = request.headers.get('Authorization') || '';
+    return !!key && auth.startsWith('Bearer ') && (await sameKey(auth.slice(7), key));
+  }
+  limited(request) {
+    const ip = request.headers.get('CF-Connecting-IP') || 'local';
+    const now = Date.now();
+    const recent = (this.hits.get(ip) || []).filter((t) => now - t < 3600000);
+    if (recent.length >= PHOTO_MAX_PER_HOUR) return true;
+    recent.push(now);
+    this.hits.set(ip, recent);
+    return false;
+  }
+  async upload(request, url) {
+    const origin = request.headers.get('Origin');
+    if (origin && origin !== url.origin) return photoJson({ error: 'origin' }, 403);
+    const length = Number(request.headers.get('Content-Length'));
+    if (!length) return photoJson({ error: 'length' }, 411);
+    if (length > PHOTO_MAX_BYTES + 4096) return photoJson({ error: 'too_big' }, 413);
+    if (this.limited(request)) return photoJson({ error: 'too_many' }, 429);
+    const count = this.sql.exec('SELECT COUNT(*) AS n FROM photos').one().n;
+    if (count >= PHOTO_MAX_COUNT) return photoJson({ error: 'full' }, 507);
+    let form;
+    try { form = await request.formData(); } catch (e) { return photoJson({ error: 'form' }, 400); }
+    const name = cleanText(form.get('name'), 30);
+    const note = cleanText(form.get('note'), 200);
+    const file = form.get('photo');
+    if (!name) return photoJson({ error: 'name' }, 400);
+    if (form.get('consent') !== 'yes') return photoJson({ error: 'consent' }, 400);
+    if (!file || typeof file === 'string') return photoJson({ error: 'photo' }, 400);
+    if (file.size > PHOTO_MAX_BYTES) return photoJson({ error: 'too_big' }, 413);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const mime = photoType(bytes);
+    if (!mime) return photoJson({ error: 'type' }, 415);
+    const id = crypto.randomUUID().replace(/-/g, '');
+    this.sql.exec('INSERT INTO photos (id, name, note, mime, size, created, data) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      id, name, note, mime, bytes.length, Date.now(), bytes.buffer);
+    return photoJson({ ok: true }, 201);
+  }
+  async fetch(request) {
+    const url = new URL(request.url);
+    const one = url.pathname.match(/^\/api\/fotos\/([a-f0-9]{32})$/);
+    if (url.pathname === '/api/fotos' && request.method === 'POST') return this.upload(request, url);
+    if (!this.env.PHOTOS_KEY) return photoJson({ error: 'not_configured' }, 503);
+    if (!(await this.authorized(request))) return photoJson({ error: 'unauthorized' }, 401);
+    if (url.pathname === '/api/fotos' && request.method === 'GET') {
+      const photos = this.sql.exec('SELECT id, name, note, mime, size, created FROM photos ORDER BY created DESC').toArray();
+      return photoJson({ photos, max: PHOTO_MAX_COUNT });
+    }
+    if (one && request.method === 'GET') {
+      const rows = this.sql.exec('SELECT mime, data FROM photos WHERE id = ?', one[1]).toArray();
+      if (!rows.length) return photoJson({ error: 'not_found' }, 404);
+      return new Response(rows[0].data, { headers: { ...PHOTO_HEADERS, 'Content-Type': rows[0].mime } });
+    }
+    if (one && request.method === 'DELETE') {
+      this.sql.exec('DELETE FROM photos WHERE id = ?', one[1]);
+      return photoJson({ ok: true });
+    }
+    return photoJson({ error: 'not_found' }, 404);
   }
 }

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fotos recibidas · Operación Nini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Special+Elite&display=swap">
+<style>
+:root { --bg: #0a100e; --ink: #14181a; --paper: #f1efe6; --paper-2: #d8d5c6; --stamp: #e0382d; --disp: 'Anton', Impact, 'Arial Narrow', sans-serif; --body: 'Special Elite', 'Courier New', monospace; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--paper); font-family: var(--body); padding: 24px 16px 48px; }
+.wrap { max-width: 1040px; margin: 0 auto; }
+h1 { font-family: var(--disp); font-weight: 400; font-size: 36px; letter-spacing: .02em; margin: 0 0 12px; text-transform: uppercase; }
+form { display: flex; gap: 10px; flex-wrap: wrap; max-width: 480px; }
+input { flex: 1 1 220px; font: inherit; font-size: 16px; padding: 10px; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 0; }
+button { font-family: var(--disp); font-size: 17px; letter-spacing: .05em; padding: 8px 14px; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 0; cursor: pointer; }
+button.main { background: var(--stamp); color: #fff; }
+button.danger { background: transparent; color: #b3201a; border-color: #b3201a; }
+button:disabled { opacity: .55; cursor: default; }
+.bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+#msg { min-height: 22px; line-height: 1.4; margin: 12px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.card { background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 #000; display: flex; flex-direction: column; }
+.card .pic { aspect-ratio: 1; background: var(--paper-2); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.card img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.info { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.info b { font-family: var(--disp); font-weight: 400; font-size: 20px; letter-spacing: .03em; }
+.info small { font-size: 12px; }
+.info p { margin: 2px 0; font-size: 14px; line-height: 1.35; }
+.acts { display: flex; gap: 8px; padding: 0 10px 10px; }
+.acts button { flex: 1; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Fotos recibidas</h1>
+
+  <form id="login">
+    <input type="password" id="key" placeholder="Código secreto" autocomplete="current-password" aria-label="Código secreto" required>
+    <button class="main" type="submit">ENTRAR</button>
+  </form>
+
+  <div class="bar" id="bar" hidden>
+    <span id="count"></span>
+    <button type="button" id="all">DESCARGAR TODAS</button>
+    <button type="button" id="exit">SALIR</button>
+  </div>
+  <p id="msg" role="status" aria-live="polite"></p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var STORE = 'nini-fotos-key';
+  var key = '', photos = [], urls = {}, watcher = null;
+
+  function say(text) { $('msg').textContent = text; }
+  function call(path, options) {
+    var o = options || {};
+    o.headers = { Authorization: 'Bearer ' + key };
+    return fetch(path, o);
+  }
+  function safeName(p) {
+    return (p.name.normalize('NFD').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'foto') + '-' + p.id.slice(0, 6) + (p.mime === 'image/png' ? '.png' : p.mime === 'image/webp' ? '.webp' : '.jpg');
+  }
+  async function blobUrl(p) {
+    if (urls[p.id]) return urls[p.id];
+    var res = await call('/api/fotos/' + p.id);
+    if (!res.ok) throw new Error('download');
+    urls[p.id] = URL.createObjectURL(await res.blob());
+    return urls[p.id];
+  }
+  async function download(p) {
+    var a = document.createElement('a');
+    a.href = await blobUrl(p);
+    a.download = safeName(p);
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function logout(text) {
+    key = '';
+    try { sessionStorage.removeItem(STORE); } catch (e) {}
+    Object.keys(urls).forEach(function (id) { URL.revokeObjectURL(urls[id]); });
+    urls = {}; photos = [];
+    if (watcher) watcher.disconnect();
+    $('grid').textContent = '';
+    $('bar').hidden = true;
+    $('login').hidden = false;
+    $('key').value = '';
+    say(text || '');
+  }
+  function updateCount() {
+    $('count').textContent = photos.length + (photos.length === 1 ? ' foto' : ' fotos');
+    $('all').disabled = !photos.length;
+    if (!photos.length) say('Todavía no hay fotos.');
+  }
+  function card(p) {
+    var el = document.createElement('article'); el.className = 'card'; el.dataset.id = p.id;
+    var pic = document.createElement('div'); pic.className = 'pic'; pic.textContent = 'Cargando…'; el.appendChild(pic);
+    var info = document.createElement('div'); info.className = 'info';
+    var name = document.createElement('b'); name.textContent = p.name; info.appendChild(name);
+    var when = document.createElement('small');
+    when.textContent = new Date(p.created).toLocaleString('es-ES') + ' · ' + Math.round(p.size / 1024) + ' KB';
+    info.appendChild(when);
+    if (p.note) { var note = document.createElement('p'); note.textContent = p.note; info.appendChild(note); }
+    el.appendChild(info);
+    var acts = document.createElement('div'); acts.className = 'acts';
+    var get = document.createElement('button'); get.type = 'button'; get.textContent = 'DESCARGAR';
+    get.addEventListener('click', function () { download(p).catch(function () { say('No se pudo descargar la foto de ' + p.name + '.'); }); });
+    var del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = 'BORRAR';
+    del.addEventListener('click', async function () {
+      if (!confirm('¿Borrar para siempre la foto de ' + p.name + '?')) return;
+      var res = await call('/api/fotos/' + p.id, { method: 'DELETE' }).catch(function () { return null; });
+      if (!res || !res.ok) { say('No se pudo borrar la foto.'); return; }
+      if (urls[p.id]) { URL.revokeObjectURL(urls[p.id]); delete urls[p.id]; }
+      photos = photos.filter(function (x) { return x.id !== p.id; });
+      el.remove();
+      updateCount();
+    });
+    acts.appendChild(get); acts.appendChild(del); el.appendChild(acts);
+    return el;
+  }
+  async function open() {
+    say('Cargando…');
+    var res;
+    try { res = await call('/api/fotos'); } catch (e) { say('No hay conexión.'); return; }
+    if (res.status === 401) { logout('Código incorrecto.'); return; }
+    if (!res.ok) { logout('El buzón todavía no tiene código configurado.'); return; }
+    var data = await res.json();
+    photos = data.photos;
+    try { sessionStorage.setItem(STORE, key); } catch (e) {}
+    $('login').hidden = true;
+    $('bar').hidden = false;
+    say('');
+    updateCount();
+    // Cada imagen se pide solo cuando está a punto de verse
+    watcher = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        watcher.unobserve(en.target);
+        var p = photos.filter(function (x) { return x.id === en.target.dataset.id; })[0];
+        if (!p) return;
+        var pic = en.target.querySelector('.pic');
+        blobUrl(p).then(function (u) {
+          var img = document.createElement('img'); img.src = u; img.alt = 'Foto de ' + p.name;
+          pic.textContent = ''; pic.appendChild(img);
+        }).catch(function () { pic.textContent = 'No se pudo cargar'; });
+      });
+    }, { rootMargin: '300px' });
+    photos.forEach(function (p) {
+      var el = card(p);
+      $('grid').appendChild(el);
+      watcher.observe(el);
+    });
+  }
+  $('login').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    key = $('key').value.trim();
+    if (key) open();
+  });
+  $('exit').addEventListener('click', function () { logout(); });
+  $('all').addEventListener('click', async function () {
+    var btn = this; btn.disabled = true;
+    var list = photos.slice(), done = 0;
+    for (var i = 0; i < list.length; i++) {
+      try { await download(list[i]); done++; } catch (e) {}
+      say('Descargadas ' + done + ' de ' + list.length + '…');
+      await new Promise(function (ok) { setTimeout(ok, 500); });
+    }
+    say(done === list.length ? 'Descarga terminada. Si faltan fotos, permite las descargas múltiples en el navegador.' : 'Algunas fotos no se pudieron descargar.');
+    btn.disabled = false;
+  });
+  try { key = sessionStorage.getItem(STORE) || ''; } catch (e) {}
+  if (key) open();
+})();
+</script>
+</body>
+</html>
