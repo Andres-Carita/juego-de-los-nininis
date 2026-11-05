@@ -1567,37 +1567,52 @@ function makeNpc(key, x, z, baseY, h, minPhase, pedestal) {
 }
 
 /* ---------------- Cuerpos 3D de los personajes (estilo Mii) ---------------- */
-var AV_KEYS = ['aliado', 'andres', 'heverton'];
+var AV_KEYS = ['bilal', 'aliado', 'andres', 'heverton', 'sonrisas', 'visto', 'respeto'];
 var AV_STYLE = {
-  aliado: { shirt: 0xf1efe6, pants: 0x2a3550, shoes: 0x1a1a1a },
-  andres: { shirt: 0xf1efe6, pants: 0x1d1d22, shoes: 0x14181a, collar: 0x1d1d22 },
-  heverton: { shirt: 0xf2f2f2, pants: 0x5f6b3a, shoes: 0xe8e8e8 },
-  lefillas: { shirt: 0x2a2a2a, pants: 0x2a2a2a, shoes: 0x14181a, collar: 0x3b82c4 },
-  bucle: { shirt: 0x7a2a6a, pants: 0x3a3a3a, shoes: 0x14181a },
-  nomina: { shirt: 0x7a1d1d, pants: 0x2a2a2a, shoes: 0x14181a }
+  bilal: { shirt: 0x2f7ab8, pants: 0x1f2a3a, shoes: 0x14181a, hand: 0xc68a5e },
+  aliado: { shirt: 0xf1efe6, pants: 0x2a3550, shoes: 0x1a1a1a, hand: 0xc68a5e },
+  andres: { shirt: 0x1d1d22, pants: 0x1d1d22, shoes: 0x14181a, hand: 0xc68a5e },
+  heverton: { shirt: 0xf2f2f2, pants: 0x5f6b3a, shoes: 0xe8e8e8, hand: 0xc68a5e },
+  sonrisas: { shirt: 0x2f9e5a, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e },
+  visto: { shirt: 0x2aa3df, pants: 0x1f1f1f, shoes: 0xf2f2f2, hand: 0xc68a5e },
+  respeto: { shirt: 0x3b3b3b, pants: 0x2a2a2a, shoes: 0x14181a, hand: 0xc68a5e }
 };
 var SHAPES = {};
 try { SHAPES = JSON.parse(localStorage.getItem('nini-shapes') || '{}') || {}; } catch (e) { SHAPES = {}; }
 function shapeOf(key) { var sh = SHAPES[key]; return { h: sh && sh.h ? sh.h : 1, w: sh && sh.w ? sh.w : 1 }; }
 var AVATARS = [];
-/* Avatar: la foto entera, sin recortar, con piernas y zapatos debajo (la foto ya trae torso y brazos) */
+/* Cuerpo chibi: cabeza grande con la foto entera, torso redondo, brazos y piernas cortos, zapatos grandes */
 function makeAvatar(key) {
   var st = AV_STYLE[key] || AV_STYLE.aliado;
   var root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  function bx(w, h, d, c, x, y, z) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c })); m.position.set(x, y, z); body.add(m); return m; }
-  bx(0.22, 0.8, 0.24, st.pants, -0.14, 0.4, 0); bx(0.22, 0.8, 0.24, st.pants, 0.14, 0.4, 0);
-  bx(0.24, 0.1, 0.32, st.shoes, -0.14, 0.05, 0.04); bx(0.24, 0.1, 0.32, st.shoes, 0.14, 0.05, 0.04);
+  function mat(c) { return new THREE.MeshLambertMaterial({ color: c }); }
+  function mesh(geo, c, x, y, z) { var m = new THREE.Mesh(geo, mat(c)); m.position.set(x, y, z); body.add(m); return m; }
+  /* Piernas cortas y zapatos grandes */
+  [-0.13, 0.13].forEach(function (x) {
+    mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 12), st.pants, x, 0.15, 0);
+    var sh = mesh(new THREE.SphereGeometry(0.14, 12, 8), st.shoes, x, 0.03, 0.05); sh.scale.set(1, 0.55, 1.35);
+  });
+  /* Torso redondo y cinturón */
+  mesh(new THREE.SphereGeometry(0.3, 16, 12), st.shirt, 0, 0.5, 0).scale.set(1, 0.95, 0.85);
+  mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.06, 14), 0x2a2a2a, 0, 0.36, 0);
+  /* Brazos cortos con manitas */
+  [-1, 1].forEach(function (sd) {
+    var arm = mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.34, 10), st.shirt, sd * 0.36, 0.5, 0);
+    arm.rotation.z = -sd * 0.45;
+    mesh(new THREE.SphereGeometry(0.09, 10, 8), st.hand, sd * 0.45, 0.33, 0.02);
+  });
+  /* La cabeza es la foto entera, sin recortar */
   var head = new THREE.Group(); root.add(head);
   var av = { key: key, root: root, body: body, head: head, onApply: null };
   av.apply = function () {
     var sh = shapeOf(key);
     body.scale.set(sh.w, sh.h, sh.w);
     head.position.set(0, 0.8 * sh.h, 0);
-    head.scale.set(sh.w, sh.h, 1);
+    head.scale.set(0.9 + 0.1 * sh.w, sh.h, 1);
     if (av.onApply) av.onApply();
   };
   loadCharCanvas(key, function (t, aspect) {
-    var H = 1.3;
+    var H = 1.05;
     var pl = new THREE.Mesh(new THREE.PlaneGeometry(H * aspect, H), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
     pl.position.y = H / 2; head.add(pl);
   });
@@ -4725,10 +4740,14 @@ function makePuppet(c, name, peer) {
   var ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.75, 32), new THREE.MeshBasicMaterial({ color: 0xe0382d, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide }));
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; g.add(ring);
   var pp = { g: g, c: c, peer: peer, name: full, x: 0, z: 0, y: 0, down: false, revive: 0, hp: 100, plane: null, init: false };
-  loadCharCanvas(c, function (t, aspect) {
-    var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
-    pl.position.y = 0.88 + h / 2; g.add(pl); pp.plane = pl;
-  });
+  if (AV_KEYS.indexOf(c) >= 0) {
+    var avP = makeAvatar(c); g.add(avP.root); pp.avatar = avP; pp.plane = avP.head;
+  } else {
+    loadCharCanvas(c, function (t, aspect) {
+      var h = 1.0, pl = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }));
+      pl.position.y = 0.88 + h / 2; g.add(pl); pp.plane = pl;
+    });
+  }
   return pp;
 }
 function netPuppets(dt) {
