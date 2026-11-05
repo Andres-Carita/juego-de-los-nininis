@@ -417,6 +417,14 @@ body {
   .allytag, .squad { display: none; }
   .radio { top: 124px; }
 }
+/* Minimapa */
+.minimap { position: absolute; z-index: 1; right: 14px; top: 112px; width: 190px; height: 190px; background: #0f1412; border: 3px solid var(--paper); box-shadow: 3px 3px 0 rgba(0,0,0,.65); }
+@media (max-height: 760px) { .minimap { width: 128px; height: 128px; top: 100px; } }
+@media (max-width: 900px) {
+  .minimap { width: 118px; height: 118px; top: 100px; }
+  .squad, .allytag { top: 228px; }
+}
+@media (max-height: 480px) and (max-width: 900px) { .minimap { width: 76px; height: 76px; top: 76px; } }
 @media (prefers-reduced-motion: reduce) {
   .stamp, .banner.go, .toast.go, .radio.go { animation-duration: 1.2s; animation-name: fadeonly; }
   @keyframes fadeonly { 0% { opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
@@ -429,6 +437,7 @@ body {
   <div class="hud" id="hud" hidden>
     <div class="tag tl"><span class="lab" id="hLab">Oleada</span><b id="hWave">1</b><small id="hSub"></small></div>
     <div class="tag tr"><span class="lab">Puntos</span><b id="hScore">0</b><span class="combo" id="hCombo"></span><small id="hEurWrap" hidden>€ <span id="hEur">0</span></small></div>
+    <canvas class="minimap" id="minimap" width="320" height="320" aria-hidden="true"></canvas>
 
     <div class="radio" id="radio"><img id="radImg" alt=""><div><b id="radName"></b><span id="radTxt"></span></div></div>
 
@@ -481,6 +490,7 @@ body {
         <dt>Z · X · V</dt><dd>Escudo de Andrés · Señuelo de Heverton · Ráfaga de Lefal</dd>
         <dt>Shift · Espacio</dt><dd>Correr · Saltar</dd>
         <dt>R · M · Esc</dt><dd>Recargar · Sonido · Pausa</dd>
+        <dt>L · N</dt><dd>Pantalla completa · Minimapa</dd>
       </dl>
       <label class="sens" for="sensA"><span>Sensibilidad</span><input type="range" id="sensA" min="1" max="100" step="1" value="40"><b id="sensAv">40</b></label>
       <label class="sens" for="smA"><span>Suavizado</span><input type="range" id="smA" min="0" max="10" step="1" value="3"><b id="smAv">3</b></label>
@@ -506,6 +516,7 @@ body {
         <button class="btn alt" id="btnOnline">ONLINE</button>
         <button class="btn ghost" id="btnBoard">CLASIFICACIÓN</button>
         <button class="btn ghost" id="btnShape">PERSONALIZAR EQUIPO</button>
+        <button class="btn ghost" id="btnFsA" hidden>PANTALLA COMPLETA</button>
       </div>
         <p class="best" id="bestLine"></p>
       <p class="note" id="touchNote" hidden>Este juego necesita teclado y ratón, así que no funciona en un móvil o tableta.</p>
@@ -561,6 +572,7 @@ body {
       <label class="sens" for="fovB"><span>Campo de visión</span><input type="range" id="fovB" min="55" max="100" step="1" value="75"><b id="fovBv">75</b></label>
       <div class="btnrow">
         <button class="btn" id="btnResume">SEGUIR RECHAZANDO</button>
+        <button class="btn ghost" id="btnFsB" hidden>PANTALLA COMPLETA</button>
         <button class="btn ghost" id="btnQuit">MENÚ</button>
       </div>
     </div>
@@ -5639,6 +5651,76 @@ function updateWeapon(dt) {
   else { flashSprite.visible = false; flashLight.intensity = 0; }
 }
 
+/* ---------------- Pantalla completa ---------------- */
+var fsOK = !!(document.documentElement.requestFullscreen && document.fullscreenEnabled);
+function fsSync() {
+  ['btnFsA', 'btnFsB'].forEach(function (id) {
+    var b = $(id); b.hidden = !fsOK;
+    b.textContent = document.fullscreenElement ? 'SALIR DE PANTALLA COMPLETA' : 'PANTALLA COMPLETA';
+  });
+}
+function toggleFs() {
+  if (!fsOK) { toast('ESTE NAVEGADOR NO PERMITE PANTALLA COMPLETA'); return; }
+  var p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  if (p && p.catch) p.catch(function () { toast('NO SE PUDO CAMBIAR LA PANTALLA'); });
+}
+document.addEventListener('fullscreenchange', fsSync);
+$('btnFsA').addEventListener('click', toggleFs);
+$('btnFsB').addEventListener('click', toggleFs);
+fsSync();
+
+/* ---------------- Minimapa: el mapa entero, con el norte fijo ---------------- */
+var MM = { c: $('minimap'), bg: null, key: '', t: 0, on: true };
+try { MM.on = localStorage.getItem('nini-minimap') !== '0'; } catch (e) {}
+MM.c.hidden = !MM.on;
+function mmToggle() {
+  MM.on = !MM.on; MM.c.hidden = !MM.on; MM.t = 0;
+  try { localStorage.setItem('nini-minimap', MM.on ? '1' : '0'); } catch (e) {}
+  toast(MM.on ? 'MINIMAPA ACTIVADO' : 'MINIMAPA OCULTO');
+}
+function mmX(v) { return (clamp(v, -HALF, HALF) + HALF) * 160 / HALF; }
+function mmBg() {
+  var key = curLoc + '|' + HALF + '|' + OB.length;
+  if (MM.bg && MM.key === key) return MM.bg;
+  MM.key = key;
+  var c = MM.bg || (MM.bg = mkCanvas(320, 320)), x = c.getContext('2d');
+  x.fillStyle = '#26332f'; x.fillRect(0, 0, 320, 320);
+  x.fillStyle = '#7d8c86';
+  OB.forEach(function (o) { var a = mmX(o.x0), b = mmX(o.z0); x.fillRect(a, b, Math.max(2, mmX(o.x1) - a), Math.max(2, mmX(o.z1) - b)); });
+  return c;
+}
+function mmDot(x, wx, wz, r, color) {
+  x.fillStyle = color; x.beginPath(); x.arc(mmX(wx), mmX(wz), r, 0, 6.2832); x.fill();
+}
+function mmSquare(x, wx, wz, r, color) {
+  x.fillStyle = color; x.fillRect(mmX(wx) - r, mmX(wz) - r, r * 2, r * 2);
+  x.strokeStyle = '#f1efe6'; x.lineWidth = 2; x.strokeRect(mmX(wx) - r, mmX(wz) - r, r * 2, r * 2);
+}
+function minimapTick(dt) {
+  if (!MM.on) return;
+  MM.t -= dt; if (MM.t > 0) return; MM.t = 1 / 15;
+  var x = MM.c.getContext('2d'), i;
+  x.drawImage(mmBg(), 0, 0);
+  G.pickups.forEach(function (p) { mmDot(x, p.x, p.z, 6, '#ffd27a'); });
+  if (G.online) Object.keys(NG.pks).forEach(function (id) { mmDot(x, NG.pks[id].x, NG.pks[id].z, 6, '#ffd27a'); });
+  if (boxG && boxG.visible) mmSquare(x, boxG.position.x, boxG.position.z, 9, '#3d8f2a');
+  var pap = PERKM[PERKM.length - 1];
+  if (pap.g && pap.g.visible) mmSquare(x, pap.g.position.x, pap.g.position.z, 10, '#c026d3');
+  for (i = 0; i < G.enemies.length; i++) {
+    var e = G.enemies[i], boss = !!e.T.boss;
+    mmDot(x, e.x, e.z, boss ? 15 : 8, '#ff3b30');
+    if (boss) { x.strokeStyle = '#fff'; x.lineWidth = 3; x.stroke(); }
+  }
+  if (ally.g && ally.g.visible) mmDot(x, ally.x, ally.z, 8, ally.down ? '#8a8f8c' : '#7fe8ff');
+  MATES.forEach(function (m) { if (m.g && m.g.visible) mmDot(x, m.x, m.z, 8, m.down ? '#8a8f8c' : '#7fe8ff'); });
+  if (G.online) Object.keys(NG.pup).forEach(function (k) { var u = NG.pup[k]; mmDot(x, u.x, u.z, 9, u.down ? '#8a8f8c' : '#7dff8a'); });
+  /* Jugador: flecha que apunta hacia donde mira */
+  x.save(); x.translate(mmX(P.x), mmX(P.z)); x.rotate(-P.yaw);
+  x.fillStyle = '#fff'; x.strokeStyle = '#0f1412'; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(0, -18); x.lineTo(12, 13); x.lineTo(0, 6); x.lineTo(-12, 13); x.closePath(); x.fill(); x.stroke();
+  x.restore();
+}
+
 function update(dt) {
   G.t += dt; updateNpcs(); updateDust(dt); if (G.state !== 'paused') updateMap(G.t, dt);
   followRig(); updateLights(G.t, dt);
@@ -5653,7 +5735,7 @@ function update(dt) {
   updatePlayer(dt); applyCamera();
   if (mouseDown) shoot();
   if (G.state !== 'playing') return;
-  papTick(dt); fxRingsTick(dt);
+  papTick(dt); fxRingsTick(dt); minimapTick(dt);
   if (G.online && !NG.host) { netClientTick(dt); updateProj(dt); updateEProj(dt); updateHazards(dt); updateRevive(dt); updateSquad(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt); return; }
   updateWaves(dt); if (G.state !== 'playing') return;
   updateEnemies(dt); if (G.state !== 'playing') return;
@@ -5687,6 +5769,8 @@ window.addEventListener('keydown', function (e) {
     if (e.code === 'KeyP') pause();
     var di = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code); if (di >= 0) pickCat(CATS[di]);
   } else if (G.state === 'paused' && e.code === 'KeyP') resume();
+  if (e.code === 'KeyL') toggleFs();
+  if (e.code === 'KeyN' && G.state === 'playing') mmToggle();
   if (e.code === 'KeyM') { muted = !muted; if (G.state === 'playing') toast(muted ? 'SONIDO APAGADO' : 'SONIDO ENCENDIDO'); }
 });
 window.addEventListener('keyup', function (e) { keys[e.code] = false; });
