@@ -1282,7 +1282,7 @@ var UPGRADES = [
 
 /* ---------------- Estado ---------------- */
 var G = { state: 'menu', mode: 'story', phase: 0, wip: 1, euros: 0, euroSnap: 0, scoreSnap: 0, killSnap: 0,
-  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, reserve: {}, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1, punos: 1 }, lastW: {}, punchT: 0, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
+  hp: 100, maxHp: 100, score: 0, kills: 0, wave: 0, wcur: 'grapadora', ammoMap: {}, pool: 40, bambu: 0, perks: {}, pap: {}, owned: { grapadora: 1, punos: 1 }, lastW: {}, punchT: 0, upg: { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 },
   reload: 0, reloadT: 1, fireCd: 0, rapid: 0, shield: 0, regenCd: 0, regenOn: false, combo: 0, comboT: 0, toSpawn: [], spawnT: 0, waveDone: false, waveBreak: 0,
   enemies: [], hazards: [], pickups: [], fx: [], tracers: [], proj: [], eproj: [], radioAt: -99, hurtT: 0, shake: 0, recoil: 0, flash: 0, t: 0, lowWarn: false };
 var P = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, yawT: 0, pitchT: 0, lookVx: 0, lookVy: 0, swayX: 0, swayY: 0, onGround: true, bob: 0, bobAmp: 0 };
@@ -1310,54 +1310,54 @@ function magSize(k) { return Math.ceil(WEX[k].mag * (1 + 0.25 * G.upg.mag)); }
 function dmgMult() { return 1 + 0.25 * G.upg.dmg; }
 function reloadTime() { return WEAPONS[G.wcur].reload * (1 - 0.2 * G.upg.rel) * (G.perks.recarga ? 0.7 : 1); }
 function applyStats() { G.maxHp = 100 + 20 * G.upg.hp + (G.perks.vida ? 40 : 0); }
-function initAmmo() { WORDER.forEach(function (k) { G.ammoMap[k] = magSize(k); G.reserve[k] = WEAPONS[k].reserve | 0; }); }
-/* ---------------- Munición de reserva ----------------
-   Cada arma tiene su cargador (G.ammoMap) y su reserva (G.reserve, con tope WEAPONS.maxReserve). La munición no se compra:
-   los enemigos la sueltan al azar. Cada pickup da un cargador entero a cada arma de su categoría que tienes y que sale en el mapa.
-   Bao se alimenta con bambú y los puños no usan munición. */
-var AMMO_DROP = 0.1; /* probabilidad base por enemigo abatido (se multiplica por DF().drop) */
+function initAmmo() { WORDER.forEach(function (k) { G.ammoMap[k] = magSize(k); }); G.pool = AMMO_START; }
+/* ---------------- Munición compartida ----------------
+   Todas las armas que gastan munición usan la misma: la reserva común (G.pool). Cada arma tiene su cargador (G.ammoMap[k]).
+   La reserva tiene tope de 5 cargadores de referencia (AMMO_CAP). Los enemigos sueltan balas al azar; los pickups son iguales
+   para todas las armas. Bao se alimenta con bambú y los puños no usan munición. */
+var AMMO_START = 40, AMMO_CAP = 100, AMMO_PICK = 25; /* balas al empezar, tope (5 cargadores de 20) y balas por pickup */
+var AMMO_DROP = 0.3; /* probabilidad base por enemigo abatido (se multiplica por DF().drop) */
 var MUN_INFO = {
   munP: { cat: 'principal', label: 'PRINCIPAL', css: '#ff5c8a', hex: 0xff5c8a },
   munS: { cat: 'secundaria', label: 'SECUNDARIA', css: '#59b8ff', hex: 0x59b8ff }
 };
 var MUN_KIND = { principal: 'munP', secundaria: 'munS' };
 var MUN_TEX = {}, MUN_MAT = {};
-/* Arma que gasta munición de reserva (no los puños ni Bao) */
-function usesAmmo(k) { return WEAPONS[k].type !== 'melee' && k !== 'bao' && (WEAPONS[k].maxReserve | 0) > 0; }
-function ammoOf(k) { return (G.ammoMap[k] | 0) + (G.reserve[k] | 0); }
-/* Arma nueva o de caja: cargador lleno y, si no tenía reserva, su reserva inicial */
-function refillWeapon(k) { G.ammoMap[k] = magSize(k); if (usesAmmo(k)) G.reserve[k] = Math.max(G.reserve[k] | 0, WEAPONS[k].reserve | 0); }
-/* Armas de una categoría que el jugador tiene y gastan munición de reserva */
+/* Arma que gasta la munición compartida (no los puños ni Bao) */
+function usesAmmo(k) { return WEAPONS[k].type !== 'melee' && k !== 'bao'; }
+function ammoOf(k) { return usesAmmo(k) ? (G.ammoMap[k] | 0) + (G.pool | 0) : (G.ammoMap[k] | 0); }
+/* Arma nueva o de caja: cargador lleno (la reserva común no cambia) */
+function refillWeapon(k) { G.ammoMap[k] = magSize(k); }
+/* Armas que el jugador tiene y gastan munición */
 function ammoWeaponsIn(c) { return allKeys().filter(function (k) { return catOf(k) === c && G.owned[k] && usesAmmo(k) && weaponAllowed(k); }); }
-/* Reparte un pickup de munición entre las armas de su categoría que el jugador tiene. Devuelve cuántas subieron */
-function giveAmmo(c) {
-  var n = 0;
-  ammoWeaponsIn(c).forEach(function (k) {
-    var before = G.reserve[k] | 0, after = Math.min(WEAPONS[k].maxReserve, before + magSize(k));
-    G.reserve[k] = after; if (after > before) n++;
-  });
-  return n;
+function anyAmmoWeapon() { return allKeys().some(function (k) { return G.owned[k] && usesAmmo(k) && weaponAllowed(k); }); }
+/* Un pickup de balas: suma AMMO_PICK al tope. Devuelve 1 si subió algo */
+function giveAmmo() {
+  var before = G.pool | 0;
+  G.pool = Math.min(AMMO_CAP, before + AMMO_PICK);
+  return G.pool > before ? 1 : 0;
 }
-/* Recarga terminada: el cargador se llena desde la reserva */
+/* Recarga terminada: el cargador se llena desde la reserva común */
 function reloadNow() {
-  var k = G.wcur, take = Math.min(magSize(k) - (G.ammoMap[k] | 0), G.reserve[k] | 0);
-  if (take > 0) { G.ammoMap[k] = (G.ammoMap[k] | 0) + take; G.reserve[k] -= take; }
+  var k = G.wcur, take = Math.min(magSize(k) - (G.ammoMap[k] | 0), G.pool | 0);
+  if (take > 0) { G.ammoMap[k] = (G.ammoMap[k] | 0) + take; G.pool -= take; }
 }
-/* Pickup que necesita el arma en mano si se queda sin cargador y sin reserva (Bao: bambú) */
+/* Pickup que necesita el jugador si se queda sin balas en mano (Bao: bambú) */
 function starvedKind() {
   var k = G.wcur;
   if (k === 'bao') return (G.ammoMap.bao | 0) === 0 && !(G.bambu > 0) ? 'bambu' : null;
   if (!usesAmmo(k)) return null;
-  return ammoOf(k) === 0 ? MUN_KIND[catOf(k)] : null;
+  return ammoOf(k) === 0 ? 'munP' : null;
 }
-/* Al morir un enemigo: munición de una categoría que el jugador tiene, con probabilidad que escala con DF().drop.
-   Si el arma en mano está vacía, el siguiente enemigo la suelta seguro. Nunca hay más de un pickup de cada tipo en el suelo. */
+/* Al morir un enemigo: balas con probabilidad que escala con DF().drop. Si el arma en mano está vacía, la siguiente baja
+   suelta balas seguro. Nunca hay más de un pickup de cada tipo en el suelo. */
 function onFloor(kind) { return G.pickups.some(function (p) { return p.kind === kind; }); }
 function dropAmmo(x, z) {
   var need = starvedKind();
   if (need) { if (!onFloor(need)) dropPickup(need, x, z); return; }
-  var cats = CATS.filter(function (c) { return MUN_KIND[c] && !onFloor(MUN_KIND[c]) && ammoWeaponsIn(c).length; });
-  if (cats.length && Math.random() < AMMO_DROP * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(MUN_KIND[pick(cats)], x, z);
+  if (!anyAmmoWeapon()) return;
+  var kinds = ['munP', 'munS'].filter(function (kd) { return !onFloor(kd); });
+  if (kinds.length && Math.random() < AMMO_DROP * DF().drop * (G.mode === 'survival' ? evDrop : 1)) dropPickup(pick(kinds), x, z);
 }
 /* Caja de munición con su etiqueta (una textura por categoría, reutilizada) */
 function munCrate(kind) {
@@ -1368,7 +1368,7 @@ function munCrate(kind) {
     x.fillStyle = mi.css; x.fillRect(0, 0, 256, 54); x.fillRect(0, 202, 256, 54);
     x.textAlign = 'center'; x.fillStyle = '#14181a'; x.font = '36px Anton, Impact, sans-serif'; x.fillText('MUNICIÓN', 128, 42);
     x.fillStyle = mi.css; x.font = '44px Anton, Impact, sans-serif'; x.fillText(mi.label, 128, 150, 236);
-    x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('+1 CARGADOR', 128, 234, 236);
+    x.fillStyle = '#f1efe6'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('+' + AMMO_PICK + ' BALAS', 128, 234, 236);
     MUN_TEX[kind] = tex(c);
   }
   return new THREE.Mesh(BG(0.5, 0.5, 0.5), MUN_MAT[kind] || (MUN_MAT[kind] = new THREE.MeshBasicMaterial({ map: MUN_TEX[kind] })));
@@ -3844,7 +3844,7 @@ function updateHud() {
   el.blHp.classList.toggle('low', low); setRegenHud(G.regenOn);
   if (Hc.hudlow !== low) { Hc.hudlow = low; $('hud').classList.toggle('low', low); }
   setText('warn', el.hpWarn, low ? 'Contratación inminente' : '');
-  var w = WEAPONS[G.wcur], melee = w.type === 'melee', bao = G.wcur === 'bao', res = G.reserve[G.wcur] | 0;
+  var w = WEAPONS[G.wcur], melee = w.type === 'melee', bao = G.wcur === 'bao', res = G.pool | 0;
   /* Cargador / reserva (p. ej. 20 / 60). Los puños no tienen munición y Bao muestra el bambú que le queda */
   setText('ammo', el.ammoNow, melee ? '—' : (G.reload > 0 ? '--' : String(G.ammoMap[G.wcur] | 0)));
   setText('amag', el.ammoMag, melee ? '' : '/ ' + (bao ? (G.bambu | 0) : res));
@@ -4525,7 +4525,7 @@ function dropPickup(kind, x, z) {
 function allyWants(p) {
   if (p.kind === 'pizza') return G.hp < G.maxHp - 10;
   /* Munición: Lefal solo la recoge si hay alguna arma de esa categoría con reserva sin llenar */
-  if (MUN_INFO[p.kind]) return ammoWeaponsIn(MUN_INFO[p.kind].cat).some(function (k) { return (G.reserve[k] | 0) < WEAPONS[k].maxReserve; });
+  if (MUN_INFO[p.kind]) return (G.pool | 0) < AMMO_CAP;
   return G.enemies.length > 0;
 }
 function applyPickup(p, byAlly) {
@@ -4534,7 +4534,7 @@ function applyPickup(p, byAlly) {
   else if (p.kind === 'cafe') { G.rapid = 8; toast(who + 'CAFÉ · DISPARO RÁPIDO'); }
   else if (p.kind === 'bambu') { G.bambu = Math.min(5, (G.bambu || 0) + 1); toast(who + 'BAMBÚ · ALIMENTO DE BAO'); }
   else if (p.kind === 'chatgpt') { G.rapid = 10; toast(who + 'CHAT IA · CATALIZADOR · DISPARO RÁPIDO'); }
-  else if (MUN_INFO[p.kind]) { var mc = MUN_INFO[p.kind].cat, got = giveAmmo(mc); toast(who + 'MUNICIÓN ' + CAT_NAME[mc].toUpperCase() + (got ? ' · UN CARGADOR POR ARMA' : ammoWeaponsIn(mc).length ? ' · RESERVAS LLENAS' : ' · NO TIENES ARMA DE ESTA CATEGORÍA')); }
+  else if (MUN_INFO[p.kind]) { var got = giveAmmo(); toast(who + (got ? 'MUNICIÓN +' + AMMO_PICK + ' BALAS' : 'BALAS LLENAS · TOPE ' + AMMO_CAP)); }
   else { G.shield = 6; toast(who + 'SUBSIDIO · INVULNERABLE'); }
   if (byAlly) setEmote('+', '#2f9e5a', 1.2);
 }
@@ -4563,14 +4563,14 @@ function startReload() {
   }
   if (G.reload > 0 || G.ammoMap[G.wcur] >= magSize(G.wcur)) return;
   /* Sin reserva, R avisa y no hace nada */
-  if (!(G.reserve[G.wcur] > 0)) { toast('SIN RESERVA · NO QUEDAN BALAS DE ' + WEAPONS[G.wcur].short.toUpperCase()); sfx.empty(); return; }
+  if (!(G.pool > 0)) { toast('SIN RESERVA · NO QUEDAN BALAS'); sfx.empty(); return; }
   G.reloadT = reloadTime(); G.reload = G.reloadT; sfx.reload();
 }
 /* Disparar con el cargador vacío: clic seco. Recarga si hay reserva; si no, avisa */
 function emptyClick() {
   sfx.empty(); G.fireCd = 0.4;
   if (G.wcur === 'bao') { startReload(); return; }
-  if (G.reserve[G.wcur] > 0) { toast('CARGADOR VACÍO · RECARGANDO'); startReload(); return; }
+  if (G.pool > 0) { toast('CARGADOR VACÍO · RECARGANDO'); startReload(); return; }
   toast('CARGADOR VACÍO · SIN RESERVA');
 }
 function spawnProj(kind, pos, dir, speed, dmg, splash) {
