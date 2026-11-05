@@ -106,6 +106,12 @@ body {
 .wlist .cat.on { background: var(--paper); color: var(--ink); border-color: var(--paper); }
 .wlist .cat.on b { color: var(--stamp); }
 .wlist .cat.empty { opacity: .6; }
+/* Rareza: etiqueta con el color de la rareza (--rc). En el selector va junto a la categoría; en la tienda, arriba de la tarjeta */
+.rar { display: inline-block; font-family: var(--disp); font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: .08em; line-height: 1; text-transform: uppercase; white-space: nowrap; background: var(--rc); color: #0d1110; padding: 3px 6px 2px; box-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+.wlist .cat i.rar { flex: 0 0 auto; font-size: 9px; padding: 2px 4px 1px; box-shadow: none; }
+.wlist .cat em { font-size: 10px; letter-spacing: .05em; }
+.item .rar { align-self: flex-start; }
+@media (min-width: 901px) { .br { width: clamp(252px, calc(30vw - 40px), 300px); } }
 
 .pw { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 30%; }
 .pw span { background: var(--fluor); color: var(--ink); font-family: var(--disp); font-size: 16px; letter-spacing: .06em; padding: 3px 10px; box-shadow: 2px 2px 0 rgba(0,0,0,.65); }
@@ -386,19 +392,20 @@ body {
    Lo demás (habilidades, compañeros, interacción) se sitúa encima para que nada tape el nombre ni el selector. */
 @media (max-width: 900px) {
   .bl, .br { left: 50%; right: auto; width: min(420px, calc(100% - 20px)); transform: translateX(-50%); }
-  .bl { bottom: 66px; }
+  .bl { bottom: 74px; }
   .br { bottom: 10px; display: flex; align-items: flex-end; gap: 8px; text-align: left; }
   .br .big { flex: 0 0 auto; font-size: 30px; }
   .br .big span { font-size: 15px; }
   .br .sub { display: none; }
   .wlist { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 0; }
-  .wlist .cat { flex-direction: column; align-items: stretch; justify-content: center; gap: 1px; padding: 3px 5px 4px; }
+  .wlist .cat { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 1px; padding: 2px 5px 3px; }
   .wlist .cat em { font-size: 9px; letter-spacing: .05em; white-space: normal; line-height: 1.15; }
   .wlist .cat strong { font-size: 12px; letter-spacing: 0; }
+  .wlist .cat i.rar { font-size: 7.5px; padding: 1px 3px 0; white-space: normal; }
   .allytag b { font-size: 16px; }
   .squad .top { font-size: 14px; }
   .pw { max-width: 90%; bottom: 170px; }
-  .abil { bottom: 136px; }
+  .abil { bottom: 146px; }
   .interact, .revive { bottom: 196px; }
   .allytag { top: 124px; bottom: auto; min-width: 0; width: 110px; }
   .nettag { top: 124px; bottom: auto; }
@@ -1064,25 +1071,45 @@ var CAT_LINES = ['Miau. Compra algo, que el sofá no se paga solo.', 'Miau. La l
 /* ---------------- Armas y mejoras ---------------- */
 var WORDER = ['grapadora', 'leche', 'trituradora', 'pizza', 'bao', 'taladro', 'sopladora', 'sellos'];
 var WEAPONS = {
-  grapadora: { name: 'Grapadora', short: 'Grapadora', type: 'hitscan', mag: 20, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
+  grapadora: { name: 'Grapadora', short: 'Grapadora', rarity: 'comun', type: 'hitscan', mag: 20, rate: 0.2, reload: 1.2, dmg: 1, price: 0, sfx: 'shoot',
     desc: 'Arma inicial. Cadencia media y munición de sobra.' },
-  sellos: { name: 'Sellador de expedientes', short: 'Sellador', type: 'hitscan', mag: 12, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
+  sellos: { name: 'Sellador de expedientes', short: 'Sellador', rarity: 'poco', type: 'hitscan', mag: 12, rate: 0.45, reload: 1.3, dmg: 3, price: 450, sfx: 'shoot',
     desc: 'Sella cada oferta con un golpe seco: RECHAZADA. Mucho daño por disparo.' },
-  taladro: { name: 'Taladro de oficina', short: 'Taladro', type: 'spray', mag: 40, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
+  taladro: { name: 'Taladro de oficina', short: 'Taladro', rarity: 'poco', type: 'spray', mag: 40, rate: 0.07, reload: 1.6, dmg: 0.7, range: 10, spread: 0.035, price: 600, sfx: 'shred',
     desc: 'Un taladro que no para. Gasta batería como si no hubiera mañana.' },
-  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', type: 'pellets', mag: 10, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
+  sopladora: { name: 'Sopladora de hojas', short: 'Sopladora', rarity: 'rara', type: 'pellets', mag: 10, rate: 0.45, reload: 1.4, dmg: 0.6, pellets: 9, spread: 0.24, speed: 22, price: 400, sfx: 'milk',
     desc: 'Sopla a todo el mundo hacia atrás. No hace daño, pero se nota.' },
-  bao: { name: 'Bao, el panda lechero', short: 'Bao', type: 'pellets', mag: 5, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
+  bao: { name: 'Bao, el panda lechero', short: 'Bao', rarity: 'rara', type: 'pellets', mag: 5, rate: 0.7, reload: 0.4, dmg: 1.4, pellets: 5, spread: 0.1, speed: 28, price: 350, sfx: 'milk',
     desc: 'Un panda que escupe leche. No se recarga con balas: alimentalo con bambú (tecla R).' },
-  leche: { name: 'Leche de Raúl Becas', short: 'Leche', type: 'pellets', mag: 6, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
+  leche: { name: 'Leche de Raúl Becas', short: 'Leche', rarity: 'poco', type: 'pellets', mag: 6, rate: 0.8, reload: 1.7, dmg: 1, pellets: 7, spread: 0.09, speed: 30, price: 150, sfx: 'milk',
     desc: 'Un vaso de leche que lanza grumos en abanico. Corta distancia y mucho daño.' },
-  trituradora: { name: 'Trituradora', short: 'Trituradora', type: 'spray', mag: 80, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
+  trituradora: { name: 'Trituradora', short: 'Trituradora', rarity: 'comun', type: 'spray', mag: 80, rate: 0.055, reload: 2.0, dmg: 0.38, range: 9, spread: 0.05, price: 300, sfx: 'shred',
     desc: 'Tritura papel a ráfagas. Alcance corto y cadencia enorme.' },
-  pizza: { name: 'Cañón de Pizza', short: 'Pizza', type: 'explosive', mag: 4, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
+  pizza: { name: 'Cañón de Pizza', short: 'Pizza', rarity: 'comun', type: 'explosive', mag: 4, rate: 0.9, reload: 2.1, dmg: 6, splash: 3.4, speed: 24, price: 500, sfx: 'pizza',
     desc: 'Lanza porciones que explotan en área. Cuatro por cargador.' },
-  punos: { name: 'Puños', short: 'Puños', type: 'melee', mag: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
+  punos: { name: 'Puños', short: 'Puños', rarity: 'comun', type: 'melee', mag: 0, rate: 0.42, reload: 0, dmg: 1.6, range: 2.4, arc: 0.5, price: 0, sfx: 'punch',
     desc: 'Sin balas ni cajas: golpes cortos a todo lo que tengas delante.' }
 };
+/* Rareza: raíz fija de cada arma (no sube). Multiplica sus estadísticas base. cap = aspecto máximo con mejoras (1 brillo, 2 neón, 3 luces); la legendaria tiene efectos propios (aura y órbita). */
+var RARITY_ORDER = ['comun', 'poco', 'rara', 'epica', 'legendaria'];
+var RARITY_STATS = {
+  comun: { label: 'COMÚN', css: '#cfd3c8', hex: 0xcfd3c8, dmg: 1, rate: 1, mag: 1, range: 1, kick: 1, cap: 1, aura: false },
+  poco: { label: 'POCO COMÚN', css: '#5fd17a', hex: 0x5fd17a, dmg: 1.15, rate: 0.97, mag: 1.1, range: 1.05, kick: 1.1, cap: 2, aura: false },
+  rara: { label: 'RARA', css: '#4aa8ff', hex: 0x4aa8ff, dmg: 1.35, rate: 0.93, mag: 1.2, range: 1.1, kick: 1.2, cap: 3, aura: false },
+  epica: { label: 'ÉPICA', css: '#b56cff', hex: 0xb56cff, dmg: 1.6, rate: 0.9, mag: 1.35, range: 1.15, kick: 1.3, cap: 3, aura: false },
+  legendaria: { label: 'LEGENDARIA', css: '#ffb020', hex: 0xffb020, dmg: 2, rate: 0.85, mag: 1.5, range: 1.25, kick: 1.5, cap: 3, aura: true }
+};
+function rarityOf(k) { return RARITY_STATS[(WEAPONS[k] && WEAPONS[k].rarity) || 'comun']; }
+/* Campo de arma que multiplica cada estadística de la rareza (el alcance afecta a rango, radio o velocidad) */
+var RMUL = { dmg: 'dmg', rate: 'rate', mag: 'mag', range: 'range', splash: 'range', speed: 'range' };
+/* Armas con su rareza aplicada. Se calcula una vez: la rareza no cambia */
+var WEX = {};
+Object.keys(WEAPONS).forEach(function (k) {
+  var b = WEAPONS[k], m = rarityOf(k), e = {}, f;
+  for (f in b) e[f] = b[f];
+  for (f in RMUL) if (typeof b[f] === 'number') e[f] = b[f] * m[RMUL[f]];
+  WEX[k] = e;
+});
 /* Categorías del selector: principal, secundaria y cuerpo a cuerpo (puños). Tabla propuesta: la parte 8 añade aquí cada arma nueva. */
 var CATS = ['principal', 'secundaria', 'cuerpo'];
 var CAT_NAME = { principal: 'Principal', secundaria: 'Secundaria', cuerpo: 'Cuerpo a cuerpo' };
@@ -1123,7 +1150,7 @@ var rawOK = true, rawPending = false, skipMove = 0;
 var best = 0;
 try { best = parseInt(localStorage.getItem('nini-best') || '0', 10) || 0; } catch (e) {}
 
-function magSize(k) { return Math.ceil(WEAPONS[k].mag * (1 + 0.25 * G.upg.mag)); }
+function magSize(k) { return Math.ceil(WEX[k].mag * (1 + 0.25 * G.upg.mag)); }
 function dmgMult() { return 1 + 0.25 * G.upg.dmg; }
 function reloadTime() { return WEAPONS[G.wcur].reload * (1 - 0.2 * G.upg.rel) * (G.perks.recarga ? 0.7 : 1); }
 function applyStats() { G.maxHp = 100 + 20 * G.upg.hp + (G.perks.vida ? 40 : 0); }
@@ -1617,10 +1644,66 @@ function buildGun(kind) {
     part(B(0.13, 0.07, 0.42), 0xc22d27, 0, 0, 0);
     mz.position.set(0, 0, -0.36); g.add(mz); g.userData.base = [0.27, -0.25, -0.58];
   }
-  g.userData.muzzle = mz; g.userData.kick = { grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2, sellos: 0.7 }[kind] || 1;
+  g.userData.muzzle = mz; g.userData.kick = ({ grapadora: 0.8, leche: 1.4, trituradora: 0.6, pizza: 1.8, taladro: 0.5, sopladora: 0.9, bao: 1.2, sellos: 0.7 }[kind] || 1) * rarityOf(kind).kick; addGunFx(g, kind);
   /* Todas las armas se ven a un 80% para no tapar la pantalla; el taladro y la sopladora, un poco menos */
   g.scale.setScalar(kind === 'taladro' || kind === 'sopladora' || kind === 'punos' ? 0.62 : 0.8);
   g.visible = false; camera.add(g); return g;
+}
+/* ---------------- Rareza y mejoras: aspecto del arma ----------------
+   Borde de color (casco invertido) según la rareza. Las mejoras (G.pap, 1 a 3) suben el brillo de las piezas,
+   el neón del borde y las luces (sprites), hasta el tope de la rareza (cap). Sin PointLights: solo materiales y sprites. */
+var fxGlowTex = null, WHITE_C = null;
+function whiteC() { return WHITE_C || (WHITE_C = new THREE.Color(0xffffff)); }
+function glowSprite(hex, size, op) {
+  if (!fxGlowTex) {
+    var c = mkCanvas(64, 64), x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 1, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64); fxGlowTex = tex(c);
+  }
+  var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: fxGlowTex, color: hex, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
+  s.scale.set(size, size, 1); s.renderOrder = 1150; return s;
+}
+function addGunFx(g, kind) {
+  var r = WEAPONS[kind].rarity || 'comun', rs = RARITY_STATS[r], ri = RARITY_ORDER.indexOf(r);
+  var meshes = [];
+  g.traverse(function (o) { if (o.isMesh) meshes.push(o); });
+  var fx = { k: kind, rs: rs, ri: ri, body: [], shells: [], accents: [], lights: [], orbit: [], aura: null, shellMat: null };
+  if (ri > 0) fx.shellMat = new THREE.MeshBasicMaterial({ color: rs.hex, side: THREE.BackSide, depthTest: false });
+  meshes.forEach(function (m) {
+    if (m.material.isMeshLambertMaterial) {
+      fx.body.push(m.material);
+      if (fx.shellMat) { var sh = new THREE.Mesh(m.geometry, fx.shellMat); sh.renderOrder = 990; m.add(sh); fx.shells.push(sh); }
+    } else if (m.material.isMeshBasicMaterial) {
+      m.userData.c0 = m.material.color.getHex(); fx.accents.push(m);
+      var ls = glowSprite(m.userData.c0, 0.1, 0.9); m.add(ls); fx.lights.push({ s: ls, ph: Math.random() * 6.3, mz: false });
+    }
+  });
+  if (ri >= 2) { var ms = glowSprite(rs.hex, 0.12 + 0.03 * ri, 0.55); g.userData.muzzle.add(ms); fx.lights.push({ s: ms, ph: 0, mz: true }); }
+  if (rs.aura) {
+    fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.position.set(0, 0, -0.15); g.add(fx.aura);
+    for (var i = 0; i < 6; i++) { var o = glowSprite(0xfff1b0, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * 1.047, sp: 1.4 + (i % 3) * 0.35 }); }
+  }
+  g.userData.fx = fx;
+  applyGunLook(g);
+}
+/* Aspecto según la rareza (fija) y el nivel de mejora: 1 brillo · 2 neón (borde claro y más grueso) · 3 luces (sprites). El tope es la rareza */
+function applyGunLook(g) {
+  var fx = g && g.userData.fx; if (!fx) return;
+  var L = G.pap[fx.k] | 0, vk = Math.min(L, fx.rs.cap), neon = vk >= 2, lights = vk >= 3;
+  fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.06 * fx.ri + 0.16 * L); });
+  if (fx.shellMat) { fx.shellMat.color.setHex(fx.rs.hex); if (neon) fx.shellMat.color.lerp(whiteC(), 0.3); }
+  fx.shells.forEach(function (sh) { sh.scale.setScalar(neon ? 1.1 + 0.02 * L : 1.06); });
+  fx.accents.forEach(function (m) { m.material.color.setHex(m.userData.c0).lerp(whiteC(), 0.15 * L); });
+  fx.lights.forEach(function (o) { o.s.visible = o.mz ? fx.ri >= 2 : lights; });
+  if (fx.aura) fx.aura.material.opacity = 0.18 + 0.1 * L;
+}
+/* Animación del arma en uso: órbita y pulso de la legendaria, y pulso de las luces */
+function animGunFx(g, dt) {
+  var fx = g.userData.fx; if (!fx) return;
+  var t = G.t;
+  if (fx.aura) fx.aura.material.opacity = (0.18 + 0.1 * (G.pap[fx.k] | 0)) * (0.75 + 0.25 * Math.sin(t * 3));
+  for (var i = 0; i < fx.orbit.length; i++) { var o = fx.orbit[i]; o.a += dt * o.sp; o.s.position.set(Math.cos(o.a) * 0.3, Math.sin(o.a * 1.3) * 0.12 - 0.02, -0.1 + Math.sin(o.a) * 0.06); }
+  for (var j = 0; j < fx.lights.length; j++) { var l = fx.lights[j]; if (l.s.visible && !l.mz) l.s.material.opacity = 0.6 + 0.35 * Math.sin(t * 5 + l.ph); }
 }
 function loadCharCanvas(key, cb) {
   var im = new Image();
@@ -2861,6 +2944,11 @@ function selectGun(k) {
   G.wcur = k; var g = guns[k]; g.visible = (G.state !== 'menu');
   curMuzzle = g.userData.muzzle; curMuzzle.add(flashSprite); curMuzzle.add(flashLight);
   flashSprite.position.set(0, 0, 0); flashLight.position.set(0, 0, -0.1);
+  /* Destello del disparo: tinte y tamaño sutiles según la rareza */
+  var rr = rarityOf(k), rix = RARITY_ORDER.indexOf(WEAPONS[k].rarity || 'comun');
+  flashSprite.material.color.set(0xffffff).lerp(new THREE.Color(rr.hex), rix === 0 ? 0 : (rr.aura ? 0.7 : 0.4));
+  flashSprite.scale.setScalar(0.34 * (1 + 0.08 * rix));
+  applyGunLook(g);
   renderWList();
 }
 function applyTheme(i) {
@@ -2935,8 +3023,8 @@ var wlistHtml = '';
 function renderWList() {
   var h = '';
   CATS.forEach(function (c, i) {
-    var k = catShown(c), on = catOf(G.wcur) === c;
-    h += '<span class="cat' + (on ? ' on' : '') + (k ? '' : ' empty') + '"><em><b>' + (i + 1) + '</b> ' + CAT_NAME[c] + '</em><strong>' + (k ? WEAPONS[k].short : '—') + '</strong></span>';
+    var k = catShown(c), on = catOf(G.wcur) === c, rs = k ? rarityOf(k) : null, lv = k ? (G.pap[k] | 0) : 0;
+    h += '<span class="cat' + (on ? ' on' : '') + (k ? '' : ' empty') + '"' + (k ? ' style="--rc:' + rs.css + '"' : '') + '><em><b>' + (i + 1) + '</b> ' + CAT_NAME[c] + '</em><strong>' + (k ? WEAPONS[k].short : '—') + '</strong>' + (k ? '<i class="rar">' + rs.label + (lv ? ' · NV ' + lv : '') + '</i>' : '') + '</span>';
   });
   if (h !== wlistHtml) { wlistHtml = h; el.wlist.innerHTML = h; }
 }
@@ -3698,7 +3786,7 @@ function updateProj(dt) {
   }
 }
 function shoot() {
-  var w = WEAPONS[G.wcur];
+  var w = WEX[G.wcur];
   if (G.reload > 0 || G.fireCd > 0 || P.down) return;
   if (w.type === 'melee') { punch(w); return; }
   if (G.ammoMap[G.wcur] <= 0) { sfx.empty(); startReload(); return; }
@@ -4082,8 +4170,8 @@ function updateInteract(dt) {
       m.g.position.y = 0.05 * Math.sin(G.t * 2 + i);
       /* Con los puños en la mano no hay nada que mejorar en la máquina de Pack-a-Punch */
       if (Math.hypot(P.x - m.g.position.x, P.z - m.g.position.z) <= 2.4 && !(m.k === 'pap' && G.wcur === 'punos')) {
-        var owned = m.k === 'pap' ? !!G.pap[G.wcur] : !!G.perks[m.k];
-        t = 'E · ' + (m.k === 'pap' ? 'MEJORA DE ARMA' : m.name) + ' · ' + m.cost + ' PUNTOS' + (owned ? ' · YA COMPRADO' : '');
+        if (m.k === 'pap') { var nx = papNext(G.wcur); t = 'E · MEJORA DE ARMA · ' + (nx.cost ? 'NV ' + nx.lv + ' · ' + nx.cost + ' PUNTOS' : nx.err); }
+        else t = 'E · ' + m.name + ' · ' + m.cost + ' PUNTOS' + (G.perks[m.k] ? ' · YA COMPRADO' : '');
       }
     }
   }
@@ -4776,7 +4864,7 @@ function netGrant(d) {
   if (d.err) { toast(String(d.err).slice(0, 60)); sfx.empty(); return; }
   if (d.perk) {
     var m = PERKM.filter(function (x) { return x.k === d.perk; })[0]; if (!m) return;
-    if (m.k === 'pap') { G.pap[d.w] = Math.max(G.pap[d.w] | 0, d.lv | 0, 1); papToast(d.w); }
+    if (m.k === 'pap') { G.pap[d.w] = Math.max(G.pap[d.w] | 0, d.lv | 0, 1); papToast(d.w); if (guns[d.w]) applyGunLook(guns[d.w]); renderWList(); }
     else { G.perks[m.k] = true; if (m.k === 'vida') { applyStats(); G.hp = G.maxHp; } toast('PERK · ' + m.name); }
     sfx.pickup(); return;
   }
@@ -5110,7 +5198,7 @@ var PERKM = [
   { k: 'vida', name: 'VIDA', sub: '+40 de nini · 2000', cost: 2000, c: 0x2f9e5a, x: 8, z: -8 },
   { k: 'recarga', name: 'RECARGA', sub: 'Recargas 30% más rápidas · 2000', cost: 2000, c: 0x2d6fb8, x: 8, z: 8 },
   { k: 'cadencia', name: 'CADENCIA', sub: 'Disparas 20% más rápido · 2000', cost: 2000, c: 0xc9851b, x: -8, z: 8 },
-  { k: 'pap', name: 'MEJORAS', sub: 'Sube de nivel cada ronda', cost: 1500, c: 0x8a2a8a, x: 0, z: -12 }
+  { k: 'pap', name: 'MEJORAS', sub: 'Sube de nivel cada ronda', cost: 500, c: 0x8a2a8a, x: 0, z: -12 }
 ];
 function buildPerks() {
   PERKM.forEach(function (m) {
@@ -5129,10 +5217,14 @@ function buildPerks() {
 function setPerkVis(v) { PERKM.forEach(function (m) { if (m.g) m.g.visible = v; }); if (!v) papUnblock(); }
 
 /* Caja de mejoras: grande, sube un nivel por ronda (hasta 10) y echa más humo rojo cuanto más nivel tiene */
-var PAP_MAX = 10, PAP_SMOKE = 40, papSeen = 0, papKey = '', papSmokeTex = null, fxRings = [];
+var PAP_MAX = 3, PAP_SMOKE = 40, papSeen = 0, papKey = '', papSmokeTex = null, fxRings = [];
 function papLevel() { return clamp(G.wave | 0, 1, PAP_MAX); }
-function papMult(w) { var l = G.pap[w] | 0; return l ? 1.8 + 0.4 * (l - 1) : 1; }
-function papCost(l) { return 1500 + 500 * (l - 1); }
+/* Daño por nivel de mejora (1 a 3) */
+var PAP_DMG = [1, 1.8, 2.4, 3];
+function papMult(w) { return PAP_DMG[G.pap[w] | 0] || 1; }
+/* Coste en puntos de cada nivel: fácil, más caro y muy caro */
+var PAP_COST = [0, 500, 1200, 2500];
+function papCost(l) { return PAP_COST[l] || 0; }
 function papNext(w) {
   if (w === 'punos') return { err: 'LOS PUÑOS NO SE MEJORAN' };
   var cur = G.pap[w] | 0;
@@ -5187,7 +5279,7 @@ function papSign(m, lv) {
   if (G.wcur === 'punos') { x.fillStyle = '#ffb0a8'; x.font = '30px Anton, Impact, sans-serif'; x.fillText('CAMBIA A UN ARMA', 256, 112); x.fillStyle = '#f1efe6'; x.fillText('PARA MEJORARLA', 256, 152); m.signT.needsUpdate = true; return; }
   x.fillStyle = '#ffb0a8'; x.font = '30px Anton, Impact, sans-serif';
   x.fillText((w ? w.short.toUpperCase() : '') + ' NV ' + cur + (n.lv ? ' → ' + n.lv : ''), 256, 112);
-  x.fillStyle = '#f1efe6'; x.fillText(n.lv ? 'E · x' + (1.8 + 0.4 * (n.lv - 1)).toFixed(1) + ' DAÑO · ' + n.cost + ' PUNTOS' : (cur >= PAP_MAX ? 'NIVEL MÁXIMO' : 'SUBE EN LA PRÓXIMA RONDA'), 256, 152);
+  x.fillStyle = '#f1efe6'; x.fillText(n.lv ? 'E · x' + PAP_DMG[n.lv].toFixed(1) + ' DAÑO · ' + n.cost + ' PUNTOS' : (cur >= PAP_MAX ? 'NIVEL MÁXIMO' : 'SUBE EN LA PRÓXIMA RONDA'), 256, 152);
   m.signT.needsUpdate = true;
 }
 function papTick(dt) {
@@ -5227,7 +5319,7 @@ function buyPerk(m) {
     var nx = papNext(G.wcur);
     if (nx.err) { toast(nx.err); sfx.empty(); return; }
     if (G.score < nx.cost) { toast('MEJORA · NECESITAS ' + nx.cost + ' PUNTOS'); sfx.empty(); return; }
-    G.score -= nx.cost; G.pap[G.wcur] = nx.lv; sfx.pickup(); papToast(G.wcur);
+    G.score -= nx.cost; G.pap[G.wcur] = nx.lv; sfx.pickup(); papToast(G.wcur); applyGunLook(guns[G.wcur]); renderWList();
     return;
   }
   if (G.perks[m.k]) { toast('YA TIENES ' + m.name); sfx.empty(); return; }
@@ -5446,7 +5538,7 @@ function renderShop() {
   WORDER.forEach(function (k) {
     var d = WEAPONS[k]; if (k === 'grapadora') return;
     var owned = !!G.owned[k], can = G.euros >= d.price;
-    w += '<div class="item"><div class="iname">' + d.name + '</div><div class="idesc">' + d.desc + '</div>' +
+    w += '<div class="item" style="--rc:' + rarityOf(k).css + ';border-top:6px solid ' + rarityOf(k).css + '"><span class="rar">' + rarityOf(k).label + '</span><div class="iname">' + d.name + '</div><div class="idesc">' + d.desc + '</div>' +
       '<button class="buy' + (owned ? ' owned' : '') + '" data-w="' + k + '"' + ((owned || !can) ? ' disabled' : '') + '>' + (owned ? 'COMPRADA' : 'COMPRAR · ' + d.price + ' €') + '</button></div>';
   });
   $('shopW').innerHTML = w;
@@ -5525,7 +5617,7 @@ function updatePlayer(dt) {
   if (Math.abs(camera.fov - targetFov) > 0.1) { camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8); camera.updateProjectionMatrix(); }
 }
 function updateWeapon(dt) {
-  var g = guns[G.wcur], b = g.userData.base;
+  var g = guns[G.wcur], b = g.userData.base; animGunFx(g, dt);
   G.recoil = Math.max(0, G.recoil - dt * 9);
   /* Golpe de los puños: de 0 a 1 y de vuelta a 0 en unos 0,25 s */
   if (G.punchT > 0) G.punchT = Math.max(0, G.punchT - dt * 4);
