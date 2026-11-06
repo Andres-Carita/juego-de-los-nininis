@@ -548,6 +548,7 @@ body {
         <button class="btn alt" id="btnNew" hidden>NUEVA HISTORIA</button>
         <button class="btn ghost" id="btnSurv" disabled>ZOMBIES</button>
         <button class="btn ghost" id="btnPvp" disabled>PVP · EQUIPOS</button>
+        <button class="btn ghost" id="btnPvpBomb" disabled>PVP · BOMBA</button>
         <button class="btn alt" id="btnOnline">ONLINE</button>
         <button class="btn ghost" id="btnBoard">CLASIFICACIÓN</button>
         <button class="btn ghost" id="btnShape">PERSONALIZAR EQUIPO</button>
@@ -626,6 +627,16 @@ body {
         <button class="btn" id="btnPvpGo">EMPEZAR</button>
         <button class="btn ghost" id="btnPvpBack">VOLVER</button>
       </div>
+    </div>
+  </div>
+  <div class="overlay" id="ovBuy" hidden>
+    <div class="sheet">
+      <div class="formno">Compra entre rondas</div>
+      <h1 id="buyRound">RONDA</h1>
+      <p class="best">Dinero: <b id="buyMoney">0 €</b> · Empieza en <b id="buyT">15</b> s</p>
+      <p class="best">Lo que compres se pierde si mueres en la ronda. Si sobrevives, se queda.</p>
+      <div id="buyList"></div>
+      <div class="btnrow"><button class="btn" id="btnBuyReady">LISTO</button></div>
     </div>
   </div>
   <div class="overlay mid" id="ovPvp" hidden>
@@ -6010,7 +6021,7 @@ function netHud() {
 }
 
 /* ---------------- Flujo de partida ---------------- */
-var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape', 'ovLoad', 'ovPvp'];
+var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape', 'ovLoad', 'ovPvp', 'ovBuy'];
 function showOnly(id) { screens.forEach(function (s) { $(s).hidden = s !== id; }); }
 function plainLock() {
   try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -6326,7 +6337,7 @@ function pause() {
   G.state = 'paused'; mouseDown = false;
   if (document.pointerLockElement) document.exitPointerLock();
   showOnly('ovPause');
-  if (G.pvp) { $('btnPvpLoad').hidden = false; $('pauseInfo').textContent = 'PVP · EQUIPOS. ' + (PV.next ? 'Arsenal nuevo guardado: se aplica al reaparecer.' : 'Puedes cambiar de arsenal: se aplica al reaparecer.'); return; }
+  if (G.pvp) { $('btnPvpLoad').hidden = PV.mode === 'bomb'; $('pauseInfo').textContent = 'PVP · EQUIPOS. ' + (PV.next ? 'Arsenal nuevo guardado: se aplica al reaparecer.' : 'Puedes cambiar de arsenal: se aplica al reaparecer.'); return; }
   $('btnPvpLoad').hidden = true; $('pauseInfo').textContent = 'Mapa: ' + MAPS[G.mapId].name + ' · Ronda ' + roundIdx() + ' · la dificultad sube con cada ronda';
 }
 function resume() {
@@ -6732,6 +6743,7 @@ function pvpGo() {
 function pvpBack() { showOnly(PV.loadMode === 'esc' ? 'ovPause' : 'ovStart'); }
 function pvpStart() {
   initAudio(); startMusic(); clearWorld();
+  PV.mode = 'team'; PV.bomb = null;
   G.mode = 'pvp'; G.pvp = true; G.perks = {}; G.pap = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 };
   G.euros = 0; G.score = 0; G.kills = 0; G.phase = 0; G.bambu = 0; G.lowWarn = false;
   BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
@@ -6746,7 +6758,9 @@ function pvpStart() {
 function pvpStop() {
   if (!G.pvp) return;
   G.pvp = false; PV.bots.forEach(function (b) { scene.remove(b.g); }); PV.bots = []; PV.dead = false; PV.next = null; P.down = false;
-  $('pvpBoard').hidden = true;
+  if (PV.bomb) { if (PV.bomb.buyIv) clearInterval(PV.bomb.buyIv); scene.remove(PV.bomb.ring); scene.remove(PV.bomb.bombM); }
+  PV.bomb = null; PV.mode = 'team';
+  $('pvpBoard').hidden = true; $('btnPvpLoad').hidden = true;
 }
 /* Aplica el arsenal pendiente (si lo hay) y deja al jugador en su base, con la munición y la vida llenas */
 function pvpSpawnPlayer() {
@@ -6780,8 +6794,13 @@ function pvpNewBot(team, slot) {
   b.g.add(body, head); b.body = body; scene.add(b.g);
   return b;
 }
+/* Punto de aparición de un equipo. En bomba, los atacantes salen a la izquierda y los defensores a la derecha */
+function pvpSpawnOf(team) {
+  if (PV.mode === 'bomb') return team === PV.bomb.atk ? PV_SPAWN.a : PV_SPAWN.b;
+  return PV_SPAWN[team];
+}
 function pvpBotSpawn(b) {
-  var sp = PV_SPAWN[b.team], r = resolve(sp[0] + rnd(-2, 2), sp[1] + (b.slot - 2) * 2.4, 0.45);
+  var sp = pvpSpawnOf(b.team), r = resolve(sp[0] + rnd(-2, 2), sp[1] + (b.slot - 2) * 2.4, 0.45);
   b.x = r.x; b.z = r.z; b.hp = 100; b.dead = false; b.cd = rnd(0.8, 1.6);
   b.g.visible = true; b.g.position.set(b.x, 0, b.z);
 }
@@ -6803,24 +6822,37 @@ function pvpNearestFoe(b) {
   return best;
 }
 function pvpTick(dt) {
-  PV.time = Math.max(0, PV.time - dt);
-  if (PV.dead) { PV.respT -= dt; if (PV.respT <= 0) pvpRespawnPlayer(); }
+  var bomb = PV.mode === 'bomb';
+  if (!bomb) {
+    PV.time = Math.max(0, PV.time - dt);
+    if (PV.dead) { PV.respT -= dt; if (PV.respT <= 0) pvpRespawnPlayer(); }
+  }
   PV.bots.forEach(function (b) {
-    if (b.dead) { b.respT -= dt; if (b.respT <= 0) pvpBotSpawn(b); return; }
+    if (b.dead) { if (!bomb) { b.respT -= dt; if (b.respT <= 0) pvpBotSpawn(b); } return; }
     b.cd -= dt;
-    var foe = pvpNearestFoe(b); if (!foe) return;
-    var dx = foe.x - b.x, dz = foe.z - b.z, d = Math.hypot(dx, dz) || 0.001;
-    b.yaw = Math.atan2(dx, dz);
-    if (d > 11) { var st = Math.min(d - 11, 3.4 * dt), r = resolve(b.x + dx / d * st, b.z + dz / d * st, 0.45); b.x = r.x; b.z = r.z; }
+    var foe = pvpNearestFoe(b), tx = null, tz = null, stopD = 11;
+    if (bomb) {
+      var B = PV.bomb, S = B.site, mine = b.team === B.atk;
+      var near = foe ? Math.hypot(foe.x - b.x, foe.z - b.z) : 1e9;
+      /* Atacantes sin bomba: van al punto si no tienen enemigos cerca. Defensores: van a la bomba una vez plantada */
+      if (mine && !B.planted && near > 14) { tx = S.x; tz = S.z; stopD = 0.6; }
+      else if (!mine && B.planted) { tx = S.x; tz = S.z; stopD = 0.6; }
+    }
+    if (tx === null) { if (!foe) return; tx = foe.x; tz = foe.z; }
+    var dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 0.001;
+    if (foe) b.yaw = Math.atan2(foe.x - b.x, foe.z - b.z); else b.yaw = Math.atan2(dx, dz);
+    if (d > stopD) { var st = Math.min(d - stopD, 3.4 * dt), r = resolve(b.x + dx / d * st, b.z + dz / d * st, 0.45); b.x = r.x; b.z = r.z; }
     b.g.position.set(b.x, 0, b.z); b.g.rotation.y = b.yaw;
-    if (d < 26 && b.cd <= 0) {
-      b.cd = rnd(1, 1.6);
-      if (Math.random() < 0.55 && pvpSee(b.x, b.z, foe.x, foe.z)) {
+    if (foe && d < 26 && b.cd <= 0) {
+      var fd = Math.hypot(foe.x - b.x, foe.z - b.z);
+      if (fd < 26) b.cd = rnd(1, 1.6);
+      if (fd < 26 && Math.random() < 0.55 && pvpSee(b.x, b.z, foe.x, foe.z)) {
         if (foe.isP) pvpPlayerHurt(PVP_BOT_DMG, b.team); else pvpBotHurt(foe, PVP_BOT_DMG, b.team);
       }
     }
   });
   if (G.state !== 'playing') return;
+  if (bomb) { pvbTick(dt); return; }
   var t = Math.ceil(PV.time), mm = Math.floor(t / 60), ss = t % 60;
   $('pvpBoard').textContent = 'A ' + PV.score.a + '  ·  ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '  ·  ' + PV.score.b + ' B';
   if (PV.time <= 0) pvpEnd(PV.score.a > PV.score.b ? 'a' : (PV.score.b > PV.score.a ? 'b' : 'draw'));
@@ -6829,19 +6861,26 @@ function pvpPlayerHurt(d, killer) {
   if (PV.dead || G.state !== 'playing' || !(d > 0)) return;
   G.hp -= d; G.regenCd = HEALTH.DELAY; G.hurtT = 0.3; G.shake = 0.3; sfx.hurt();
   if (G.hp > 0) return;
-  G.hp = 0; PV.dead = true; PV.respT = PVP_RESPAWN; P.down = true; mouseDown = false;
+  G.hp = 0; PV.dead = true; P.down = true; mouseDown = false;
   PV.score[killer]++;
+  var bomb = PV.mode === 'bomb';
+  PV.respT = bomb ? 1e9 : PVP_RESPAWN;
   canvas.classList.add('dead'); for (var gk in guns) guns[gk].visible = false;
-  toast('ABATIDO · REAPARECES EN ' + PVP_RESPAWN + ' S');
+  toast(bomb ? 'ABATIDO · ESPERA A LA SIGUIENTE RONDA' : 'ABATIDO · REAPARECES EN ' + PVP_RESPAWN + ' S');
   pvpCheckEnd();
 }
 function pvpBotHurt(b, d, killer) {
   if (b.dead) return;
   b.hp -= d;
   if (b.hp > 0) return;
-  b.dead = true; b.respT = PVP_RESPAWN; b.g.visible = false;
+  var bomb = PV.mode === 'bomb';
+  b.dead = true; b.respT = bomb ? 1e9 : PVP_RESPAWN; b.g.visible = false;
   PV.score[killer]++;
-  if (killer === 'a') { G.kills++; toast('BAJA · ' + PV.score.a + ' A ' + PV.score.b + ' B'); }
+  if (killer === 'a') {
+    G.kills++;
+    if (bomb) PV.bomb.money += PVB_KILL;
+    toast('BAJA' + (bomb ? ' · +' + PVB_KILL + ' €' : '') + ' · ' + PV.score.a + ' A ' + PV.score.b + ' B');
+  }
   pvpCheckEnd();
 }
 function pvpHitBot(b, d) {
@@ -6871,6 +6910,7 @@ function pvpFireProj(w, dm) {
   }
 }
 function pvpCheckEnd() {
+  if (PV.mode === 'bomb') { pvbCheck(); return; }
   if (PV.score.a >= PVP_TARGET) pvpEnd('a');
   else if (PV.score.b >= PVP_TARGET) pvpEnd('b');
 }
@@ -6881,6 +6921,153 @@ function pvpEnd(w) {
   $('pvpResTit').textContent = w === 'a' ? 'GANA TU EQUIPO' : (w === 'b' ? 'GANAN LOS BOTS' : 'EMPATE');
   $('pvpResSub').textContent = 'Equipo A ' + PV.score.a + ' · Equipo B ' + PV.score.b;
   $('hud').hidden = true; $('pvpBoard').hidden = true; showOnly('ovPvp');
+}
+
+/* ---------------- PVP · bomba (rondas tipo CS) ----------------
+   Dos equipos de 5 (tú + 4 bots aliados contra 5 bots). Gana 7 rondas el primero. Los atacantes plantan la bomba
+   en el punto rojo (mantén E 3 s cerca del punto) y debe explotar (40 s). Los defensores la desactivan (mantén E 7 s
+   junto a la bomba). Se pierde la ronda si mueren todos los atacantes sin bomba, o si no se planta en 115 s.
+   Hay compra entre rondas con dinero. Lo que compras se pierde si mueres en la ronda; si sobrevives, se queda.
+   Tras la 6ª ronda cambian de bando. No hay reaparición: solo cuenta la ronda. */
+var PVB_WINS = 7, PVB_ROUND = 115, PVB_BUY = 15, PVB_BOMB = 40, PVB_START = 800, PVB_WIN = 2500, PVB_LOSS = 1000, PVB_LOSS_STEP = 400, PVB_KILL = 300;
+function pvbStart() {
+  initAudio(); startMusic(); clearWorld();
+  G.mode = 'pvp'; G.pvp = true; G.perks = {}; G.pap = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 };
+  G.euros = 0; G.score = 0; G.kills = 0; G.phase = 0; G.bambu = 0; G.lowWarn = false;
+  BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
+  loadLoc(0, ZOMBIE_HALF);
+  applyStats();
+  PV.mode = 'bomb'; PV.score = { a: 0, b: 0 }; PV.dead = false; PV.respT = 0; PV.time = PVB_ROUND;
+  var site = resolve(14, 12, 1);
+  var ring = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.06, 24), new THREE.MeshBasicMaterial({ color: 0xe0382d, transparent: true, opacity: 0.35 }));
+  ring.position.set(site.x, 0.04, site.z);
+  var bombM = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.4), new THREE.MeshLambertMaterial({ color: 0x222222, emissive: 0x551010 }));
+  bombM.position.set(site.x, 0.15, site.z); bombM.visible = false;
+  scene.add(ring); scene.add(bombM);
+  PV.bomb = { round: 0, wins: { a: 0, b: 0 }, money: PVB_START, atk: 'a', planted: false, plantP: 0, botPlant: 0, defP: 0, bombT: 0, roundT: PVB_ROUND,
+    phase: 'buy', lossA: 0, owned: {}, buyT: PVB_BUY, buyIv: null, site: { x: site.x, z: site.z }, ring: ring, bombM: bombM };
+  PV.bots.forEach(function (b) { scene.remove(b.g); }); PV.bots = [];
+  for (var s = 1; s < 5; s++) PV.bots.push(pvpNewBot('a', s));
+  for (var t = 0; t < 5; t++) PV.bots.push(pvpNewBot('b', t));
+  if (ally.g) ally.g.visible = false; MATES.forEach(function (m) { if (m.g) m.g.visible = false; });
+  $('pvpBoard').hidden = false;
+  pvbOpenBuy();
+}
+function pvbOpenBuy() {
+  var B = PV.bomb; if (!B) return;
+  B.round++; B.phase = 'buy'; B.buyT = PVB_BUY; G.state = 'win'; P.down = true; mouseDown = false;
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('hud').hidden = true; $('pvpBoard').hidden = true;
+  pvbRenderBuy();
+  showOnly('ovBuy');
+  if (B.buyIv) clearInterval(B.buyIv);
+  B.buyIv = setInterval(function () {
+    B.buyT--; $('buyT').textContent = Math.max(0, B.buyT);
+    if (B.buyT <= 0) pvbBeginRound();
+  }, 1000);
+  $('buyT').textContent = B.buyT;
+}
+function pvbRenderBuy() {
+  var B = PV.bomb; if (!B) return;
+  $('buyMoney').textContent = B.money + ' €';
+  $('buyRound').textContent = 'RONDA ' + B.round + ' · ' + (B.atk === 'a' ? 'ATACAS' : 'DEFIENDES') + ' · A ' + B.wins.a + ' — ' + B.wins.b + ' B';
+  var h = '';
+  ['principal', 'secundaria'].forEach(function (cat) {
+    h += '<h2 class="buyCat">' + CAT_NAME[cat] + '</h2><div class="buyGrid">';
+    WORDER.forEach(function (k) {
+      if (catOf(k) !== cat || k === 'bao' || k === 'grapadora') return;
+      var price = WEAPONS[k].price, owned = !!B.owned[k], can = B.money >= price;
+      h += '<button class="buyW' + (owned ? ' owned' : '') + '" data-bw="' + k + '"' + ((owned || !can) ? ' disabled' : '') + '>' + WEAPONS[k].name + ' · ' + (owned ? 'COMPRADA' : price + ' €') + '</button>';
+    });
+    h += '</div>';
+  });
+  $('buyList').innerHTML = h;
+}
+function pvbBuy(k) {
+  var B = PV.bomb; if (!B || B.phase !== 'buy') return;
+  var price = WEAPONS[k].price;
+  if (B.owned[k] || B.money < price) return;
+  B.money -= price; B.owned[k] = 1; pvbRenderBuy();
+}
+function pvbBeginRound() {
+  var B = PV.bomb; if (!B || B.phase !== 'buy') return;
+  if (B.buyIv) { clearInterval(B.buyIv); B.buyIv = null; }
+  B.phase = 'live'; B.planted = false; B.plantP = 0; B.botPlant = 0; B.defP = 0; B.bombT = 0; B.roundT = PVB_ROUND;
+  B.bombM.visible = false;
+  PV.bots.forEach(pvpBotSpawn);
+  pvbPlayerSpawn();
+  G.state = 'playing'; showOnly(''); $('hud').hidden = false; $('pvpBoard').hidden = false;
+  requestLock();
+  banner('RONDA ' + B.round, B.atk === 'a' ? 'Atacas: planta la bomba en el círculo rojo (mantén E)' : 'Defiendes: evita que planten la bomba');
+}
+/* Ronda nueva: el jugador vuelve con lo básico y con lo que compró (si sobrevivió a la ronda anterior) */
+function pvbPlayerSpawn() {
+  var B = PV.bomb;
+  resetPlayerState();
+  G.owned = { punos: 1, grapadora: 1 };
+  Object.keys(B.owned).forEach(function (k) { G.owned[k] = 1; });
+  initAmmo(); G.pool = PVP_POOL;
+  var sp = pvpSpawnOf('a'), s = resolve(sp[0], sp[1], 0.5); P.x = s.x; P.z = s.z;
+  P.yaw = 0; P.yawT = 0; P.pitch = 0; P.pitchT = 0;
+  G.hp = G.maxHp; G.regenCd = 0; P.down = false; PV.dead = false; canvas.classList.remove('dead');
+  var last = Object.keys(B.owned).pop();
+  selectGun(last || 'grapadora');
+}
+function pvbCheck() {
+  var B = PV.bomb; if (!B || B.phase !== 'live') return;
+  var atkA = 0, defA = 0, def = B.atk === 'a' ? 'b' : 'a';
+  if (!PV.dead) { if (B.atk === 'a') atkA++; else defA++; }
+  PV.bots.forEach(function (b) { if (!b.dead) { if (b.team === B.atk) atkA++; else defA++; } });
+  if (!B.planted) {
+    if (atkA === 0) pvbEndRound(def, 'han caído los atacantes');
+    else if (defA === 0) pvbEndRound(B.atk, 'han caído los defensores');
+  }
+}
+function pvbPlant() {
+  var B = PV.bomb; B.planted = true; B.bombT = PVB_BOMB; B.defP = 0;
+  B.bombM.visible = true;
+  toast('BOMBA PLANTADA · ' + PVB_BOMB + ' S PARA DESACTIVARLA');
+}
+function pvbTick(dt) {
+  var B = PV.bomb; if (!B || B.phase !== 'live') return;
+  B.roundT -= dt;
+  var S = B.site, dP = Math.hypot(P.x - S.x, P.z - S.z), holdE = !!keys.KeyE, pNear = dP < 2.5 && !PV.dead;
+  if (!B.planted) {
+    var plantingP = B.atk === 'a' && holdE && pNear;
+    if (plantingP) B.plantP += dt; else B.plantP = Math.max(0, B.plantP - dt * 2);
+    var botNear = false;
+    PV.bots.forEach(function (b) { if (!b.dead && b.team === B.atk && Math.hypot(b.x - S.x, b.z - S.z) < 2.5) botNear = true; });
+    if (botNear) B.botPlant += dt;
+    if (B.plantP >= 3 || B.botPlant >= 2.5) { pvbPlant(); }
+    else if (B.roundT <= 0) { pvbEndRound(B.atk === 'a' ? 'b' : 'a', 'se ha acabado el tiempo'); return; }
+  } else {
+    B.bombT -= dt;
+    if (B.atk !== 'a' && holdE && pNear) B.defP += dt / 7;
+    PV.bots.forEach(function (b) { if (!b.dead && b.team !== B.atk && Math.hypot(b.x - S.x, b.z - S.z) < 2.5) B.defP += dt / 8; });
+    if (B.defP >= 1) { pvbEndRound(B.atk === 'a' ? 'b' : 'a', 'bomba desactivada'); return; }
+    if (B.bombT <= 0) { pvbEndRound(B.atk, 'la bomba ha explotado'); return; }
+  }
+  pvbCheck();
+  if (PV.bomb && PV.bomb.phase === 'live') {
+    var tm = PV.bomb.planted ? Math.ceil(PV.bomb.bombT) : Math.ceil(PV.bomb.roundT);
+    var prog = PV.bomb.planted ? ' · DESACTIVANDO ' + Math.round(PV.bomb.defP * 100) + '%' : (B.plantP > 0 ? ' · PLANTANDO ' + Math.round(B.plantP / 3 * 100) + '%' : '');
+    $('pvpBoard').textContent = 'RONDA ' + B.round + ' · A ' + B.wins.a + ' — ' + B.wins.b + ' B · ' + (B.planted ? 'BOMBA ' : '') + tm + ' s' + prog + ' · ' + B.money + ' €';
+  }
+}
+function pvbEndRound(w, why) {
+  var B = PV.bomb; if (!B || B.phase !== 'live') return;
+  B.phase = 'end'; B.wins[w]++;
+  var mine = w === 'a';
+  if (mine) { B.lossA = 0; B.money += PVB_WIN; }
+  else { B.lossA++; B.money += PVB_LOSS + Math.min(B.lossA - 1, 3) * PVB_LOSS_STEP; }
+  /* Si moriste en la ronda, pierdes lo que compraste */
+  if (PV.dead) B.owned = {};
+  var over = B.wins.a >= PVB_WINS ? 'a' : (B.wins.b >= PVB_WINS ? 'b' : null);
+  if (over) { pvpEnd(over); return; }
+  if (B.round === 6) B.atk = B.atk === 'a' ? 'b' : 'a';
+  G.state = 'win'; P.down = true; mouseDown = false;
+  banner((mine ? 'GANA TU EQUIPO' : 'GANAN LOS BOTS') + ' · ' + why, 'A ' + B.wins.a + ' — ' + B.wins.b + ' B');
+  setTimeout(function () { if (PV.bomb === B && B.phase === 'end' && G.pvp) pvbOpenBuy(); }, 4000);
 }
 
 /* ---------------- Entrada ---------------- */
@@ -6900,7 +7087,7 @@ window.addEventListener('keydown', function (e) {
   if (G.state === 'playing') {
     if (e.code === 'KeyR') { endInspect(); startReload(); }
     if (e.code === 'KeyI') toggleInspect();
-    if (e.code === 'KeyE') useBox();
+    if (e.code === 'KeyE' && !G.pvp) useBox();
     if (G.online) { if (e.code === 'KeyQ') netAbility(); }
     else {
       if (e.code === 'KeyZ') useAbility('escudo');
@@ -6983,6 +7170,9 @@ $('btnPvpLoad').addEventListener('click', function () { pvpOpenLoad('esc'); });
 $('btnPvpAgain').addEventListener('click', pvpStart);
 $('btnPvpArsenal').addEventListener('click', function () { pvpOpenLoad('start'); });
 $('btnPvpMenu').addEventListener('click', toMenu);
+$('btnPvpBomb').addEventListener('click', function () { if (nameOk()) pvbStart(); });
+$('buyList').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-bw]') : null; if (b && !b.disabled) pvbBuy(b.dataset.bw); });
+$('btnBuyReady').addEventListener('click', pvbBeginRound);
 $('btnAgain').addEventListener('click', retry);
 $('btnBoard').addEventListener('click', function () { showOnly('ovBoard'); renderBoard(); });
 $('btnOnline').addEventListener('click', function () { if (nameOk()) netOpen(); });
@@ -7021,7 +7211,7 @@ function init() {
   $('nameIn').value = loadName(); nameUI(); netInit(); netDetect();
   applyStats(); initAmmo(); selectGun('grapadora'); renderWList();
   refreshMenu(); showOnly('ovStart'); syncCtrl();
-  $('btnStory').disabled = false; $('btnSurv').disabled = false; $('btnPvp').disabled = false;
+  $('btnStory').disabled = false; $('btnSurv').disabled = false; $('btnPvp').disabled = false; $('btnPvpBomb').disabled = false;
   requestAnimationFrame(loop);
 }
 var fontsReady = new Promise(function (r) { setTimeout(r, 1500); });
