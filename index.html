@@ -2514,7 +2514,17 @@ function addGunFx(g, kind) {
   });
   if (ri >= 2) { var ms = glowSprite(rs.hex, 0.12 + 0.03 * ri, 0.55); g.userData.muzzle.add(ms); fx.lights.push({ s: ms, ph: 0, mz: true }); }
   if (rs.aura) { fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.material.depthTest = true; fx.aura.position.set(0, 0, -0.15); g.add(fx.aura); }
-  if (rs.orbit) { for (var i = 0; i < 6; i++) { var o = glowSprite(0xfff1b0, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * 1.047, sp: 1.4 + (i % 3) * 0.35 }); } }
+  /* Órbitas: la legendaria tiene 6 chispas doradas; la épica, 3 de su color */
+  if (rs.orbit || ri >= 2) { var no = rs.orbit ? 6 : 3; for (var i = 0; i < no; i++) { var o = glowSprite(rs.orbit ? 0xfff1b0 : rs.hex, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * (6.283 / no), sp: 1.4 + (i % 3) * 0.35 }); } }
+  /* Rayos: desde la boca, seis espículas de su color que giran y laten (épica y legendaria) */
+  fx.rays = [];
+  if (ri >= 2) {
+    fx.rayG = new THREE.Group(); g.userData.muzzle.add(fx.rayG);
+    for (var ra = 0; ra < 6; ra++) {
+      var an = ra * 1.047, ry = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.34), new THREE.MeshBasicMaterial({ color: rs.hex, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      ry.position.set(Math.sin(an) * 0.2, Math.cos(an) * 0.2, 0); ry.rotation.z = -an; fx.rayG.add(ry); fx.rays.push(ry);
+    }
+  }
   g.userData.fx = fx;
   /* Marcas de nivel: tres piezas brillantes sobre el lomo del arma, una por nivel de mejora */
   fx.pips = [];
@@ -2534,7 +2544,8 @@ function applyGunLook(g) {
      marcas en el lomo y destello en la boca. El tope lo pone la rareza (cap) */
   fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.04 + 0.05 * fx.ri + 0.07 * vk); });
   if (fx.shellMat) { fx.shellMat.color.setHex(fx.rs.hex); if (neon) fx.shellMat.color.lerp(whiteC(), 0.3); }
-  fx.shells.forEach(function (sh) { sh.scale.setScalar(1.05 + 0.04 * vk); });
+  fx.shellS = 1.05 + 0.04 * vk;
+  fx.shells.forEach(function (sh) { sh.scale.setScalar(fx.shellS); });
   var tint = new THREE.Color(fx.rs.hex);
   fx.accents.forEach(function (m) { m.material.color.setHex(m.userData.c0).lerp(tint, 0.25 * vk); });
   fx.lights.forEach(function (o) { o.s.visible = lights; });
@@ -2549,6 +2560,13 @@ function animGunFx(g, dt) {
   if (fx.aura) fx.aura.material.opacity = (0.12 + 0.04 * Math.min(G.pap[fx.k] | 0, fx.rs.cap)) * (0.75 + 0.25 * Math.sin(t * 3));
   for (var i = 0; i < fx.orbit.length; i++) { var o = fx.orbit[i]; o.a += dt * o.sp; o.s.position.set(Math.cos(o.a) * 0.3, Math.sin(o.a * 1.3) * 0.12 - 0.02, -0.1 + Math.sin(o.a) * 0.06); }
   for (var j = 0; j < fx.lights.length; j++) { var l = fx.lights[j]; if (l.s.visible && !l.mz) l.s.material.opacity = 0.6 + 0.35 * Math.sin(t * 5 + l.ph); }
+  /* Épica y legendaria: los rayos giran y laten, el borde respira y las chispas se aceleran al apuntar */
+  if (fx.rayG) {
+    fx.rayG.rotation.z += dt * (fx.ri >= 3 ? 2.2 : 1.1);
+    var pulse = 0.35 + 0.25 * Math.sin(t * 6);
+    fx.rays.forEach(function (ry) { ry.material.opacity = pulse; });
+  }
+  if (fx.shells.length && fx.shellS) fx.shells.forEach(function (sh) { sh.scale.setScalar(fx.shellS * (1 + 0.025 * Math.sin(t * 4))); });
 }
 function loadCharCanvas(key, cb) {
   var im = new Image();
@@ -4725,6 +4743,9 @@ function shoot() {
   camera.updateMatrixWorld(true);
   camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
   curMuzzle.getWorldPosition(tmpV);
+  /* Armas épicas y legendarias: destello de chispas de su color en cada disparo */
+  var wri = RARITY_ORDER.indexOf(WEAPONS[G.wcur].rarity || 'comun');
+  if (wri >= 2) sparkBurst(tmpV, lookMat(rarityOf(G.wcur).hex, true), wri >= 3 ? 14 : 9, 5, 0.9);
   var dm = dmgMult() * papMult(G.wcur);
   if (w.type === 'hitscan' || w.type === 'spray') {
     var targets = occluders.slice(); for (var i = 0; i < G.enemies.length; i++) targets.push(G.enemies[i].paper);
@@ -6844,7 +6865,27 @@ function pvpNewBot(team, slot) {
   var head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshLambertMaterial({ color: 0xf2d2b0 }));
   head.position.y = 1.8;
   b.g.add(body, head); b.body = body; scene.add(b.g);
+  /* Arma visible en la mano: cada bot lleva un arma de la lista, con el color de su proyectil */
+  b.wk = PVP_BOT_WEAPONS[(slot + (team === 'a' ? 1 : 3)) % PVP_BOT_WEAPONS.length];
+  var L = lookOf(b.wk), gun = new THREE.Group();
+  var gb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.6), new THREE.MeshLambertMaterial({ color: L.c, emissive: new THREE.Color(L.c).multiplyScalar(0.15) }));
+  gb.position.set(0, 0, -0.2);
+  var gbar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 6), new THREE.MeshLambertMaterial({ color: 0x333333 }));
+  gbar.rotation.x = Math.PI / 2; gbar.position.set(0, 0, -0.6);
+  gun.add(gb, gbar); gun.position.set(0.28, 1.05, 0);
+  var rs = rarityOf(b.wk);
+  if (RARITY_ORDER.indexOf(WEAPONS[b.wk].rarity || 'comun') >= 2) { var gl = glowSprite(rs.hex, 0.25, 0.8); gl.position.set(0, 0, -0.62); gun.add(gl); }
+  b.g.add(gun); b.gun = gun;
   return b;
+}
+/* Arma de cada bot (se reparten en los dos equipos) */
+var PVP_BOT_WEAPONS = ['subfusil', 'escopeta', 'tildes', 'pizza', 'bazuca', 'nominas', 'leche', 'megafono', 'microondas', 'powerpoint'];
+/* Trazo del disparo de un bot, saliendo de su arma y con el color de esa arma */
+function pvpBotTrace(b, tx, tz) {
+  var from = b.gun.getWorldPosition(new THREE.Vector3());
+  var to = new THREE.Vector3(tx, 1.2, tz);
+  var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([from, to]), new THREE.LineBasicMaterial({ color: lookOf(b.wk).t, transparent: true, opacity: 0.9 }));
+  scene.add(line); G.tracers.push({ line: line, life: 0.1 });
 }
 /* Punto de aparición de un equipo. En bomba, los atacantes salen a la izquierda y los defensores a la derecha */
 function pvpSpawnOf(team) {
@@ -6899,7 +6940,7 @@ function pvpTick(dt) {
     b.g.position.set(b.x, 0, b.z); b.g.rotation.y = b.yaw;
     if (foe && d < 26 && b.cd <= 0) {
       var fd = Math.hypot(foe.x - b.x, foe.z - b.z);
-      if (fd < 26) b.cd = rnd(1, 1.6);
+      if (fd < 26) { b.cd = rnd(1, 1.6); pvpBotTrace(b, foe.x, foe.z); }
       if (fd < 26 && Math.random() < 0.55 && pvpSee(b.x, b.z, foe.x, foe.z)) {
         if (foe.isP) pvpPlayerHurt(PVP_BOT_DMG, b.team); else pvpBotHurt(foe, PVP_BOT_DMG, b.team);
       }
