@@ -21,6 +21,34 @@
 .mapcard:hover { transform: translateY(-3px); }
 .mapcard[aria-checked="true"] { animation: pulseGlow 2s infinite; }
 .diffbtn:hover { transform: translateY(-2px); }
+
+/* Lobby de PVP */
+.pvLobby { max-width: min(980px, 96vw); max-height: 92vh; overflow: auto; }
+.pvNet { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+.pvJoin { display: flex; gap: 6px; }
+.pvJoin input { font: 16px "Special Elite", monospace; padding: 8px; width: 120px; text-transform: uppercase; background: #f1efe6; color: #14181a; border: 2px solid #14181a; }
+.pvTeams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.pvTeam { border: 2px solid #14181a; padding: 8px; background: rgba(241,239,230,.06); }
+.pvTeam h3 { margin: 0 0 6px; font-family: Anton, Impact, sans-serif; letter-spacing: .05em; }
+.pvRow { font: 14px "Special Elite", monospace; padding: 4px 6px; border-bottom: 1px dashed rgba(241,239,230,.25); }
+.pvRow.me { background: rgba(224,56,45,.18); }
+.pvRow b { font-weight: 700; }
+.pvChars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin: 8px 0; }
+.pvChar { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 2px solid #14181a; background: #f1efe6; cursor: pointer; }
+.pvChar img { width: 100%; max-width: 62px; aspect-ratio: 1; object-fit: contain; }
+.pvChar span { font: 11px "Special Elite", monospace; color: #14181a; text-align: center; overflow-wrap: anywhere; }
+.pvChar.on { outline: 4px solid #e0382d; outline-offset: 1px; }
+.pvGun { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr); gap: 12px; align-items: center; }
+#pvPrev { width: 100%; height: 220px; background: radial-gradient(circle at 50% 40%, #2a3638, #0c1011); border: 2px solid #14181a; }
+.pvName { font: 30px Anton, Impact, sans-serif; letter-spacing: .04em; }
+.pvRar { font: 13px "Special Elite", monospace; margin: 2px 0 6px; }
+.pvDesc { font: 14px "Special Elite", monospace; margin: 0 0 8px; opacity: .85; }
+#pvWeapon { font: 15px "Special Elite", monospace; padding: 6px; width: 100%; margin-bottom: 8px; }
+.pvAsp { display: flex; gap: 6px; }
+.pvAsp button { flex: 1; font: 14px Anton, Impact, sans-serif; padding: 8px; border: 2px solid #14181a; background: #f1efe6; cursor: pointer; }
+.pvAsp button.on { background: #e0382d; color: #f1efe6; }
+.pvTeam button:disabled, .pvChar:disabled { opacity: .4; cursor: default; }
+@media (max-width: 720px) { .pvTeams, .pvGun { grid-template-columns: 1fr; } .pvChars { grid-template-columns: repeat(4, 1fr); } }
 </style></head><body>
 <title>Operación Nini</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -547,8 +575,7 @@ body {
         <button class="btn" id="btnStory" disabled>MODO HISTORIA</button>
         <button class="btn alt" id="btnNew" hidden>NUEVA HISTORIA</button>
         <button class="btn ghost" id="btnSurv" disabled>ZOMBIES</button>
-        <button class="btn ghost" id="btnPvp" disabled>PVP · EQUIPOS</button>
-        <button class="btn ghost" id="btnPvpBomb" disabled>PVP · BOMBA</button>
+        <button class="btn ghost" id="btnPvp" disabled>PVP · NUKETOWN 5 CONTRA 5</button>
         <button class="btn alt" id="btnOnline">ONLINE</button>
         <button class="btn ghost" id="btnBoard">CLASIFICACIÓN</button>
         <button class="btn ghost" id="btnShape">PERSONALIZAR EQUIPO</button>
@@ -615,28 +642,32 @@ body {
     </div>
   </div>
 
-  <div class="overlay mid" id="ovLoad" hidden>
-    <div class="sheet">
-      <div class="formno">Arsenal</div>
-      <h1>PVP · EQUIPOS</h1>
-      <p id="pvpLoadNote"></p>
-      <label class="sens" for="pvp_principal"><span>Principal</span><select id="pvp_principal"></select></label>
-      <label class="sens" for="pvp_secundaria"><span>Secundaria</span><select id="pvp_secundaria"></select></label>
-      <label class="sens" for="pvp_cuerpo"><span>Cuerpo a cuerpo</span><select id="pvp_cuerpo"></select></label>
-      <div class="btnrow">
-        <button class="btn" id="btnPvpGo">EMPEZAR</button>
-        <button class="btn ghost" id="btnPvpBack">VOLVER</button>
+  <div class="overlay" id="ovLoad" hidden>
+    <div class="sheet pvLobby">
+      <div class="formno">PVP · NUKETOWN · 5 CONTRA 5</div>
+      <h1>LOBBY</h1>
+      <div class="pvNet" id="pvLobbyNet">
+        <button class="btn" id="pvSolo" type="button">JUGAR SOLO (CONTRA LA IA)</button>
+        <button class="btn ghost" id="pvCreate" type="button">CREAR SALA ONLINE</button>
+        <div class="pvJoin"><input type="text" id="pvCode" maxlength="6" placeholder="CÓDIGO" autocomplete="off"><button class="btn ghost" id="pvJoinBtn" type="button">UNIRSE</button></div>
       </div>
-    </div>
-  </div>
-  <div class="overlay" id="ovBuy" hidden>
-    <div class="sheet">
-      <div class="formno">Compra entre rondas</div>
-      <h1 id="buyRound">RONDA</h1>
-      <p class="best">Dinero: <b id="buyMoney">0 €</b> · Empieza en <b id="buyT">15</b> s</p>
-      <p class="best">Lo que compres se pierde si mueres en la ronda. Si sobrevives, se queda.</p>
-      <div id="buyList"></div>
-      <div class="btnrow"><button class="btn" id="btnBuyReady">LISTO</button></div>
+      <p class="best" id="pvMsg"></p>
+      <div class="pvTeams" id="pvTeams">
+        <div class="pvTeam"><h3>EQUIPO A</h3><div id="pvListA"></div><button class="btn ghost" id="pvToA" type="button">ENTRAR EN A</button></div>
+        <div class="pvTeam"><h3>EQUIPO B</h3><div id="pvListB"></div><button class="btn ghost" id="pvToB" type="button">ENTRAR EN B</button></div>
+      </div>
+      <div class="pvChars" id="pvChars"></div>
+      <div class="pvGun" id="pvRow">
+        <canvas id="pvPrev"></canvas>
+        <div class="pvInfo">
+          <div class="pvName" id="pvGunName"></div>
+          <div class="pvRar" id="pvGunRar"></div>
+          <p class="pvDesc" id="pvGunDesc"></p>
+          <select id="pvWeapon" aria-label="Arma"></select>
+          <div class="pvAsp" id="pvAsp"><button type="button" data-a="1">FASE 1</button><button type="button" data-a="2">FASE 2</button><button type="button" data-a="3">FASE 3</button></div>
+        </div>
+      </div>
+      <div class="btnrow"><button class="btn" id="btnPvpGo" type="button">JUGAR</button><button class="btn ghost" id="btnPvpBack" type="button">VOLVER</button></div>
     </div>
   </div>
   <div class="overlay mid" id="ovPvp" hidden>
@@ -807,6 +838,7 @@ function buildLoc(loc) {
   else if (loc === 2) buildServers();
   else if (loc === 3) buildRooftop();
   else if (loc === 4) buildHouse();
+  else if (loc === 6) buildNuketown();
   else buildKitchen();
 }
 /* Ambiente animado: cuatro focos del color del mapa que laten, con un destello lento */
@@ -1865,7 +1897,7 @@ function buildGun(kind) {
   var M = { g: g, mz: mz };
   /* Pieza opaca (Lambert): recibe la emisión y el casco de rareza */
   M.part = function (geo, color, x, y, z, parent, opacity) {
-    var mat = new THREE.MeshLambertMaterial({ color: color }); mat.depthTest = false;
+    var mat = new THREE.MeshLambertMaterial({ color: color });
     if (opacity) { mat.transparent = true; mat.opacity = opacity; }
     var m = new THREE.Mesh(geo, mat); m.renderOrder = order++; m.position.set(x, y, z); (parent || g).add(m); return m;
   };
@@ -2539,7 +2571,7 @@ function addGunFx(g, kind) {
 /* Aspecto según la rareza (fija) y el nivel de mejora: 1 brillo · 2 neón (borde claro y más grueso) · 3 luces (sprites). El tope es la rareza */
 function applyGunLook(g) {
   var fx = g && g.userData.fx; if (!fx) return;
-  var L = G.pap[fx.k] | 0, vk = Math.min(L, fx.rs.cap), neon = vk >= 2, lights = vk >= 3;
+  var L = g.userData.lv != null ? (g.userData.lv | 0) : (G.pap[fx.k] | 0), vk = Math.min(L, fx.rs.cap), neon = vk >= 2, lights = vk >= 3;
   /* Cada nivel se nota: más emisión de color (sin llegar a una silueta plana), borde más grueso, piezas teñidas,
      marcas en el lomo y destello en la boca. El tope lo pone la rareza (cap) */
   fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.04 + 0.05 * fx.ri + 0.07 * vk); });
@@ -4766,6 +4798,7 @@ function shoot() {
       var geo = new THREE.BufferGeometry().setFromPoints([tmpV.clone(), end]);
       var line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: lookOf(G.wcur).t, transparent: true, opacity: 1 }));
       scene.add(line); G.tracers.push({ line: line, life: 0.08 });
+      if (G.pvp) pvShotFx(tmpV, end, G.wcur);
     } else {
       for (var b = 0; b < 2; b++) {
         var bit = lookBit(G.wcur); bit.position.copy(tmpV); scene.add(bit);
@@ -6094,7 +6127,7 @@ function netHud() {
 }
 
 /* ---------------- Flujo de partida ---------------- */
-var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape', 'ovLoad', 'ovPvp', 'ovBuy'];
+var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape', 'ovLoad', 'ovPvp'];
 function showOnly(id) { screens.forEach(function (s) { $(s).hidden = s !== id; }); }
 function plainLock() {
   try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -6410,7 +6443,7 @@ function pause() {
   G.state = 'paused'; mouseDown = false;
   if (document.pointerLockElement) document.exitPointerLock();
   showOnly('ovPause');
-  if (G.pvp) { $('btnPvpLoad').hidden = PV.mode === 'bomb'; $('pauseInfo').textContent = 'PVP · EQUIPOS. ' + (PV.next ? 'Arsenal nuevo guardado: se aplica al reaparecer.' : 'Puedes cambiar de arsenal: se aplica al reaparecer.'); return; }
+  if (G.pvp) { $('btnPvpLoad').hidden = false; $('pauseInfo').textContent = 'PVP · EQUIPOS. ' + (PV.next ? 'Arsenal nuevo guardado: se aplica al reaparecer.' : 'Puedes cambiar de arsenal: se aplica al reaparecer.'); return; }
   $('btnPvpLoad').hidden = true; $('pauseInfo').textContent = 'Mapa: ' + MAPS[G.mapId].name + ' · Ronda ' + roundIdx() + ' · la dificultad sube con cada ronda';
 }
 function resume() {
@@ -6778,397 +6811,518 @@ function update(dt) {
   updateHazards(dt); if (G.state !== 'playing') return; updateAbilities(dt); updateAlly(dt); updateMates(dt); updateRevive(dt); updateSquad(dt); updateBarri(dt); updateInteract(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt);
 }
 
-/* ---------------- PVP · equipos (contra bots) ----------------
-   Equipo A (tú + 4 bots aliados) contra equipo B (5 bots). Sin dinero: eliges el arsenal al empezar.
-   Desde ESC puedes cambiarlo y el cambio se aplica al reaparecer (4 s tras morir). Gana el primero que llegue
-   a PVP_TARGET bajas, o el que más tenga al acabarse el tiempo. Los bots no buscan camino: se paran al tope de
-   las paredes del mapa (resolve), así que la IA es sencilla. */
-var PVP_TARGET = 15, PVP_TIME = 300, PVP_RESPAWN = 4, PVP_POOL = 200, PVP_BOT_DMG = 5;
+/* ---------------- PVP · 5 contra 5 en Nuketown ----------------
+   Dos equipos de cinco. Cada plaza es un personaje con cuerpo: tú, otro jugador (online) o la IA.
+   Gana el primero que llegue a PV_TARGET bajas, o el que más tenga cuando se acaba el tiempo.
+   Todas las armas hacen el mismo daño por impacto (PV_HIT): cambian la cadencia, el cargador y la forma de disparar.
+   Online: cada jugador lleva su personaje, avisa de su posición y de sus disparos. Quien recibe un impacto aplica el daño.
+   El anfitrión (el primero en entrar) lleva la IA de las plazas libres y es quien decide sus bajas. */
+var PV_TEAM = 5, PV_TARGET = 20, PV_TIME = 480, PV_RESPAWN = 4, PV_HIT = 20, PV_AI_DMG = 8, PV_HP = 100, PV_POOL = 200, PV_MAP = 6, PV_HALF = 30;
 var PV_SPAWN = { a: [-22, 0], b: [22, 0] };
-var PV = { score: { a: 0, b: 0 }, time: PVP_TIME, bots: [], dead: false, respT: 0, load: { principal: 'pizza', secundaria: 'grapadora', cuerpo: 'punos' }, next: null, loadMode: 'start' };
-function pvpOptions(cat) {
-  if (cat === 'cuerpo') return ['punos'];
-  return WORDER.filter(function (k) { return catOf(k) === cat && k !== 'bao'; });
+var PV_AI_WEAPONS = ['subfusil', 'escopeta', 'tildes', 'pizza', 'bazuca', 'nominas', 'leche', 'megafono', 'microondas', 'powerpoint', 'ballesta', 'silicona', 'cafetera', 'chinchetas', 'tirachinas', 'sellos'];
+var PV = {
+  on: false, online: false, host: false, myPeer: null, hostPeer: null, room: null, unsub: [], peers: [], code: '',
+  score: { a: 0, b: 0 }, time: PV_TIME, ents: [], byPeer: {}, me: null,
+  sel: { team: 'a', c: 'bilal', w: 'pizza', asp: 1 }, draft: null, next: null, loadMode: 'start', stT: 0
+};
+PV.myKey = 'p:me';
+function pvAuth() { return !PV.online || PV.host; }
+function pvFind(key) { for (var i = 0; i < PV.ents.length; i++) if (PV.ents[i].key === key) return PV.ents[i]; return null; }
+function pvFaceYaw(team) { return team === 'a' ? -Math.PI / 2 : Math.PI / 2; }
+function pvSpawnPos(team) { var sp = PV_SPAWN[team]; return resolve(sp[0] + rnd(-2, 2), sp[1] + rnd(-7, 7), 0.5); }
+function pvSend(obj) { if (PV.online && PV.room) PV.room.emit('pv', obj).catch(function () {}); }
+function pvPlace(e, x, z, yaw) {
+  e.g.position.set(x, 0, z); e.g.rotation.y = yaw;
+  e.g.visible = e.kind !== 'me' && !e.dead && !e.ghost;
 }
-function pvpOpenLoad(mode) {
-  PV.loadMode = mode;
-  var cur = mode === 'esc' && PV.next ? PV.next : PV.load;
-  ['principal', 'secundaria', 'cuerpo'].forEach(function (cat) {
-    var opts = pvpOptions(cat), sel = $('pvp_' + cat);
-    sel.innerHTML = opts.map(function (k) { return '<option value="' + k + '">' + WEAPONS[k].name + '</option>'; }).join('');
-    sel.value = opts.indexOf(cur[cat]) >= 0 ? cur[cat] : opts[0];
+/* Cuerpo del personaje: avatar chibi, arma en la mano (con el aspecto elegido) y caja de impacto invisible */
+function pvBuildBody(e) {
+  while (e.g.children.length) e.g.remove(e.g.children[0]);
+  var av = makeAvatar(e.c); e.g.add(av.root); e.av = av;
+  var gun = buildGun(e.w); gun.userData.lv = e.asp; applyGunLook(gun);
+  gun.position.set(0.3, 0.85, -0.25); gun.scale.setScalar(0.85); e.g.add(gun); e.gun = gun;
+  var hb = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.9, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  hb.position.y = 1.0; hb.userData.bot = e; e.g.add(hb); e.hit = hb;
+  var lc = mkCanvas(256, 56), lx = lc.getContext('2d'), tc = e.team === 'a' ? '#4aa8ff' : '#e0382d';
+  lx.fillStyle = '#f1efe6'; lx.fillRect(0, 0, 256, 56); lx.fillStyle = tc; lx.fillRect(0, 0, 10, 56);
+  lx.fillStyle = '#14181a'; lx.textAlign = 'center'; lx.font = '28px Anton, Impact, sans-serif';
+  lx.fillText(String(e.name || CHARS[e.c].name).toUpperCase().slice(0, 14), 133, 38);
+  var lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(lc), transparent: true, depthWrite: false }));
+  lab.scale.set(1.2, 0.26, 1); lab.position.y = 2.25; e.g.add(lab);
+  pvPlace(e, e.x, e.z, e.yaw);
+}
+function pvMakeEnt(s) {
+  var kind = s.key === PV.myKey ? 'me' : (s.ai ? 'ai' : 'net');
+  var e = { key: s.key, peer: s.peer || null, kind: kind, team: s.team, c: s.c, w: s.w, asp: (s.asp | 0) || 1, name: s.n || '',
+    x: 0, z: 0, tx: 0, tz: 0, yaw: 0, tyaw: 0, hp: PV_HP, dead: false, ghost: false, respT: 0, cd: rnd(0.6, 1.2), g: new THREE.Group(), gun: null, hit: null, av: null };
+  scene.add(e.g);
+  return e;
+}
+function pvSpawnEnt(e) {
+  var p = pvSpawnPos(e.team);
+  e.dead = false; e.ghost = false; e.hp = PV_HP; e.respT = 0;
+  e.x = e.tx = p.x; e.z = e.tz = p.z; e.yaw = e.tyaw = pvFaceYaw(e.team);
+  pvPlace(e, e.x, e.z, e.yaw);
+}
+/* Tu personaje: al reaparecer se aplica el arsenal pendiente (ESC) y sales en tu base con todo lleno */
+function pvSpawnMe() {
+  var me = PV.me;
+  if (PV.next) { PV.sel = PV.next; PV.next = null; }
+  var S = PV.sel;
+  me.c = S.c; me.w = S.w; me.asp = S.asp; me.team = S.team;
+  pvBuildBody(me);
+  resetPlayerState();
+  G.owned = { punos: 1, grapadora: 1 }; G.owned[S.w] = 1;
+  initAmmo(); G.pool = PV_POOL;
+  var p = pvSpawnPos(me.team), yaw = pvFaceYaw(me.team);
+  P.x = p.x; P.z = p.z; P.yaw = yaw; P.yawT = yaw; P.pitch = 0; P.pitchT = 0;
+  G.hp = G.maxHp; G.regenCd = 0; P.down = false; canvas.classList.remove('dead');
+  me.dead = false; me.hp = G.hp; me.x = me.tx = P.x; me.z = me.tz = P.z; me.yaw = me.tyaw = yaw;
+  pvPlace(me, me.x, me.z, me.yaw);
+  selectGun(S.w);
+}
+/* Plazas libres: la IA ocupa lo que los jugadores no cubren. Un personaje no se repite dentro del mismo equipo si hay sitio */
+function pvBuildSlots(humans) {
+  var out = humans.slice();
+  ['a', 'b'].forEach(function (t) {
+    var mine = humans.filter(function (h) { return h.team === t; });
+    var used = mine.map(function (h) { return h.c; });
+    var pool = AV_KEYS.filter(function (c) { return used.indexOf(c) < 0; });
+    for (var i = pool.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp; }
+    for (var n = mine.length, k = 0; n < PV_TEAM; n++, k++) {
+      var c = pool.length ? pool[k % pool.length] : AV_KEYS[(k + n) % AV_KEYS.length];
+      out.push({ key: 'a:' + t + n, ai: true, team: t, c: c, w: pick(PV_AI_WEAPONS), asp: 1 + Math.floor(Math.random() * 3), n: CHARS[c].name });
+    }
   });
-  $('btnPvpGo').textContent = mode === 'esc' ? 'GUARDAR' : 'EMPEZAR';
-  $('btnPvpBack').textContent = mode === 'esc' ? 'CANCELAR' : 'VOLVER';
-  $('pvpLoadNote').textContent = mode === 'esc' ? 'El cambio se aplica cuando reapareces. No hay dinero: lo que eliges es lo que llevas.' : 'Elige tu arsenal. No hay dinero: lo que eliges es lo que llevas.';
-  showOnly('ovLoad');
+  return out;
 }
-function pvpReadLoad() { return { principal: $('pvp_principal').value, secundaria: $('pvp_secundaria').value, cuerpo: $('pvp_cuerpo').value }; }
-function pvpGo() {
-  var L = pvpReadLoad();
-  if (PV.loadMode === 'esc') {
-    PV.next = L; showOnly('ovPause');
-    $('btnPvpLoad').hidden = false; $('pauseInfo').textContent = 'Arsenal guardado. Se aplica cuando reapareces.';
-    return;
-  }
-  PV.load = L; PV.next = null; pvpStart();
+function pvClearEnts() {
+  PV.ents.forEach(function (e) { scene.remove(e.g); });
+  PV.ents = []; PV.byPeer = {}; PV.me = null;
 }
-function pvpBack() { showOnly(PV.loadMode === 'esc' ? 'ovPause' : 'ovStart'); }
-function pvpStart() {
-  initAudio(); startMusic(); clearWorld();
-  PV.mode = 'team'; PV.bomb = null;
+function pvStartMatch(slots) {
+  pvClearEnts();
+  PV.on = true; PV.score = { a: 0, b: 0 }; PV.time = PV_TIME; PV.next = null; PV.stT = 0;
+  loadLoc(PV_MAP, PV_HALF);
+  BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
   G.mode = 'pvp'; G.pvp = true; G.perks = {}; G.pap = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 };
   G.euros = 0; G.score = 0; G.kills = 0; G.phase = 0; G.bambu = 0; G.lowWarn = false;
-  BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
-  loadLoc(0, ZOMBIE_HALF);
-  applyStats(); PV.score = { a: 0, b: 0 }; PV.time = PVP_TIME; PV.dead = false; PV.respT = 0;
-  pvpMakeBots();
-  pvpSpawnPlayer();
+  applyStats();
+  slots.forEach(function (s) {
+    var e = pvMakeEnt(s); PV.ents.push(e);
+    if (e.key === PV.myKey) { PV.me = e; PV.sel = { team: s.team, c: s.c, w: s.w, asp: (s.asp | 0) || 1 }; }
+    if (e.peer) PV.byPeer[e.peer] = e;
+  });
+  if (!PV.me) { pvpStop(); netMsg('No estabas en la lista de la partida.'); return; }
+  PV.ents.forEach(function (e) { if (e.kind !== 'me') { pvBuildBody(e); pvSpawnEnt(e); } });
+  pvSpawnMe();
   if (ally.g) ally.g.visible = false; MATES.forEach(function (m) { if (m.g) m.g.visible = false; });
-  G.state = 'playing'; showOnly(''); $('hud').hidden = false; $('pvpBoard').hidden = false;
-  requestLock(); toast('PVP · EQUIPOS · ' + PVP_TARGET + ' BAJAS PARA GANAR');
+  G.state = 'playing'; showOnly(''); $('hud').hidden = false; $('pvpBoard').hidden = false; pvHudTags(true);
+  requestLock(); toast('PVP · NUKETOWN · ' + PV_TARGET + ' BAJAS PARA GANAR');
 }
 function pvpStop() {
-  if (!G.pvp) return;
-  G.pvp = false; PV.bots.forEach(function (b) { scene.remove(b.g); }); PV.bots = []; PV.dead = false; PV.next = null; P.down = false;
-  if (PV.bomb) { if (PV.bomb.buyIv) clearInterval(PV.bomb.buyIv); scene.remove(PV.bomb.ring); scene.remove(PV.bomb.bombM); }
-  PV.bomb = null; PV.mode = 'team';
-  $('pvpBoard').hidden = true; $('btnPvpLoad').hidden = true;
+  if (!G.pvp && !PV.on) return;
+  G.pvp = false; PV.on = false; pvClearEnts(); PV.next = null; P.down = false;
+  $('pvpBoard').hidden = true; pvHudTags(false);
+  if (PV.online) pvLeaveRoom();
 }
-/* Aplica el arsenal pendiente (si lo hay) y deja al jugador en su base, con la munición y la vida llenas */
-function pvpSpawnPlayer() {
-  if (PV.next) { PV.load = PV.next; PV.next = null; }
-  var L = PV.load;
-  resetPlayerState();
-  G.owned = { punos: 1 }; G.owned[L.principal] = 1; G.owned[L.secundaria] = 1;
-  initAmmo(); G.pool = PVP_POOL;
-  var s = resolve(PV_SPAWN.a[0], PV_SPAWN.a[1], 0.5); P.x = s.x; P.z = s.z;
-  P.yaw = 0; P.yawT = 0; P.pitch = 0; P.pitchT = 0;
-  G.hp = G.maxHp; G.regenCd = 0; P.down = false; PV.dead = false; canvas.classList.remove('dead');
-  selectGun(L.principal);
-}
-function pvpRespawnPlayer() {
-  pvpSpawnPlayer();
-  toast('REAPARECES · ' + (PV.load.principal ? WEAPONS[PV.load.principal].name.toUpperCase() : ''));
-}
-function pvpMakeBots() {
-  PV.bots.forEach(function (b) { scene.remove(b.g); });
-  PV.bots = [];
-  for (var s = 1; s < 5; s++) PV.bots.push(pvpNewBot('a', s));
-  for (var t = 0; t < 5; t++) PV.bots.push(pvpNewBot('b', t));
-  PV.bots.forEach(pvpBotSpawn);
-}
-function pvpNewBot(team, slot) {
-  var b = { team: team, slot: slot, x: 0, z: 0, hp: 100, dead: false, respT: 0, cd: 1, yaw: 0, g: new THREE.Group() };
-  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 1.2, 10), new THREE.MeshLambertMaterial({ color: team === 'a' ? 0x2f9e5a : 0xe0382d }));
-  body.position.y = 0.95; body.userData.bot = b;
-  var head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshLambertMaterial({ color: 0xf2d2b0 }));
-  head.position.y = 1.8;
-  b.g.add(body, head); b.body = body; scene.add(b.g);
-  /* Arma visible en la mano: cada bot lleva un arma de la lista, con el color de su proyectil */
-  b.wk = PVP_BOT_WEAPONS[(slot + (team === 'a' ? 1 : 3)) % PVP_BOT_WEAPONS.length];
-  var L = lookOf(b.wk), gun = new THREE.Group();
-  var gb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.6), new THREE.MeshLambertMaterial({ color: L.c, emissive: new THREE.Color(L.c).multiplyScalar(0.15) }));
-  gb.position.set(0, 0, -0.2);
-  var gbar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 6), new THREE.MeshLambertMaterial({ color: 0x333333 }));
-  gbar.rotation.x = Math.PI / 2; gbar.position.set(0, 0, -0.6);
-  gun.add(gb, gbar); gun.position.set(0.28, 1.05, 0);
-  var rs = rarityOf(b.wk);
-  if (RARITY_ORDER.indexOf(WEAPONS[b.wk].rarity || 'comun') >= 2) { var gl = glowSprite(rs.hex, 0.25, 0.8); gl.position.set(0, 0, -0.62); gun.add(gl); }
-  b.g.add(gun); b.gun = gun;
-  return b;
-}
-/* Arma de cada bot (se reparten en los dos equipos) */
-var PVP_BOT_WEAPONS = ['subfusil', 'escopeta', 'tildes', 'pizza', 'bazuca', 'nominas', 'leche', 'megafono', 'microondas', 'powerpoint'];
-/* Trazo del disparo de un bot, saliendo de su arma y con el color de esa arma */
-function pvpBotTrace(b, tx, tz) {
-  var from = b.gun.getWorldPosition(new THREE.Vector3());
-  var to = new THREE.Vector3(tx, 1.2, tz);
-  var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([from, to]), new THREE.LineBasicMaterial({ color: lookOf(b.wk).t, transparent: true, opacity: 0.9 }));
-  scene.add(line); G.tracers.push({ line: line, life: 0.1 });
-}
-/* Punto de aparición de un equipo. En bomba, los atacantes salen a la izquierda y los defensores a la derecha */
-function pvpSpawnOf(team) {
-  if (PV.mode === 'bomb') return team === PV.bomb.atk ? PV_SPAWN.a : PV_SPAWN.b;
-  return PV_SPAWN[team];
-}
-function pvpBotSpawn(b) {
-  var sp = pvpSpawnOf(b.team), r = resolve(sp[0] + rnd(-2, 2), sp[1] + (b.slot - 2) * 2.4, 0.45);
-  b.x = r.x; b.z = r.z; b.hp = 100; b.dead = false; b.cd = rnd(0.8, 1.6);
-  b.g.visible = true; b.g.position.set(b.x, 0, b.z);
-}
-/* Dianas del jugador: los bots del equipo contrario (los aliados no se disparan) */
-function pvpTargets(list) { PV.bots.forEach(function (b) { if (!b.dead && b.team !== 'a') list.push(b.body); }); }
-function pvpSee(ax, az, bx, bz) {
-  var dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
-  if (d < 1e-3) return true;
-  raycaster.set(new THREE.Vector3(ax, 1.2, az), new THREE.Vector3(dx / d, 0, dz / d)); raycaster.far = d;
-  return raycaster.intersectObjects(occluders, false).length === 0;
-}
-function pvpNearestFoe(b) {
-  var best = null, bd = 1e9;
-  if (b.team !== 'a' && !PV.dead) { bd = Math.hypot(P.x - b.x, P.z - b.z); best = { isP: true, x: P.x, z: P.z }; }
-  PV.bots.forEach(function (o) {
-    if (o === b || o.dead || o.team === b.team) return;
-    var d = Math.hypot(o.x - b.x, o.z - b.z); if (d < bd) { bd = d; best = o; }
-  });
-  return best;
-}
-function pvpTick(dt) {
-  var bomb = PV.mode === 'bomb';
-  if (!bomb) {
-    PV.time = Math.max(0, PV.time - dt);
-    if (PV.dead) { PV.respT -= dt; if (PV.respT <= 0) pvpRespawnPlayer(); }
-  }
-  PV.bots.forEach(function (b) {
-    if (b.dead) { if (!bomb) { b.respT -= dt; if (b.respT <= 0) pvpBotSpawn(b); } return; }
-    b.cd -= dt;
-    var foe = pvpNearestFoe(b), tx = null, tz = null, stopD = 11;
-    if (bomb) {
-      var B = PV.bomb, S = B.site, mine = b.team === B.atk;
-      var near = foe ? Math.hypot(foe.x - b.x, foe.z - b.z) : 1e9;
-      /* Atacantes sin bomba: van al punto si no tienen enemigos cerca. Defensores: van a la bomba una vez plantada */
-      /* Atacantes: al punto directo, y solo paran si un enemigo está muy cerca. Defensores: se reúnen en el punto */
-      if (mine && !B.planted && near > 6) { tx = S.x; tz = S.z; stopD = 0.6; }
-      else if (!mine && B.planted) { tx = S.x; tz = S.z; stopD = 0.6; }
-      else if (!mine && !B.planted && near > 30) { tx = S.x; tz = S.z; stopD = 4; }
-    }
-    if (tx === null) { if (!foe) return; tx = foe.x; tz = foe.z; }
-    var dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 0.001;
-    if (foe) b.yaw = Math.atan2(foe.x - b.x, foe.z - b.z); else b.yaw = Math.atan2(dx, dz);
-    if (d > stopD) { var st = Math.min(d - stopD, 3.4 * dt), r = resolve(b.x + dx / d * st, b.z + dz / d * st, 0.45); b.x = r.x; b.z = r.z; }
-    b.g.position.set(b.x, 0, b.z); b.g.rotation.y = b.yaw;
-    if (foe && d < 26 && b.cd <= 0) {
-      var fd = Math.hypot(foe.x - b.x, foe.z - b.z);
-      if (fd < 26) { b.cd = rnd(1, 1.6); pvpBotTrace(b, foe.x, foe.z); }
-      if (fd < 26 && Math.random() < 0.55 && pvpSee(b.x, b.z, foe.x, foe.z)) {
-        if (foe.isP) pvpPlayerHurt(PVP_BOT_DMG, b.team); else pvpBotHurt(foe, PVP_BOT_DMG, b.team);
-      }
-    }
-  });
-  if (G.state !== 'playing') return;
-  if (bomb) { pvbTick(dt); return; }
-  var t = Math.ceil(PV.time), mm = Math.floor(t / 60), ss = t % 60;
-  $('pvpBoard').textContent = 'A ' + PV.score.a + '  ·  ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '  ·  ' + PV.score.b + ' B';
-  if (PV.time <= 0) pvpEnd(PV.score.a > PV.score.b ? 'a' : (PV.score.b > PV.score.a ? 'b' : 'draw'));
-}
-function pvpPlayerHurt(d, killer) {
-  if (PV.dead || G.state !== 'playing' || !(d > 0)) return;
-  G.hp -= d; G.regenCd = HEALTH.DELAY; G.hurtT = 0.3; G.shake = 0.3; sfx.hurt();
-  if (G.hp > 0) return;
-  G.hp = 0; PV.dead = true; P.down = true; mouseDown = false;
-  PV.score[killer]++;
-  var bomb = PV.mode === 'bomb';
-  PV.respT = bomb ? 1e9 : PVP_RESPAWN;
-  canvas.classList.add('dead'); for (var gk in guns) guns[gk].visible = false;
-  toast(bomb ? 'ABATIDO · ESPERA A LA SIGUIENTE RONDA' : 'ABATIDO · REAPARECES EN ' + PVP_RESPAWN + ' S');
-  pvpCheckEnd();
-}
-function pvpBotHurt(b, d, killer) {
-  if (b.dead) return;
-  b.hp -= d;
-  if (b.hp > 0) return;
-  var bomb = PV.mode === 'bomb';
-  b.dead = true; b.respT = bomb ? 1e9 : PVP_RESPAWN; b.g.visible = false;
-  PV.score[killer]++;
-  if (killer === 'a') {
-    G.kills++;
-    if (bomb) PV.bomb.money += PVB_KILL;
-    toast('BAJA' + (bomb ? ' · +' + PVB_KILL + ' €' : '') + ' · ' + PV.score.a + ' A ' + PV.score.b + ' B');
-  }
-  pvpCheckEnd();
-}
-function pvpHitBot(b, d) {
-  el.cross.classList.add('hit'); setTimeout(function () { el.cross.classList.remove('hit'); }, 90);
-  if (d >= 0.9) sfx.hit();
-  pvpBotHurt(b, d, 'a');
-}
-/* Melee: los bots del equipo contrario dentro del arco */
-function pvpPunch(cx, cz, fx, fz, w, dm) {
-  PV.bots.forEach(function (b) {
-    if (b.dead || b.team === 'a') return;
-    var dx = b.x - cx, dz = b.z - cz, d = Math.hypot(dx, dz);
-    if (d - 0.4 > w.range) return;
-    if (d > 1e-6 && (dx * fx + dz * fz) / d < w.arc) return;
-    pvpHitBot(b, w.dmg * dm);
-  });
-}
-/* Armas con proyectil: en PVP no hay proyectiles visibles contra los bots; se resuelven como disparos directos */
-function pvpFireProj(w, dm) {
-  var targets = occluders.slice(); pvpTargets(targets);
-  var n = w.type === 'pellets' ? w.pellets : 1, sp = w.spread || 0.02;
-  curMuzzle.getWorldPosition(tmpV);
-  for (var q = 0; q < n; q++) {
-    dirv.copy(fwd).addScaledVector(xa, rnd(-sp, sp)).addScaledVector(ya, rnd(-sp, sp)).normalize();
-    raycaster.set(tmpC, dirv); raycaster.far = w.range || 45;
-    var hits = raycaster.intersectObjects(targets, false), end;
-    if (hits.length) { end = hits[0].point.clone(); if (hits[0].object.userData.bot) pvpHitBot(hits[0].object.userData.bot, w.dmg * dm); }
-    else { raycaster.ray.at(raycaster.far, tmpD); end = tmpD.clone(); }
-    /* Trazo con el color del arma, para que en PVP también se vea de dónde sale el disparo */
-    var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([tmpV.clone(), end]), new THREE.LineBasicMaterial({ color: lookOf(G.wcur).t, transparent: true, opacity: 1 }));
-    scene.add(line); G.tracers.push({ line: line, life: 0.08 });
-  }
-}
-function pvpCheckEnd() {
-  if (PV.mode === 'bomb') { pvbCheck(); return; }
-  if (PV.score.a >= PVP_TARGET) pvpEnd('a');
-  else if (PV.score.b >= PVP_TARGET) pvpEnd('b');
+/* En PVP no hay oleadas ni puntos de Zombies: se ocultan las tarjetas de esquina */
+function pvHudTags(off) { document.querySelectorAll('#hud .tag').forEach(function (t) { t.style.display = off ? 'none' : ''; }); }
+function pvLeaveRoom() {
+  PV.unsub.forEach(function (u) { try { u(); } catch (e) {} }); PV.unsub = [];
+  var r = PV.room; PV.room = null; PV.online = false; PV.host = false; PV.peers = []; PV.hostPeer = null; PV.myPeer = null;
+  if (r) setTimeout(function () { try { r.leave().catch(function () {}); } catch (e) {} }, 200);
 }
 function pvpEnd(w) {
   if (G.state !== 'playing') return;
   G.state = 'win'; mouseDown = false; P.down = true;
   if (document.pointerLockElement) document.exitPointerLock();
-  $('pvpResTit').textContent = w === 'a' ? 'GANA TU EQUIPO' : (w === 'b' ? 'GANAN LOS BOTS' : 'EMPATE');
+  $('pvpResTit').textContent = w === 'a' ? 'GANA TU EQUIPO' : (w === 'b' ? 'GANA EL OTRO EQUIPO' : 'EMPATE');
   $('pvpResSub').textContent = 'Equipo A ' + PV.score.a + ' · Equipo B ' + PV.score.b;
   $('hud').hidden = true; $('pvpBoard').hidden = true; showOnly('ovPvp');
 }
-
-/* ---------------- PVP · bomba (rondas tipo CS) ----------------
-   Dos equipos de 5 (tú + 4 bots aliados contra 5 bots). Gana 7 rondas el primero. Los atacantes plantan la bomba
-   en el punto rojo (mantén E 3 s cerca del punto) y debe explotar (40 s). Los defensores la desactivan (mantén E 7 s
-   junto a la bomba). Se pierde la ronda si mueren todos los atacantes sin bomba, o si no se planta en 115 s.
-   Hay compra entre rondas con dinero. Lo que compras se pierde si mueres en la ronda; si sobrevives, se queda.
-   Tras la 6ª ronda cambian de bando. No hay reaparición: solo cuenta la ronda. */
-var PVB_WINS = 7, PVB_ROUND = 115, PVB_BUY = 15, PVB_BOMB = 40, PVB_START = 800, PVB_WIN = 2500, PVB_LOSS = 1000, PVB_LOSS_STEP = 400, PVB_KILL = 300;
-function pvbStart() {
-  initAudio(); startMusic(); clearWorld();
-  G.mode = 'pvp'; G.pvp = true; G.perks = {}; G.pap = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 };
-  G.euros = 0; G.score = 0; G.kills = 0; G.phase = 0; G.bambu = 0; G.lowWarn = false;
-  BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
-  loadLoc(0, ZOMBIE_HALF);
-  applyStats();
-  PV.mode = 'bomb'; PV.score = { a: 0, b: 0 }; PV.dead = false; PV.respT = 0; PV.time = PVB_ROUND;
-  var site = resolve(14, 12, 1);
-  var ring = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.06, 24), new THREE.MeshBasicMaterial({ color: 0xe0382d, transparent: true, opacity: 0.35 }));
-  ring.position.set(site.x, 0.04, site.z);
-  var bombM = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.4), new THREE.MeshLambertMaterial({ color: 0x222222, emissive: 0x551010 }));
-  bombM.position.set(site.x, 0.15, site.z); bombM.visible = false;
-  scene.add(ring); scene.add(bombM);
-  PV.bomb = { round: 0, wins: { a: 0, b: 0 }, money: PVB_START, atk: 'a', planted: false, plantP: 0, botPlant: 0, defP: 0, bombT: 0, roundT: PVB_ROUND,
-    phase: 'buy', lossA: 0, owned: {}, buyT: PVB_BUY, buyIv: null, site: { x: site.x, z: site.z }, ring: ring, bombM: bombM };
-  PV.bots.forEach(function (b) { scene.remove(b.g); }); PV.bots = [];
-  for (var s = 1; s < 5; s++) PV.bots.push(pvpNewBot('a', s));
-  for (var t = 0; t < 5; t++) PV.bots.push(pvpNewBot('b', t));
-  if (ally.g) ally.g.visible = false; MATES.forEach(function (m) { if (m.g) m.g.visible = false; });
-  $('pvpBoard').hidden = false;
-  pvbOpenBuy();
+function pvCheckEnd() {
+  if (PV.score.a >= PV_TARGET) pvpEnd('a');
+  else if (PV.score.b >= PV_TARGET) pvpEnd('b');
 }
-function pvbOpenBuy() {
-  var B = PV.bomb; if (!B) return;
-  B.round++; B.phase = 'buy'; B.buyT = PVB_BUY; G.state = 'win'; P.down = true; mouseDown = false;
-  if (document.pointerLockElement) document.exitPointerLock();
-  $('hud').hidden = true; $('pvpBoard').hidden = true;
-  pvbRenderBuy();
-  showOnly('ovBuy');
-  if (B.buyIv) clearInterval(B.buyIv);
-  B.buyIv = setInterval(function () {
-    B.buyT--; $('buyT').textContent = Math.max(0, B.buyT);
-    if (B.buyT <= 0) pvbBeginRound();
-  }, 1000);
-  $('buyT').textContent = B.buyT;
+/* Baja de cualquier plaza. Las locales (tuya o de la IA, si mandas) se anuncian; las remotas solo cuentan */
+function pvDeath(e, by, bkey, remote) {
+  if (e.dead) return;
+  e.dead = true; e.respT = PV_RESPAWN; e.hp = 0;
+  if (by && by !== e.team) PV.score[by]++;
+  if (e.kind === 'me') {
+    G.hp = 0; P.down = true; mouseDown = false; canvas.classList.add('dead');
+    for (var gk in guns) guns[gk].visible = false;
+    var k = pvFind(bkey); toast('ABATIDO POR ' + String(k ? (k.name || CHARS[k.c].name) : 'UN RIVAL').toUpperCase() + ' · REAPARECES EN ' + PV_RESPAWN + ' S');
+  } else if (by === PV.me.team) {
+    toast('BAJA · ' + String(e.name || CHARS[e.c].name).toUpperCase());
+  }
+  pvPlace(e, e.x, e.z, e.yaw);
+  if (!remote) pvSend({ t: 'd', k: e.key, b: by, kk: bkey });
+  pvCheckEnd();
 }
-function pvbRenderBuy() {
-  var B = PV.bomb; if (!B) return;
-  $('buyMoney').textContent = B.money + ' €';
-  $('buyRound').textContent = 'RONDA ' + B.round + ' · ' + (B.atk === 'a' ? 'ATACAS' : 'DEFIENDES') + ' · A ' + B.wins.a + ' — ' + B.wins.b + ' B';
-  var h = '';
-  ['principal', 'secundaria'].forEach(function (cat) {
-    h += '<h2 class="buyCat">' + CAT_NAME[cat] + '</h2><div class="buyGrid">';
-    WORDER.forEach(function (k) {
-      if (catOf(k) !== cat || k === 'bao' || k === 'grapadora') return;
-      var price = WEAPONS[k].price, owned = !!B.owned[k], can = B.money >= price;
-      h += '<button class="buyW' + (owned ? ' owned' : '') + '" data-bw="' + k + '"' + ((owned || !can) ? ' disabled' : '') + '>' + WEAPONS[k].name + ' · ' + (owned ? 'COMPRADA' : price + ' €') + '</button>';
+function pvHurtMe(d, bt, bkey) {
+  if (!PV.on || !PV.me || PV.me.dead || P.down || !(d > 0)) return;
+  G.hp -= d; G.regenCd = HEALTH.DELAY; G.hurtT = 0.3; G.shake = 0.3; sfx.hurt();
+  if (G.hp > 0) return;
+  pvDeath(PV.me, bt, bkey, false);
+}
+function pvAIHurt(e, d, bt, bkey) {
+  if (e.dead) return;
+  e.hp -= d;
+  if (e.hp <= 0) pvDeath(e, bt, bkey, false);
+}
+function pvFlashHit() { el.cross.classList.add('hit'); setTimeout(function () { el.cross.classList.remove('hit'); }, 90); sfx.hit(); }
+/* Impacto de tu disparo (o de un golpe): al jugador remoto se lo mandas a él; a la IA se lo das al anfitrión */
+function pvHitEnt(e, d, bt, bkey) {
+  if (!e || e.dead || e.kind === 'me') return;
+  pvFlashHit();
+  if (e.kind === 'net') { pvSend({ t: 'h', to: e.peer, d: d, bt: bt, bk: bkey }); return; }
+  if (pvAuth()) pvAIHurt(e, d, bt, bkey);
+  else pvSend({ t: 'h', ai: e.key, d: d, bt: bt, bk: bkey });
+}
+function pvTracer(a, b, wk) {
+  var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.clone(), b.clone()]), new THREE.LineBasicMaterial({ color: lookOf(wk).t, transparent: true, opacity: 1 }));
+  scene.add(line); G.tracers.push({ line: line, life: 0.1 });
+}
+/* Disparo visible para todos: tu trazo y el de la IA (la manda el anfitrión) */
+function pvShotFx(a, b, wk) {
+  pvTracer(a, b, wk);
+  if (PV.online) pvSend({ t: 'f', o: [r1(a.x), r1(a.y), r1(a.z)], e: [r1(b.x), r1(b.y), r1(b.z)], w: wk });
+}
+function pvSee(ax, az, bx, bz) {
+  var dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
+  if (d < 1e-3) return true;
+  raycaster.set(new THREE.Vector3(ax, 1.2, az), new THREE.Vector3(dx / d, 0, dz / d)); raycaster.far = d;
+  return raycaster.intersectObjects(occluders, false).length === 0;
+}
+/* IA (la lleva quien manda: tú si juegas solo, o el anfitrión): busca al enemigo más cercano, se acerca, se cubre y dispara */
+function pvAITick(dt) {
+  PV.ents.forEach(function (e) {
+    if (e.kind !== 'ai') return;
+    if (e.dead) { e.respT -= dt; if (e.respT <= 0) pvSpawnEnt(e); return; }
+    var best = null, bd = 1e9;
+    PV.ents.forEach(function (t) {
+      if (t === e || t.dead || t.team === e.team || t.ghost) return;
+      var d = Math.hypot(t.x - e.x, t.z - e.z); if (d < bd) { bd = d; best = t; }
     });
-    h += '</div>';
+    if (!best) { pvPlace(e, e.x, e.z, e.yaw); return; }
+    var dx = best.x - e.x, dz = best.z - e.z, d = Math.hypot(dx, dz) || 0.001;
+    e.yaw = Math.atan2(-dx, -dz);
+    var mx = 0, mz = 0;
+    if (d > 9) { mx = dx / d; mz = dz / d; }
+    else if (d < 4) { mx = -dx / d * 0.5; mz = -dz / d * 0.5; }
+    else { mx = -dz / d * Math.sin(G.t * 1.7 + e.cd); mz = dx / d * Math.sin(G.t * 1.7 + e.cd); }
+    var st = 3.2 * dt, r = resolve(e.x + mx * st, e.z + mz * st, 0.45); e.x = r.x; e.z = r.z;
+    e.tx = e.x; e.tz = e.z; e.tyaw = e.yaw;
+    pvPlace(e, e.x, e.z, e.yaw);
+    e.cd -= dt;
+    if (e.cd <= 0 && bd < 26 && e.gun && pvSee(e.x, e.z, best.x, best.z)) {
+      e.cd = rnd(0.7, 1.2);
+      var mzPos = new THREE.Vector3(); e.gun.userData.muzzle.getWorldPosition(mzPos);
+      var end = new THREE.Vector3(best.x, 1.2, best.z);
+      pvShotFx(mzPos, end, e.w);
+      if (Math.random() < (bd < 12 ? 0.7 : 0.45)) {
+        if (best.kind === 'me') pvHurtMe(PV_AI_DMG, e.team, e.key);
+        else if (best.kind === 'net') pvSend({ t: 'h', to: best.peer, d: PV_AI_DMG, bt: e.team, bk: e.key });
+        else pvAIHurt(best, PV_AI_DMG, e.team, e.key);
+      }
+    }
   });
-  $('buyList').innerHTML = h;
 }
-function pvbBuy(k) {
-  var B = PV.bomb; if (!B || B.phase !== 'buy') return;
-  var price = WEAPONS[k].price;
-  if (B.owned[k] || B.money < price) return;
-  B.money -= price; B.owned[k] = 1; pvbRenderBuy();
+/* Suavizado de los que no decides tú: jugadores remotos y, si no mandas, la IA */
+function pvInterp(e, dt) {
+  if (e.kind === 'me' || (e.kind === 'ai' && pvAuth())) return;
+  var k = 1 - Math.exp(-dt * 12);
+  e.x += (e.tx - e.x) * k; e.z += (e.tz - e.z) * k;
+  e.yaw = e.tyaw;
+  pvPlace(e, e.x, e.z, e.yaw);
 }
-function pvbBeginRound() {
-  var B = PV.bomb; if (!B || B.phase !== 'buy') return;
-  if (B.buyIv) { clearInterval(B.buyIv); B.buyIv = null; }
-  B.phase = 'live'; B.planted = false; B.plantP = 0; B.botPlant = 0; B.defP = 0; B.bombT = 0; B.roundT = PVB_ROUND;
-  B.bombM.visible = false;
-  PV.bots.forEach(pvpBotSpawn);
-  pvbPlayerSpawn();
-  G.state = 'playing'; showOnly(''); $('hud').hidden = false; $('pvpBoard').hidden = false;
-  requestLock();
-  banner('RONDA ' + B.round, B.atk === 'a' ? 'Atacas: planta la bomba en el círculo rojo (mantén E)' : 'Defiendes: evita que planten la bomba');
+function pvpTick(dt) {
+  if (!PV.on || !PV.me) return;
+  PV.time -= dt;
+  var me = PV.me;
+  me.x = P.x; me.z = P.z; me.yaw = P.yaw;
+  if (me.dead) { me.respT -= dt; if (me.respT <= 0) pvSpawnMe(); }
+  pvAITick_wrap(dt);
+  PV.ents.forEach(function (e) { pvInterp(e, dt); });
+  if (PV.online) {
+    PV.stT -= dt;
+    if (PV.stT <= 0) { PV.stT = 0.1; pvSendStates(); }
+  }
+  var t = Math.ceil(Math.max(0, PV.time)), mm = Math.floor(t / 60), ss = t % 60;
+  $('pvpBoard').textContent = 'A ' + PV.score.a + '  ·  ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '  ·  ' + PV.score.b + ' B';
+  if (PV.time <= 0) pvpEnd(PV.score.a > PV.score.b ? 'a' : (PV.score.b > PV.score.a ? 'b' : 'draw'));
 }
-/* Ronda nueva: el jugador vuelve con lo básico y con lo que compró (si sobrevivió a la ronda anterior) */
-function pvbPlayerSpawn() {
-  var B = PV.bomb;
-  resetPlayerState();
-  G.owned = { punos: 1, grapadora: 1 };
-  Object.keys(B.owned).forEach(function (k) { G.owned[k] = 1; });
-  initAmmo(); G.pool = PVP_POOL;
-  var sp = pvpSpawnOf('a'), s = resolve(sp[0], sp[1], 0.5); P.x = s.x; P.z = s.z;
-  P.yaw = 0; P.yawT = 0; P.pitch = 0; P.pitchT = 0;
-  G.hp = G.maxHp; G.regenCd = 0; P.down = false; PV.dead = false; canvas.classList.remove('dead');
-  var last = Object.keys(B.owned).pop();
-  selectGun(last || 'grapadora');
-}
-function pvbCheck() {
-  var B = PV.bomb; if (!B || B.phase !== 'live') return;
-  var atkA = 0, defA = 0, def = B.atk === 'a' ? 'b' : 'a';
-  if (!PV.dead) { if (B.atk === 'a') atkA++; else defA++; }
-  PV.bots.forEach(function (b) { if (!b.dead) { if (b.team === B.atk) atkA++; else defA++; } });
-  if (!B.planted) {
-    if (atkA === 0) pvbEndRound(def, 'han caído los atacantes');
-    else if (defA === 0) pvbEndRound(B.atk, 'han caído los defensores');
+function pvAITick_wrap(dt) { if (pvAuth()) pvAITick(dt); }
+function pvSendStates() {
+  var me = PV.me;
+  pvSend({ t: 's', x: r1(me.x), z: r1(me.z), yaw: Math.round(me.yaw * 100) / 100, hp: Math.round(G.hp), dead: P.down ? 1 : 0, c: me.c, w: me.w, a: me.asp });
+  if (pvAuth()) {
+    var list = [];
+    PV.ents.forEach(function (e) { if (e.kind === 'ai') list.push([e.key, r1(e.x), r1(e.z), Math.round(e.yaw * 100) / 100, Math.round(e.hp), e.dead ? 1 : 0]); });
+    pvSend({ t: 'a', l: list });
   }
 }
-function pvbPlant() {
-  var B = PV.bomb; B.planted = true; B.bombT = PVB_BOMB; B.defP = 0;
-  B.bombM.visible = true;
-  toast('BOMBA PLANTADA · ' + PVB_BOMB + ' S PARA DESACTIVARLA');
-}
-function pvbTick(dt) {
-  var B = PV.bomb; if (!B || B.phase !== 'live') return;
-  B.roundT -= dt;
-  var S = B.site, dP = Math.hypot(P.x - S.x, P.z - S.z), holdE = !!keys.KeyE, pNear = dP < 2.5 && !PV.dead;
-  if (!B.planted) {
-    var plantingP = B.atk === 'a' && holdE && pNear;
-    if (plantingP) B.plantP += dt; else B.plantP = Math.max(0, B.plantP - dt * 2);
-    var botNear = false;
-    PV.bots.forEach(function (b) { if (!b.dead && b.team === B.atk && Math.hypot(b.x - S.x, b.z - S.z) < 2.5) botNear = true; });
-    if (botNear) B.botPlant += dt;
-    if (B.plantP >= 3 || B.botPlant >= 2.5) { pvbPlant(); }
-    else if (B.roundT <= 0) { pvbEndRound(B.atk === 'a' ? 'b' : 'a', 'se ha acabado el tiempo'); return; }
-  } else {
-    B.bombT -= dt;
-    if (B.atk !== 'a' && holdE && pNear) B.defP += dt / 7;
-    PV.bots.forEach(function (b) { if (!b.dead && b.team !== B.atk && Math.hypot(b.x - S.x, b.z - S.z) < 2.5) B.defP += dt / 16; });
-    if (B.defP >= 1) { pvbEndRound(B.atk === 'a' ? 'b' : 'a', 'bomba desactivada'); return; }
-    if (B.bombT <= 0) { pvbEndRound(B.atk, 'la bomba ha explotado'); return; }
-  }
-  pvbCheck();
-  if (PV.bomb && PV.bomb.phase === 'live') {
-    var tm = PV.bomb.planted ? Math.ceil(PV.bomb.bombT) : Math.ceil(PV.bomb.roundT);
-    var prog = PV.bomb.planted ? ' · DESACTIVANDO ' + Math.round(PV.bomb.defP * 100) + '%' : (B.plantP > 0 ? ' · PLANTANDO ' + Math.round(B.plantP / 3 * 100) + '%' : '');
-    $('pvpBoard').textContent = 'RONDA ' + B.round + ' · A ' + B.wins.a + ' — ' + B.wins.b + ' B · ' + (B.planted ? 'BOMBA ' : '') + tm + ' s' + prog + ' · ' + B.money + ' €';
+/* Mensajes de la sala de PVP */
+function pvNetMsg(msg) {
+  if (msg.sameTab) return;
+  var d = msg.data || {}, from = msg.peer;
+  if (!PV.on) { if (d.t === 'start' && from === PV.hostPeer && Array.isArray(d.slots)) pvStartMatch(d.slots); return; }
+  if (d.t === 's') {
+    var e = PV.byPeer[from]; if (!e) return;
+    e.tx = +d.x || 0; e.tz = +d.z || 0; e.tyaw = +d.yaw || 0; e.hp = +d.hp || 0; e.ghost = !!d.dead;
+    if (!d.dead && e.dead) { e.dead = false; e.hp = PV_HP; }   /* ha reaparecido */
+    if (d.c !== e.c || d.w !== e.w || (d.a | 0) !== e.asp) { e.c = String(d.c); e.w = String(d.w); e.asp = (d.a | 0) || 1; if (CHARS[e.c] && WEAPONS[e.w]) pvBuildBody(e); }
+  } else if (d.t === 'a') {
+    if (pvAuth() || !Array.isArray(d.l)) return;
+    d.l.forEach(function (r) { var e = pvFind(String(r[0])); if (!e || e.kind !== 'ai') return; e.tx = +r[1] || 0; e.tz = +r[2] || 0; e.tyaw = +r[3] || 0; e.hp = +r[4] || 0; e.ghost = !!r[5]; if (!r[5] && e.dead) e.dead = false; });
+  } else if (d.t === 'f') {
+    if (!Array.isArray(d.o) || !Array.isArray(d.e) || !WEAPONS[d.w]) return;
+    pvTracer(new THREE.Vector3(+d.o[0] || 0, +d.o[1] || 0, +d.o[2] || 0), new THREE.Vector3(+d.e[0] || 0, +d.e[1] || 0, +d.e[2] || 0), String(d.w));
+  } else if (d.t === 'h') {
+    if (d.to && d.to === PV.myPeer) pvHurtMe(+d.d || 0, String(d.bt), String(d.bk || ''));
+    else if (d.ai && pvAuth()) { var a = pvFind(String(d.ai)); if (a && a.kind === 'ai') pvAIHurt(a, +d.d || 0, String(d.bt), String(d.bk || '')); }
+  } else if (d.t === 'd') {
+    var v = pvFind(String(d.k));
+    if (!v || v.kind === 'me' || v.dead) return;
+    pvDeath(v, String(d.b || ''), String(d.kk || ''), true);
+  } else if (d.t === 'start') {
+    /* Un anfitrión que vuelve a empezar: ya tenemos partida, se ignora */
   }
 }
-function pvbEndRound(w, why) {
-  var B = PV.bomb; if (!B || B.phase !== 'live') return;
-  B.phase = 'end'; B.wins[w]++;
-  var mine = w === 'a';
-  if (mine) { B.lossA = 0; B.money += PVB_WIN; }
-  else { B.lossA++; B.money += PVB_LOSS + Math.min(B.lossA - 1, 3) * PVB_LOSS_STEP; }
-  /* Si moriste en la ronda, pierdes lo que compraste */
-  if (PV.dead) B.owned = {};
-  var over = B.wins.a >= PVB_WINS ? 'a' : (B.wins.b >= PVB_WINS ? 'b' : null);
-  if (over) { pvpEnd(over); return; }
-  if (B.round === 6) B.atk = B.atk === 'a' ? 'b' : 'a';
-  G.state = 'win'; P.down = true; mouseDown = false;
-  banner((mine ? 'GANA TU EQUIPO' : 'GANAN LOS BOTS') + ' · ' + why, 'A ' + B.wins.a + ' — ' + B.wins.b + ' B');
-  setTimeout(function () { if (PV.bomb === B && B.phase === 'end' && G.pvp) pvbOpenBuy(); }, 4000);
+/* Sala: presencia de cada jugador (equipo, personaje, arma, aspecto). El anfitrión es el primero en entrar */
+function pvPeers(ch) {
+  var me = null; (ch.peers || []).forEach(function (p) { if (p.sameTab) me = p.peer; });
+  PV.myPeer = me;
+  PV.peers = (ch.peers || []).filter(function (p) { return p.presence && p.presence.pv; });
+  /* Anfitrión: quien entró antes (marca de tiempo de la presencia; a igualdad, el identificador) */
+  var hp = null, hj = Infinity; PV.peers.forEach(function (p) { var j = +(p.presence.j) || Infinity; if (j < hj || (j === hj && (hp === null || p.peer < hp))) { hj = j; hp = p.peer; } });
+  PV.hostPeer = hp; PV.host = !!me && me === hp;
+  if (me) PV.myKey = 'p:' + me;
+  if (PV.on) {
+    var here = {}; PV.peers.forEach(function (p) { here[p.peer] = 1; });
+    if (!PV.host && PV.hostPeer && !here[PV.hostPeer]) { pvpStop(); toMenu(); showOnly('ovStart'); netMsg('El anfitrión ha salido de la partida.'); }
+  }
+  pvRenderLobby();
 }
+function pvJoinRoom(code) {
+  if (PV.room) pvLeaveRoom();
+  if (!/^[a-z0-9]{3,6}$/.test(code)) { pvMsg('Escribe un código de 3 a 6 letras o números.'); return; }
+  pvMsg('Conectando a la sala ' + code.toUpperCase() + '…');
+  netTransport(code).then(function (r) {
+    PV.room = r; PV.online = true; PV.code = code; PV.host = false; PV.joinT = Date.now();
+    PV.unsub = [r.onPeers(pvPeers), r.on('pv', pvNetMsg)];
+    pvPublish();
+    pvMsg('En la sala ' + code.toUpperCase() + '. Elige equipo, personaje, arma y aspecto. Quien entró primero es el anfitrión y empieza la partida.');
+    pvRenderLobby();
+  }, function () { pvMsg('No se pudo entrar en la sala. ¿Está el servidor conectado?'); });
+}
+function pvPublish() {
+  if (PV.online && PV.room) PV.room.presence({ pv: 1, j: PV.joinT, n: loadName(), team: PV.sel.team, c: PV.sel.c, w: PV.sel.w, a: PV.sel.asp }).catch(function () {});
+}
+function pvMsg(t) { $('pvMsg').textContent = t; }
+function pvHumansOnline() {
+  return PV.peers.map(function (p) {
+    var s = p.presence || {};
+    return { key: p.sameTab ? PV.myKey : 'p:' + p.peer, peer: p.peer, team: s.team === 'b' ? 'b' : 'a', c: String(s.c || 'bilal'), w: String(s.w || 'pizza'), asp: (s.a | 0) || 1, n: cleanName(s.n) || 'NINI' };
+  });
+}
+/* Anfitrión: reparte las plazas y lanza la partida a todos */
+function pvHostStart() {
+  var slots = pvBuildSlots(pvHumansOnline());
+  pvSend({ t: 'start', slots: slots });
+  pvStartMatch(slots);
+}
+function pvStartOffline() {
+  if (PV.online) pvLeaveRoom();
+  PV.myKey = 'p:me';
+  var slots = pvBuildSlots([{ key: PV.myKey, team: PV.sel.team, c: PV.sel.c, w: PV.sel.w, asp: PV.sel.asp, n: loadName() }]);
+  pvStartMatch(slots);
+}
+/* ---- Lobby ---- */
+function pvCur() { return PV.loadMode === 'esc' ? PV.draft : PV.sel; }
+function pvOpenLobby(mode) {
+  PV.loadMode = mode;
+  PV.draft = Object.assign({}, PV.sel);
+  var esc = mode === 'esc';
+  $('pvLobbyNet').hidden = esc; $('pvTeams').hidden = esc;
+  $('pvWeapon').innerHTML = WORDER.filter(function (k) { return k !== 'bao'; }).map(function (k) { return '<option value="' + k + '">' + WEAPONS[k].name + '</option>'; }).join('');
+  if (!$('pvChars').children.length) AV_KEYS.forEach(function (c) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'pvChar'; b.dataset.c = c;
+    var im = document.createElement('img'); im.src = CHARS[c].img; im.alt = CHARS[c].name; b.appendChild(im);
+    var sp = document.createElement('span'); sp.textContent = CHARS[c].name; b.appendChild(sp);
+    $('pvChars').appendChild(b);
+  });
+  $('btnPvpGo').textContent = esc ? 'GUARDAR' : (PV.online ? 'EMPEZAR' : 'JUGAR');
+  $('btnPvpBack').textContent = esc ? 'CANCELAR' : 'VOLVER';
+  $('pvMsg').textContent = esc ? 'El cambio se aplica cuando reapareces.' : $('pvMsg').textContent;
+  showOnly('ovLoad');
+  pvRenderLobby(); pvShowWeapon();
+  pvPrevOn();
+}
+function pvRenderLobby() {
+  if ($('ovLoad').hidden) return;
+  var cur = pvCur(), esc = PV.loadMode === 'esc';
+  $('pvWeapon').value = cur.w;
+  Array.prototype.forEach.call($('pvChars').children, function (b) { var on = b.dataset.c === cur.c; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  Array.prototype.forEach.call($('pvAsp').children, function (b) { b.classList.toggle('on', (b.dataset.a | 0) === cur.asp); });
+  var rows = { a: [], b: [] };
+  if (PV.online && !esc) PV.peers.forEach(function (p) { var s = p.presence || {}; (s.team === 'b' ? rows.b : rows.a).push({ n: cleanName(s.n) || 'NINI', c: s.c, w: s.w, a: s.a, me: !!p.sameTab, host: p.peer === PV.hostPeer }); });
+  else if (!esc) rows[PV.sel.team].push({ n: loadName(), c: PV.sel.c, w: PV.sel.w, a: PV.sel.asp, me: true, host: true });
+  ['a', 'b'].forEach(function (t) {
+    var h = '';
+    rows[t].forEach(function (r) {
+      h += '<div class="pvRow' + (r.me ? ' me' : '') + '"><b></b> <span></span></div>';
+    });
+    var box = $('pvList' + t.toUpperCase()); box.innerHTML = h;
+    rows[t].forEach(function (r, i) {
+      var row = box.children[i];
+      row.firstChild.textContent = r.n + (r.host ? ' · ANFITRIÓN' : '');
+      row.lastChild.textContent = (CHARS[r.c] ? CHARS[r.c].name : '?') + ' · ' + (WEAPONS[r.w] ? WEAPONS[r.w].short : '?') + ' · FASE ' + (r.a | 0 || 1);
+    });
+    if (!rows[t].length) box.innerHTML = '<div class="pvRow">— libre —</div>';
+    $('pvTo' + t.toUpperCase()).disabled = esc || (PV.sel.team === t) || (PV.online && rows[t].length >= PV_TEAM);
+  });
+  $('btnPvpGo').disabled = !esc && PV.online && !PV.host;
+}
+function pvShowWeapon() {
+  var cur = pvCur(), W = WEAPONS[cur.w]; if (!W) return;
+  $('pvGunName').textContent = W.name.toUpperCase();
+  var rs = rarityOf(cur.w);
+  $('pvGunRar').textContent = rs.label + ' · MISMO DAÑO PARA TODAS LAS ARMAS';
+  $('pvGunRar').style.color = rs.css;
+  $('pvGunDesc').textContent = W.desc || '';
+  pvPrevShow(cur.w, cur.asp);
+}
+function pvSetMine(patch) {
+  var cur = pvCur();
+  Object.keys(patch).forEach(function (k) { cur[k] = patch[k]; });
+  if (PV.loadMode !== 'esc') { PV.sel = cur; pvPublish(); }
+  pvRenderLobby(); pvShowWeapon();
+}
+function pvGo() {
+  if (PV.loadMode === 'esc') {
+    PV.next = Object.assign({}, PV.draft);
+    showOnly('ovPause'); $('pauseInfo').textContent = 'Arsenal guardado. Se aplica cuando reapareces.';
+    return;
+  }
+  if (PV.online) { if (PV.host) pvHostStart(); return; }
+  pvStartOffline();
+}
+function pvBack() {
+  if (PV.loadMode === 'esc') { showOnly('ovPause'); return; }
+  if (PV.online) pvLeaveRoom();
+  showOnly('ovStart');
+}
+/* ---- Vista previa del arma (3D): gira despacio y muestra el aspecto elegido ---- */
+var PV_PREV = null;
+function pvPrevOn() {
+  if (PV_PREV) return;
+  var cv = $('pvPrev');
+  try {
+    var r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+    r.setPixelRatio(1); r.setSize(cv.clientWidth || 360, cv.clientHeight || 220, false);
+    var s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(34, (cv.clientWidth || 360) / (cv.clientHeight || 220), 0.05, 20);
+    cam.position.set(0, 0.25, 2.4); cam.lookAt(0, 0, 0);
+    s.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.1));
+    var dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(1, 2, 3); s.add(dl);
+    PV_PREV = { r: r, s: s, cam: cam, gun: null, last: performance.now() };
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      if (!PV_PREV || $('ovLoad').hidden || !PV_PREV.gun) return;
+      PV_PREV.gun.rotation.y += (now - PV_PREV.last) / 1000 * 0.6;
+      PV_PREV.last = now;
+      PV_PREV.r.render(PV_PREV.s, PV_PREV.cam);
+    })(performance.now());
+  } catch (e) { PV_PREV = null; }
+}
+function pvPrevShow(w, asp) {
+  if (!PV_PREV) return;
+  if (PV_PREV.gun) PV_PREV.s.remove(PV_PREV.gun);
+  var g = buildGun(w); g.userData.lv = asp; applyGunLook(g);
+  g.scale.setScalar(2.1); g.position.set(0, -0.12, 0); g.rotation.y = 0.5;
+  g.visible = true; PV_PREV.s.add(g); PV_PREV.gun = g; PV_PREV.last = performance.now();
+  PV_PREV.r.render(PV_PREV.s, PV_PREV.cam);
+}
+/* Enganches con el disparo y el cuerpo a cuerpo del jugador (los llama shoot / punch / hurtPlayer) */
+function pvpTargets(list) {
+  if (!PV.me) return;
+  PV.ents.forEach(function (e) { if (e.kind !== 'me' && !e.dead && !e.ghost && e.team !== PV.me.team && e.hit) list.push(e.hit); });
+}
+function pvpHitBot(e) { if (PV.me && e) pvHitEnt(e, PV_HIT, PV.me.team, PV.myKey); }
+function pvpPlayerHurt(d, bt, bk) { pvHurtMe(d, bt, bk); }
+function pvpPunch(cx, cz, fx, fz, w) {
+  if (!PV.me) return;
+  PV.ents.forEach(function (e) {
+    if (e.kind === 'me' || e.dead || e.ghost || e.team === PV.me.team) return;
+    var dx = e.x - cx, dz = e.z - cz, d = Math.hypot(dx, dz);
+    if (d - 0.4 > w.range) return;
+    if (d > 1e-6 && (dx * fx + dz * fz) / d < w.arc) return;
+    pvHitEnt(e, PV_HIT, PV.me.team, PV.myKey);
+  });
+}
+/* Armas con proyectil: se resuelven como disparos directos (y se ve su trazo). Los perdigones reparten el daño */
+function pvpFireProj(w) {
+  if (!PV.me) return;
+  var targets = occluders.slice(); pvpTargets(targets);
+  var n = w.type === 'pellets' ? w.pellets : 1, sp = w.spread || 0.02, per = PV_HIT / Math.sqrt(n);
+  curMuzzle.getWorldPosition(tmpV);
+  var from = tmpV.clone();
+  for (var q = 0; q < n; q++) {
+    dirv.copy(fwd).addScaledVector(xa, rnd(-sp, sp)).addScaledVector(ya, rnd(-sp, sp)).normalize();
+    raycaster.set(tmpC, dirv); raycaster.far = w.range || 45;
+    var hits = raycaster.intersectObjects(targets, false), end;
+    if (hits.length) { end = hits[0].point.clone(); if (hits[0].object.userData.bot) pvHitEnt(hits[0].object.userData.bot, per, PV.me.team, PV.myKey); }
+    else { raycaster.ray.at(raycaster.far, tmpD); end = tmpD.clone(); }
+    pvShotFx(from, end, G.wcur);
+  }
+}
+function pvpOpenLoad(mode) { pvOpenLobby(mode); }
+function pvAgain() {
+  if (PV.online) { if (PV.host) pvHostStart(); else pvOpenLobby('start'); return; }
+  pvStartOffline();
+}
+
+/* ---------------- Nuketown: barrio residencial con seis casas, calle central y coches ---------------- */
+function nkBox(x, y, z, w, h, d, c, solid) {
+  var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c }));
+  m.position.set(x, y + h / 2, z); m.castShadow = true; m.receiveShadow = true; CUR.add(m);
+  if (solid) { occluders.push(m); OB.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h: y + h }); }
+  return m;
+}
+function nkHouse(cx, cz, col) {
+  var W = 9, D = 8, T = 0.35, H = 3.4, door = 2.4;
+  var s = cz < 0 ? 1 : -1;               /* la fachada mira a la calle central (z = 0) */
+  var zb = cz - s * D / 2, zf = cz + s * D / 2;
+  nkBox(cx, 0, zb, W, H, T, col, true);                                  /* fondo */
+  nkBox(cx - W / 2 + T / 2, 0, cz, T, H, D, col, true);                  /* lateral izquierdo */
+  nkBox(cx + W / 2 - T / 2, 0, cz, T, H, D, col, true);                  /* lateral derecho */
+  var wl = (W - door) / 2;
+  nkBox(cx - (door / 2 + wl / 2), 0, zf, wl, H, T, col, true);           /* fachada: izquierda de la puerta */
+  nkBox(cx + (door / 2 + wl / 2), 0, zf, wl, H, T, col, true);           /* fachada: derecha de la puerta */
+  nkBox(cx, door + 0.2, zf, door, H - door - 0.2, T, col, false);        /* dintel */
+  nkBox(cx, H, cz, W + 0.5, 0.3, D + 0.5, 0x6b3b2a, false);              /* tejado */
+  [-3, 3].forEach(function (dx) { nkBox(cx + dx, 1.3, zf + s * 0.02, 1.5, 1.1, 0.12, 0x9fd8f0, false); });  /* ventanas */
+}
+function nkCar(x, z, c) { return nkBox(x, 0, z, 4.2, 1.3, 1.9, c, true); }
+function buildNuketown() {
+  var lawn = new THREE.Mesh(new THREE.PlaneGeometry(70, 70), new THREE.MeshLambertMaterial({ color: 0x4f8f45 }));
+  lawn.rotation.x = -Math.PI / 2; lawn.position.y = 0.01; lawn.receiveShadow = true; CUR.add(lawn);
+  var road = new THREE.Mesh(new THREE.PlaneGeometry(70, 9), new THREE.MeshLambertMaterial({ color: 0x3a3d40 }));
+  road.rotation.x = -Math.PI / 2; road.position.y = 0.02; CUR.add(road);
+  var walk = new THREE.Mesh(new THREE.PlaneGeometry(70, 1.2), new THREE.MeshLambertMaterial({ color: 0x9a9284 }));
+  walk.rotation.x = -Math.PI / 2; walk.position.set(0, 0.03, -10); CUR.add(walk);
+  var colors = [0xf1efe6, 0xd9cdb5, 0xe6eef2, 0xf3e3c9, 0xdfe8d6, 0xeeeeee], n = 0;
+  [-10, 10].forEach(function (cz) { [-14, 0, 14].forEach(function (cx) { nkHouse(cx, cz, colors[n++ % colors.length]); }); });
+  nkCar(-7, -2.4, 0x2c5fa8); nkCar(7, 2.4, 0xb8232a); nkCar(-7, 2.6, 0xe6e6e6);
+  nkBox(0, 0, 0, 1.2, 1.1, 1.2, 0x7a7a7a, true);                         /* buzón central */
+  nkBox(0, -31, 0, 64, 3, 0.6, 0x2e2e2e, true); nkBox(0, 31, 0, 64, 3, 0.6, 0x2e2e2e, true);
+  nkBox(-31, 0, 0, 0.6, 3, 64, 0x2e2e2e, true); nkBox(31, 0, 0, 0.6, 3, 64, 0x2e2e2e, true);
+}
+MAPS.push({ key: 'nuketown', name: 'NUKETOWN', sub: 'Barrio residencial · seis casas', accent: '#e8b84a', build: 'buildNuketown',
+  desc: 'Seis casas iguales con jardín, una calle central y coches aparcados. Los dos equipos se miran desde cada lado.',
+  tone: { bg: 0x9cc7e8, hemi: 0xfff1d6, gnd: 0x4f8f45, hI: 1.0, sun: 0xffe2b0, sI: 0.7, sp: [20, 30, 10], pl: 0xfff1d6, pI: 0.3, pY: 6, fog: [30, 90], pk: 0.2 } });
 
 /* ---------------- Entrada ---------------- */
 window.addEventListener('keydown', function (e) {
@@ -7263,16 +7417,22 @@ $('btnShapeBack').addEventListener('click', function () { showOnly('ovStart'); }
 $('btnBranchEasy').addEventListener('click', function () { pickBranch('easy'); });
 $('btnNew').addEventListener('click', function () { if (nameOk()) startStory(true); });
 $('btnSurv').addEventListener('click', function () { if (nameOk()) zombiesMenu(); });
-$('btnPvp').addEventListener('click', function () { if (nameOk()) pvpOpenLoad('start'); });
-$('btnPvpGo').addEventListener('click', pvpGo);
-$('btnPvpBack').addEventListener('click', pvpBack);
-$('btnPvpLoad').addEventListener('click', function () { pvpOpenLoad('esc'); });
-$('btnPvpAgain').addEventListener('click', pvpStart);
-$('btnPvpArsenal').addEventListener('click', function () { pvpOpenLoad('start'); });
+$('btnPvp').addEventListener('click', function () { if (nameOk()) pvOpenLobby('start'); });
+$('pvSolo').addEventListener('click', pvStartOffline);
+$('pvCreate').addEventListener('click', function () { var ab = 'abcdefghjkmnpqrstuvwxyz23456789', c = ''; for (var i = 0; i < 4; i++) c += ab[Math.floor(Math.random() * ab.length)]; pvJoinRoom(c); });
+$('pvJoinBtn').addEventListener('click', function () { pvJoinRoom(String($('pvCode').value || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)); });
+$('pvCode').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('pvJoinBtn').click(); });
+$('pvToA').addEventListener('click', function () { pvSetMine({ team: 'a' }); });
+$('pvToB').addEventListener('click', function () { pvSetMine({ team: 'b' }); });
+$('pvChars').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('.pvChar') : null; if (b) pvSetMine({ c: b.dataset.c }); });
+$('pvWeapon').addEventListener('change', function (e) { pvSetMine({ w: e.target.value }); });
+$('pvAsp').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-a]') : null; if (b) pvSetMine({ asp: b.dataset.a | 0 }); });
+$('btnPvpGo').addEventListener('click', pvGo);
+$('btnPvpBack').addEventListener('click', pvBack);
+$('btnPvpLoad').addEventListener('click', function () { pvOpenLobby('esc'); });
+$('btnPvpAgain').addEventListener('click', pvAgain);
+$('btnPvpArsenal').addEventListener('click', function () { pvOpenLobby('start'); });
 $('btnPvpMenu').addEventListener('click', toMenu);
-$('btnPvpBomb').addEventListener('click', function () { if (nameOk()) pvbStart(); });
-$('buyList').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-bw]') : null; if (b && !b.disabled) pvbBuy(b.dataset.bw); });
-$('btnBuyReady').addEventListener('click', pvbBeginRound);
 $('btnAgain').addEventListener('click', retry);
 $('btnBoard').addEventListener('click', function () { showOnly('ovBoard'); renderBoard(); });
 $('btnOnline').addEventListener('click', function () { if (nameOk()) netOpen(); });
@@ -7311,7 +7471,7 @@ function init() {
   $('nameIn').value = loadName(); nameUI(); netInit(); netDetect();
   applyStats(); initAmmo(); selectGun('grapadora'); renderWList();
   refreshMenu(); showOnly('ovStart'); syncCtrl();
-  $('btnStory').disabled = false; $('btnSurv').disabled = false; $('btnPvp').disabled = false; $('btnPvpBomb').disabled = false;
+  $('btnStory').disabled = false; $('btnSurv').disabled = false; $('btnPvp').disabled = false;
   requestAnimationFrame(loop);
 }
 var fontsReady = new Promise(function (r) { setTimeout(r, 1500); });
