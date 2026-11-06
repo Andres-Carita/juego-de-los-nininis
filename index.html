@@ -2501,7 +2501,8 @@ function addGunFx(g, kind) {
   var meshes = [];
   g.traverse(function (o) { if (o.isMesh) meshes.push(o); });
   var fx = { k: kind, rs: rs, ri: ri, body: [], shells: [], accents: [], lights: [], orbit: [], aura: null, shellMat: null };
-  if (ri > 0) fx.shellMat = new THREE.MeshBasicMaterial({ color: rs.hex, side: THREE.BackSide, depthTest: false });
+  /* El borde de rareza va con prueba de profundidad: así el arma se ve sólida y solo se dibuja su contorno */
+  if (ri > 0) fx.shellMat = new THREE.MeshBasicMaterial({ color: rs.hex, side: THREE.BackSide });
   meshes.forEach(function (m) {
     if (m.material.isMeshLambertMaterial) {
       fx.body.push(m.material);
@@ -2512,7 +2513,7 @@ function addGunFx(g, kind) {
     }
   });
   if (ri >= 2) { var ms = glowSprite(rs.hex, 0.12 + 0.03 * ri, 0.55); g.userData.muzzle.add(ms); fx.lights.push({ s: ms, ph: 0, mz: true }); }
-  if (rs.aura) { fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.position.set(0, 0, -0.15); g.add(fx.aura); }
+  if (rs.aura) { fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.material.depthTest = true; fx.aura.position.set(0, 0, -0.15); g.add(fx.aura); }
   if (rs.orbit) { for (var i = 0; i < 6; i++) { var o = glowSprite(0xfff1b0, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * 1.047, sp: 1.4 + (i % 3) * 0.35 }); } }
   g.userData.fx = fx;
   /* Marcas de nivel: tres piezas brillantes sobre el lomo del arma, una por nivel de mejora */
@@ -4627,16 +4628,55 @@ function emptyClick() {
   if (G.pool > 0) { toast('CARGADOR VACÍO · RECARGANDO'); startReload(); return; }
   toast('CARGADOR VACÍO · SIN RESERVA');
 }
-function spawnProj(kind, pos, dir, speed, dmg, splash) {
-  var m = kind === 'milk' ? new THREE.Mesh(lumpGeo, lumpMat) : new THREE.Mesh(sliceGeo, sliceMat);
-  if (kind === 'milk') m.scale.setScalar(rnd(0.8, 1.4));
-  m.position.copy(pos); scene.add(m);
-  G.proj.push({ kind: kind, m: m, x: pos.x, y: pos.y, z: pos.z, vx: dir.x * speed, vy: dir.y * speed, vz: dir.z * speed, dmg: dmg, splash: splash || 0, grav: kind === 'milk' ? 6 : 3, life: 2.6 });
+/* Aspecto de cada arma. s = forma (box, disc, stick, cone, ring, cube, sphere), c = color de sus proyectiles o astillas,
+   t = color del trazo (disparo directo), z = tamaño. Así cada arma se distingue en el aire, en el suelo y al disparar. */
+var LOOK = {
+  grapadora: { s: 'box', c: 0xc0c8d0, t: 0xd8dde6, z: 1 }, sellos: { s: 'box', c: 0xb8232a, t: 0xe0463d, z: 1 },
+  taladro: { s: 'stick', c: 0xffb020, t: 0xffc14d, z: 0.8 }, sopladora: { s: 'disc', c: 0x6cc24a, t: 0x8ee06a, z: 1 },
+  bao: { s: 'stick', c: 0x2f8f4e, t: 0x5cc07a, z: 1 }, leche: { s: 'sphere', c: 0x6fb8ff, t: 0x9fd6ff, z: 1 },
+  trituradora: { s: 'box', c: 0x9aa3a0, t: 0xbfc6c3, z: 0.8 }, pizza: { s: 'disc', c: 0xf4a300, t: 0xffcc4d, z: 1.1 },
+  bazuca: { s: 'box', c: 0xdfe8ff, t: 0x4aa8ff, z: 1.2 }, grapaoro: { s: 'box', c: 0xffd700, t: 0xffe36a, z: 1 },
+  escopeta: { s: 'sphere', c: 0xff7a2a, t: 0xffa060, z: 0.5 }, subfusil: { s: 'box', c: 0xffd55a, t: 0xfff2a0, z: 0.6 },
+  tildes: { s: 'stick', c: 0x7fe8ff, t: 0x7fe8ff, z: 1 }, impresora: { s: 'box', c: 0x2a2a2a, t: 0xdddddd, z: 0.6 },
+  silicona: { s: 'sphere', c: 0xff9ad5, t: 0xff9ad5, z: 0.7 }, cafetera: { s: 'sphere', c: 0x5a3a22, t: 0x8a5a32, z: 1.2 },
+  fregona: { s: 'sphere', c: 0x3aa7ff, t: 0x3aa7ff, z: 0.5 }, ventilador: { s: 'disc', c: 0xdfe7ea, t: 0xdfe7ea, z: 1.3 },
+  nominas: { s: 'box', c: 0x3fae5a, t: 0x7fe08a, z: 1.2 }, megafono: { s: 'ring', c: 0xff5a8a, t: 0xff8fb0, z: 1 },
+  powerpoint: { s: 'box', c: 0xffb020, t: 0xffb020, z: 1 }, aspiradora: { s: 'sphere', c: 0x8a6a3a, t: 0xa8875a, z: 0.5 },
+  microondas: { s: 'cube', c: 0xff6a00, t: 0xff8a30, z: 1 }, ballesta: { s: 'stick', c: 0xc9a46a, t: 0xd8b47a, z: 1.2 },
+  desbrozadora: { s: 'box', c: 0xffe066, t: 0xffe066, z: 0.6 }, garrafa: { s: 'sphere', c: 0x3ab0ff, t: 0x3ab0ff, z: 1.1 },
+  pegatinas: { s: 'box', c: 0xff8fb1, t: 0xff8fb1, z: 0.5 }, chinchetas: { s: 'cone', c: 0xffd23a, t: 0xffd23a, z: 0.6 },
+  snake: { s: 'box', c: 0x5be86b, t: 0x5be86b, z: 1 }, mando: { s: 'box', c: 0xff4040, t: 0xff4040, z: 1 },
+  calcu: { s: 'box', c: 0xb0ffb0, t: 0xb0ffb0, z: 1 }, tirachinas: { s: 'sphere', c: 0x8a8a8a, t: 0x8a8a8a, z: 0.6 },
+  boligrafo: { s: 'stick', c: 0x4a6bff, t: 0x4a6bff, z: 1 }, corrector: { s: 'box', c: 0xfff8d8, t: 0xfff8d8, z: 0.5 },
+  revolver: { s: 'sphere', c: 0xffe27a, t: 0xffe27a, z: 0.5 }, punos: { s: 'box', c: 0xffffff, t: 0xffffff, z: 1 }
+};
+var LOOK_GEO = {}, LOOK_MAT = {};
+function lookOf(k) { return LOOK[k] || LOOK.grapadora; }
+function lookGeo(s) {
+  if (!LOOK_GEO[s]) LOOK_GEO[s] = s === 'box' ? new THREE.BoxGeometry(0.2, 0.2, 0.05) : s === 'disc' ? new THREE.CylinderGeometry(0.2, 0.2, 0.04, 14)
+    : s === 'stick' ? new THREE.CylinderGeometry(0.035, 0.035, 0.45, 6) : s === 'cone' ? new THREE.ConeGeometry(0.09, 0.32, 6)
+    : s === 'ring' ? new THREE.TorusGeometry(0.17, 0.045, 6, 14) : s === 'cube' ? new THREE.BoxGeometry(0.22, 0.22, 0.22)
+    : new THREE.SphereGeometry(0.14, 10, 8);
+  return LOOK_GEO[s];
 }
-function explode(x, y, z, radius, dmg) {
+/* Material sólido (Lambert con un poco de emisión) o brillante (Basic) para el cubo del microondas y los destellos */
+function lookMat(c, glow) {
+  var key = c + (glow ? 'g' : '');
+  if (!LOOK_MAT[key]) LOOK_MAT[key] = glow ? new THREE.MeshBasicMaterial({ color: c }) : new THREE.MeshLambertMaterial({ color: c, emissive: new THREE.Color(c).multiplyScalar(0.2) });
+  return LOOK_MAT[key];
+}
+/* Astilla de un arma de spray: mismo aspecto que su proyectil, más pequeña */
+function lookBit(k) { var L = lookOf(k), m = new THREE.Mesh(lookGeo(L.s), lookMat(L.c)); m.scale.setScalar(0.6 * L.z); return m; }
+function spawnProj(kind, pos, dir, speed, dmg, splash, wk) {
+  var L = lookOf(wk), m = new THREE.Mesh(lookGeo(L.s), lookMat(L.c, L.s === 'cube'));
+  m.scale.setScalar(L.z * (kind === 'milk' ? rnd(0.8, 1.2) : 1));
+  m.position.copy(pos); scene.add(m);
+  G.proj.push({ kind: kind, look: L, m: m, x: pos.x, y: pos.y, z: pos.z, vx: dir.x * speed, vy: dir.y * speed, vz: dir.z * speed, dmg: dmg, splash: splash || 0, grav: kind === 'milk' ? 6 : 3, life: 2.6 });
+}
+function explode(x, y, z, radius, dmg, L) {
   sfx.boom();
   var c = new THREE.Vector3(x, y, z);
-  sparkBurst(c, pizzaFragMat, 26, 6, 3); sparkBurst(c, sparkMat, 16, 7, 2.4);
+  sparkBurst(c, L ? lookMat(L.c, true) : pizzaFragMat, 26, 6, 3); sparkBurst(c, sparkMat, 16, 7, 2.4);
   var list = G.enemies.slice();
   for (var i = 0; i < list.length; i++) {
     var e = list[i], T = e.T, dxz = Math.hypot(x - e.x, z - e.z), dy = y - (T.h / 2 + 0.35);
@@ -4649,8 +4689,8 @@ function explode(x, y, z, radius, dmg) {
 function hitProj(p, e) {
   if (p.kind === 'milk') {
     if (e) damageEnemy(e, p.dmg);
-    tmpV.set(p.x, p.y, p.z); sparkBurst(tmpV, milkFragMat, 4, 2, 1.4);
-  } else explode(p.x, p.y, p.z, p.splash, p.dmg);
+    tmpV.set(p.x, p.y, p.z); sparkBurst(tmpV, lookMat(p.look.c, true), 4, 2, 1.4);
+  } else explode(p.x, p.y, p.z, p.splash, p.dmg, p.look);
 }
 function updateProj(dt) {
   var steps = 3, sdt = dt / steps;
@@ -4703,11 +4743,11 @@ function shoot() {
     } else { raycaster.ray.at(w.type === 'hitscan' ? 60 : w.range, tmpD); end = tmpD.clone(); }
     if (w.type === 'hitscan') {
       var geo = new THREE.BufferGeometry().setFromPoints([tmpV.clone(), end]);
-      var line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: 1 }));
+      var line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: lookOf(G.wcur).t, transparent: true, opacity: 1 }));
       scene.add(line); G.tracers.push({ line: line, life: 0.08 });
     } else {
       for (var b = 0; b < 2; b++) {
-        var bit = new THREE.Mesh(bitGeo, bitMat); bit.position.copy(tmpV); bit.scale.setScalar(0.6); scene.add(bit);
+        var bit = lookBit(G.wcur); bit.position.copy(tmpV); scene.add(bit);
         G.fx.push({ m: bit, vx: dirv.x * 9 + rnd(-1, 1), vy: dirv.y * 9 + rnd(0, 1.5), vz: dirv.z * 9 + rnd(-1, 1), life: 0.4, max: 0.4, spin: rnd(-14, 14), grav: 4 });
       }
     }
@@ -4719,7 +4759,7 @@ function shoot() {
     for (var q = 0; q < n; q++) {
       dirv.copy(tgt).sub(tmpV).normalize();
       if (w.type === 'pellets') dirv.addScaledVector(xa, rnd(-w.spread, w.spread)).addScaledVector(ya, rnd(-w.spread, w.spread)).normalize();
-      spawnProj(w.type === 'pellets' ? 'milk' : 'pizza', tmpV, dirv, w.speed, w.dmg * dm, w.splash);
+      spawnProj(w.type === 'pellets' ? 'milk' : 'pizza', tmpV, dirv, w.speed, w.dmg * dm, w.splash, G.wcur);
     }
   }
   if (G.ammoMap[G.wcur] <= 0) startReload();
@@ -6916,11 +6956,16 @@ function pvpPunch(cx, cz, fx, fz, w, dm) {
 function pvpFireProj(w, dm) {
   var targets = occluders.slice(); pvpTargets(targets);
   var n = w.type === 'pellets' ? w.pellets : 1, sp = w.spread || 0.02;
+  curMuzzle.getWorldPosition(tmpV);
   for (var q = 0; q < n; q++) {
     dirv.copy(fwd).addScaledVector(xa, rnd(-sp, sp)).addScaledVector(ya, rnd(-sp, sp)).normalize();
     raycaster.set(tmpC, dirv); raycaster.far = w.range || 45;
-    var hits = raycaster.intersectObjects(targets, false);
-    if (hits.length && hits[0].object.userData.bot) pvpHitBot(hits[0].object.userData.bot, w.dmg * dm);
+    var hits = raycaster.intersectObjects(targets, false), end;
+    if (hits.length) { end = hits[0].point.clone(); if (hits[0].object.userData.bot) pvpHitBot(hits[0].object.userData.bot, w.dmg * dm); }
+    else { raycaster.ray.at(raycaster.far, tmpD); end = tmpD.clone(); }
+    /* Trazo con el color del arma, para que en PVP también se vea de dónde sale el disparo */
+    var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([tmpV.clone(), end]), new THREE.LineBasicMaterial({ color: lookOf(G.wcur).t, transparent: true, opacity: 1 }));
+    scene.add(line); G.tracers.push({ line: line, life: 0.08 });
   }
 }
 function pvpCheckEnd() {
