@@ -547,6 +547,7 @@ body {
         <button class="btn" id="btnStory" disabled>MODO HISTORIA</button>
         <button class="btn alt" id="btnNew" hidden>NUEVA HISTORIA</button>
         <button class="btn ghost" id="btnSurv" disabled>ZOMBIES</button>
+        <button class="btn ghost" id="btnPvp" disabled>PVP · EQUIPOS</button>
         <button class="btn alt" id="btnOnline">ONLINE</button>
         <button class="btn ghost" id="btnBoard">CLASIFICACIÓN</button>
         <button class="btn ghost" id="btnShape">PERSONALIZAR EQUIPO</button>
@@ -606,11 +607,40 @@ body {
       <label class="sens" for="fovB"><span>Campo de visión</span><input type="range" id="fovB" min="55" max="100" step="1" value="75"><b id="fovBv">75</b></label>
       <div class="btnrow">
         <button class="btn" id="btnResume">SEGUIR RECHAZANDO</button>
+        <button class="btn ghost" id="btnPvpLoad" hidden>CAMBIAR ARSENAL</button>
         <button class="btn ghost" id="btnFsB" hidden>PANTALLA COMPLETA</button>
         <button class="btn ghost" id="btnQuit">MENÚ</button>
       </div>
     </div>
   </div>
+
+  <div class="overlay mid" id="ovLoad" hidden>
+    <div class="sheet">
+      <div class="formno">Arsenal</div>
+      <h1>PVP · EQUIPOS</h1>
+      <p id="pvpLoadNote"></p>
+      <label class="sens" for="pvp_principal"><span>Principal</span><select id="pvp_principal"></select></label>
+      <label class="sens" for="pvp_secundaria"><span>Secundaria</span><select id="pvp_secundaria"></select></label>
+      <label class="sens" for="pvp_cuerpo"><span>Cuerpo a cuerpo</span><select id="pvp_cuerpo"></select></label>
+      <div class="btnrow">
+        <button class="btn" id="btnPvpGo">EMPEZAR</button>
+        <button class="btn ghost" id="btnPvpBack">VOLVER</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay mid" id="ovPvp" hidden>
+    <div class="sheet">
+      <div class="formno">Fin de la partida</div>
+      <h1 id="pvpResTit">PVP</h1>
+      <p class="best" id="pvpResSub"></p>
+      <div class="btnrow">
+        <button class="btn" id="btnPvpAgain">OTRA PARTIDA</button>
+        <button class="btn ghost" id="btnPvpArsenal">CAMBIAR ARSENAL</button>
+        <button class="btn ghost" id="btnPvpMenu">MENÚ</button>
+      </div>
+    </div>
+  </div>
+  <div id="pvpBoard" hidden style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.6);color:#fff;padding:6px 14px;font:700 15px/1.2 system-ui,sans-serif;border-radius:6px;letter-spacing:.04em;pointer-events:none"></div>
 
   <div class="overlay death" id="ovOver" hidden>
     <div class="death-in">
@@ -3971,6 +4001,7 @@ function updateHealth(dt) {
 /* Brillo de la barra de nini mientras regenera (clase .regen en #blHp) */
 function setRegenHud(on) { if (Hc.regen !== on) { Hc.regen = on; el.blHp.classList.toggle('regen', on); } }
 function hurtPlayer(d) {
+  if (G.pvp) { pvpPlayerHurt(d, 'b'); return; }
   if (G.shield > 0 || G.state !== 'playing' || P.down || !(d > 0)) return;
   G.hp -= d; G.regenCd = HEALTH.DELAY; G.hurtT = 0.3; G.shake = 0.3; sfx.hurt();
   if (G.hp <= 0) { if (G.online) { netDown(); return; } gameOver(); return; }
@@ -4634,6 +4665,7 @@ function shoot() {
   var dm = dmgMult() * papMult(G.wcur);
   if (w.type === 'hitscan' || w.type === 'spray') {
     var targets = occluders.slice(); for (var i = 0; i < G.enemies.length; i++) targets.push(G.enemies[i].paper);
+    if (G.pvp) pvpTargets(targets);
     if (w.type === 'hitscan') { raycaster.setFromCamera({ x: 0, y: 0 }, camera); raycaster.far = 90; }
     else {
       dirv.copy(fwd).addScaledVector(xa, rnd(-w.spread, w.spread)).addScaledVector(ya, rnd(-w.spread, w.spread)).normalize();
@@ -4642,7 +4674,9 @@ function shoot() {
     var hits = raycaster.intersectObjects(targets, false), end;
     if (hits.length) {
       var h = hits[0]; end = h.point.clone();
-      if (h.object.userData.enemy) damageEnemy(h.object.userData.enemy, w.dmg * dm); else if (w.type === 'hitscan') sparkBurst(h.point, sparkMat, 5, 2, 1);
+      if (h.object.userData.enemy) damageEnemy(h.object.userData.enemy, w.dmg * dm);
+      else if (h.object.userData.bot) pvpHitBot(h.object.userData.bot, w.dmg * dm);
+      else if (w.type === 'hitscan') sparkBurst(h.point, sparkMat, 5, 2, 1);
     } else { raycaster.ray.at(w.type === 'hitscan' ? 60 : w.range, tmpD); end = tmpD.clone(); }
     if (w.type === 'hitscan') {
       var geo = new THREE.BufferGeometry().setFromPoints([tmpV.clone(), end]);
@@ -4654,6 +4688,8 @@ function shoot() {
         G.fx.push({ m: bit, vx: dirv.x * 9 + rnd(-1, 1), vy: dirv.y * 9 + rnd(0, 1.5), vz: dirv.z * 9 + rnd(-1, 1), life: 0.4, max: 0.4, spin: rnd(-14, 14), grav: 4 });
       }
     }
+  } else if (G.pvp) {
+    pvpFireProj(w, dm);
   } else {
     tgt.copy(tmpC).addScaledVector(fwd, 24);
     var n = w.type === 'pellets' ? w.pellets : 1;
@@ -4671,6 +4707,7 @@ function punch(w) {
   camera.updateMatrixWorld(true);
   camera.getWorldPosition(tmpC); camera.matrixWorld.extractBasis(xa, ya, za); fwd.copy(za).negate();
   var fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl, dm = dmgMult() * papMult(G.wcur);
+  if (G.pvp) pvpPunch(tmpC.x, tmpC.z, fx, fz, w, dm);
   var list = G.enemies.slice();
   for (var i = 0; i < list.length; i++) {
     var e = list[i], dx = e.x - tmpC.x, dz = e.z - tmpC.z, d = Math.hypot(dx, dz);
@@ -5973,7 +6010,7 @@ function netHud() {
 }
 
 /* ---------------- Flujo de partida ---------------- */
-var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape'];
+var screens = ['ovStart', 'ovNet', 'ovBoard', 'ovPause', 'ovOver', 'ovWin', 'ovDlg', 'ovShop', 'ovBranch', 'ovShape', 'ovLoad', 'ovPvp'];
 function showOnly(id) { screens.forEach(function (s) { $(s).hidden = s !== id; }); }
 function plainLock() {
   try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -6211,6 +6248,7 @@ function useBox() {
 /* Arsenal al empezar: solo la grapadora (secundaria) y los puños. Lo demás se consigue en la tienda o con cajas. */
 function startOwned(o) { var r = { grapadora: 1, punos: 1 }; if (o) for (var k in o) if (o[k] && WEAPONS[k]) r[k] = 1; return r; }
 function startSurvival() {
+  pvpStop();
   initAudio(); startMusic(); clearWorld();
   G.perks = {}; G.pap = {}; papSeen = 0; papKey = '';
   seenKinds = {}; G.mode = 'survival'; G.bambu = 0; G.owned = startOwned(null); G.wcur = 'grapadora'; G.lastW = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 }; G.euros = 0;
@@ -6220,6 +6258,7 @@ function startSurvival() {
   startWave(1); requestLock(); toast('ZOMBIES · Dos cajas de armas en el mapa · E para comprar');
 }
 function startStory(fresh) {
+  pvpStop();
   if (fresh) G.branch = null;
   initAudio(); startMusic(); BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
   var s = fresh ? null : loadSave();
@@ -6286,7 +6325,9 @@ function pause() {
   }
   G.state = 'paused'; mouseDown = false;
   if (document.pointerLockElement) document.exitPointerLock();
-  showOnly('ovPause'); $('pauseInfo').textContent = 'Mapa: ' + MAPS[G.mapId].name + ' · Ronda ' + roundIdx() + ' · la dificultad sube con cada ronda';
+  showOnly('ovPause');
+  if (G.pvp) { $('btnPvpLoad').hidden = false; $('pauseInfo').textContent = 'PVP · EQUIPOS. ' + (PV.next ? 'Arsenal nuevo guardado: se aplica al reaparecer.' : 'Puedes cambiar de arsenal: se aplica al reaparecer.'); return; }
+  $('btnPvpLoad').hidden = true; $('pauseInfo').textContent = 'Mapa: ' + MAPS[G.mapId].name + ' · Ronda ' + roundIdx() + ' · la dificultad sube con cada ronda';
 }
 function resume() {
   if (G.online && NG.menu) { NG.menu = false; showOnly(''); requestLock(); return; }
@@ -6295,6 +6336,7 @@ function resume() {
 }
 function toMenu() {
   if (NG.r) netLeave();
+  pvpStop();
   clearWorld(); mouseDown = false; G.state = 'menu'; G.mode = 'story'; applyTheme(0); canvas.classList.remove('dead');
   if (document.pointerLockElement) document.exitPointerLock();
   for (var gk in guns) guns[gk].visible = false;
@@ -6644,11 +6686,201 @@ function update(dt) {
   if (G.state !== 'playing') return;
   updateHealth(dt);
   papTick(dt); fxRingsTick(dt); minimapTick(dt);
+  if (G.pvp) { pvpTick(dt); updateFx(dt); updateWeapon(dt); updateHud(); return; }
   if (G.online && !NG.host) { netClientTick(dt); updateProj(dt); updateEProj(dt); updateHazards(dt); updateRevive(dt); updateSquad(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt); return; }
   updateWaves(dt); if (G.state !== 'playing') return;
   updateEnemies(dt); if (G.state !== 'playing') return;
   updateProj(dt); updateEProj(dt); if (G.state !== 'playing') return;
   updateHazards(dt); if (G.state !== 'playing') return; updateAbilities(dt); updateAlly(dt); updateMates(dt); updateRevive(dt); updateSquad(dt); updateBarri(dt); updateInteract(dt); updatePickups(dt); updateFx(dt); updateWeapon(dt); updateHud(); netTick(dt);
+}
+
+/* ---------------- PVP · equipos (contra bots) ----------------
+   Equipo A (tú + 4 bots aliados) contra equipo B (5 bots). Sin dinero: eliges el arsenal al empezar.
+   Desde ESC puedes cambiarlo y el cambio se aplica al reaparecer (4 s tras morir). Gana el primero que llegue
+   a PVP_TARGET bajas, o el que más tenga al acabarse el tiempo. Los bots no buscan camino: se paran al tope de
+   las paredes del mapa (resolve), así que la IA es sencilla. */
+var PVP_TARGET = 15, PVP_TIME = 300, PVP_RESPAWN = 4, PVP_POOL = 200, PVP_BOT_DMG = 5;
+var PV_SPAWN = { a: [-22, 0], b: [22, 0] };
+var PV = { score: { a: 0, b: 0 }, time: PVP_TIME, bots: [], dead: false, respT: 0, load: { principal: 'pizza', secundaria: 'grapadora', cuerpo: 'punos' }, next: null, loadMode: 'start' };
+function pvpOptions(cat) {
+  if (cat === 'cuerpo') return ['punos'];
+  return WORDER.filter(function (k) { return catOf(k) === cat && k !== 'bao'; });
+}
+function pvpOpenLoad(mode) {
+  PV.loadMode = mode;
+  var cur = mode === 'esc' && PV.next ? PV.next : PV.load;
+  ['principal', 'secundaria', 'cuerpo'].forEach(function (cat) {
+    var opts = pvpOptions(cat), sel = $('pvp_' + cat);
+    sel.innerHTML = opts.map(function (k) { return '<option value="' + k + '">' + WEAPONS[k].name + '</option>'; }).join('');
+    sel.value = opts.indexOf(cur[cat]) >= 0 ? cur[cat] : opts[0];
+  });
+  $('btnPvpGo').textContent = mode === 'esc' ? 'GUARDAR' : 'EMPEZAR';
+  $('btnPvpBack').textContent = mode === 'esc' ? 'CANCELAR' : 'VOLVER';
+  $('pvpLoadNote').textContent = mode === 'esc' ? 'El cambio se aplica cuando reapareces. No hay dinero: lo que eliges es lo que llevas.' : 'Elige tu arsenal. No hay dinero: lo que eliges es lo que llevas.';
+  showOnly('ovLoad');
+}
+function pvpReadLoad() { return { principal: $('pvp_principal').value, secundaria: $('pvp_secundaria').value, cuerpo: $('pvp_cuerpo').value }; }
+function pvpGo() {
+  var L = pvpReadLoad();
+  if (PV.loadMode === 'esc') {
+    PV.next = L; showOnly('ovPause');
+    $('btnPvpLoad').hidden = false; $('pauseInfo').textContent = 'Arsenal guardado. Se aplica cuando reapareces.';
+    return;
+  }
+  PV.load = L; PV.next = null; pvpStart();
+}
+function pvpBack() { showOnly(PV.loadMode === 'esc' ? 'ovPause' : 'ovStart'); }
+function pvpStart() {
+  initAudio(); startMusic(); clearWorld();
+  G.mode = 'pvp'; G.pvp = true; G.perks = {}; G.pap = {}; G.upg = { dmg: 0, mag: 0, rel: 0, speed: 0, hp: 0, ally: 0 };
+  G.euros = 0; G.score = 0; G.kills = 0; G.phase = 0; G.bambu = 0; G.lowWarn = false;
+  BOXK.forEach(function (k) { if (BOXES[k]) BOXES[k].g.visible = false; }); setPerkVis(false); unbarri();
+  loadLoc(0, ZOMBIE_HALF);
+  applyStats(); PV.score = { a: 0, b: 0 }; PV.time = PVP_TIME; PV.dead = false; PV.respT = 0;
+  pvpMakeBots();
+  pvpSpawnPlayer();
+  if (ally.g) ally.g.visible = false; MATES.forEach(function (m) { if (m.g) m.g.visible = false; });
+  G.state = 'playing'; showOnly(''); $('hud').hidden = false; $('pvpBoard').hidden = false;
+  requestLock(); toast('PVP · EQUIPOS · ' + PVP_TARGET + ' BAJAS PARA GANAR');
+}
+function pvpStop() {
+  if (!G.pvp) return;
+  G.pvp = false; PV.bots.forEach(function (b) { scene.remove(b.g); }); PV.bots = []; PV.dead = false; PV.next = null; P.down = false;
+  $('pvpBoard').hidden = true;
+}
+/* Aplica el arsenal pendiente (si lo hay) y deja al jugador en su base, con la munición y la vida llenas */
+function pvpSpawnPlayer() {
+  if (PV.next) { PV.load = PV.next; PV.next = null; }
+  var L = PV.load;
+  resetPlayerState();
+  G.owned = { punos: 1 }; G.owned[L.principal] = 1; G.owned[L.secundaria] = 1;
+  initAmmo(); G.pool = PVP_POOL;
+  var s = resolve(PV_SPAWN.a[0], PV_SPAWN.a[1], 0.5); P.x = s.x; P.z = s.z;
+  P.yaw = 0; P.yawT = 0; P.pitch = 0; P.pitchT = 0;
+  G.hp = G.maxHp; G.regenCd = 0; P.down = false; PV.dead = false; canvas.classList.remove('dead');
+  selectGun(L.principal);
+}
+function pvpRespawnPlayer() {
+  pvpSpawnPlayer();
+  toast('REAPARECES · ' + (PV.load.principal ? WEAPONS[PV.load.principal].name.toUpperCase() : ''));
+}
+function pvpMakeBots() {
+  PV.bots.forEach(function (b) { scene.remove(b.g); });
+  PV.bots = [];
+  for (var s = 1; s < 5; s++) PV.bots.push(pvpNewBot('a', s));
+  for (var t = 0; t < 5; t++) PV.bots.push(pvpNewBot('b', t));
+  PV.bots.forEach(pvpBotSpawn);
+}
+function pvpNewBot(team, slot) {
+  var b = { team: team, slot: slot, x: 0, z: 0, hp: 100, dead: false, respT: 0, cd: 1, yaw: 0, g: new THREE.Group() };
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 1.2, 10), new THREE.MeshLambertMaterial({ color: team === 'a' ? 0x2f9e5a : 0xe0382d }));
+  body.position.y = 0.95; body.userData.bot = b;
+  var head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshLambertMaterial({ color: 0xf2d2b0 }));
+  head.position.y = 1.8;
+  b.g.add(body, head); b.body = body; scene.add(b.g);
+  return b;
+}
+function pvpBotSpawn(b) {
+  var sp = PV_SPAWN[b.team], r = resolve(sp[0] + rnd(-2, 2), sp[1] + (b.slot - 2) * 2.4, 0.45);
+  b.x = r.x; b.z = r.z; b.hp = 100; b.dead = false; b.cd = rnd(0.8, 1.6);
+  b.g.visible = true; b.g.position.set(b.x, 0, b.z);
+}
+/* Dianas del jugador: los bots del equipo contrario (los aliados no se disparan) */
+function pvpTargets(list) { PV.bots.forEach(function (b) { if (!b.dead && b.team !== 'a') list.push(b.body); }); }
+function pvpSee(ax, az, bx, bz) {
+  var dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
+  if (d < 1e-3) return true;
+  raycaster.set(new THREE.Vector3(ax, 1.2, az), new THREE.Vector3(dx / d, 0, dz / d)); raycaster.far = d;
+  return raycaster.intersectObjects(occluders, false).length === 0;
+}
+function pvpNearestFoe(b) {
+  var best = null, bd = 1e9;
+  if (b.team !== 'a' && !PV.dead) { bd = Math.hypot(P.x - b.x, P.z - b.z); best = { isP: true, x: P.x, z: P.z }; }
+  PV.bots.forEach(function (o) {
+    if (o === b || o.dead || o.team === b.team) return;
+    var d = Math.hypot(o.x - b.x, o.z - b.z); if (d < bd) { bd = d; best = o; }
+  });
+  return best;
+}
+function pvpTick(dt) {
+  PV.time = Math.max(0, PV.time - dt);
+  if (PV.dead) { PV.respT -= dt; if (PV.respT <= 0) pvpRespawnPlayer(); }
+  PV.bots.forEach(function (b) {
+    if (b.dead) { b.respT -= dt; if (b.respT <= 0) pvpBotSpawn(b); return; }
+    b.cd -= dt;
+    var foe = pvpNearestFoe(b); if (!foe) return;
+    var dx = foe.x - b.x, dz = foe.z - b.z, d = Math.hypot(dx, dz) || 0.001;
+    b.yaw = Math.atan2(dx, dz);
+    if (d > 11) { var st = Math.min(d - 11, 3.4 * dt), r = resolve(b.x + dx / d * st, b.z + dz / d * st, 0.45); b.x = r.x; b.z = r.z; }
+    b.g.position.set(b.x, 0, b.z); b.g.rotation.y = b.yaw;
+    if (d < 26 && b.cd <= 0) {
+      b.cd = rnd(1, 1.6);
+      if (Math.random() < 0.55 && pvpSee(b.x, b.z, foe.x, foe.z)) {
+        if (foe.isP) pvpPlayerHurt(PVP_BOT_DMG, b.team); else pvpBotHurt(foe, PVP_BOT_DMG, b.team);
+      }
+    }
+  });
+  if (G.state !== 'playing') return;
+  var t = Math.ceil(PV.time), mm = Math.floor(t / 60), ss = t % 60;
+  $('pvpBoard').textContent = 'A ' + PV.score.a + '  ·  ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '  ·  ' + PV.score.b + ' B';
+  if (PV.time <= 0) pvpEnd(PV.score.a > PV.score.b ? 'a' : (PV.score.b > PV.score.a ? 'b' : 'draw'));
+}
+function pvpPlayerHurt(d, killer) {
+  if (PV.dead || G.state !== 'playing' || !(d > 0)) return;
+  G.hp -= d; G.regenCd = HEALTH.DELAY; G.hurtT = 0.3; G.shake = 0.3; sfx.hurt();
+  if (G.hp > 0) return;
+  G.hp = 0; PV.dead = true; PV.respT = PVP_RESPAWN; P.down = true; mouseDown = false;
+  PV.score[killer]++;
+  canvas.classList.add('dead'); for (var gk in guns) guns[gk].visible = false;
+  toast('ABATIDO · REAPARECES EN ' + PVP_RESPAWN + ' S');
+  pvpCheckEnd();
+}
+function pvpBotHurt(b, d, killer) {
+  if (b.dead) return;
+  b.hp -= d;
+  if (b.hp > 0) return;
+  b.dead = true; b.respT = PVP_RESPAWN; b.g.visible = false;
+  PV.score[killer]++;
+  if (killer === 'a') { G.kills++; toast('BAJA · ' + PV.score.a + ' A ' + PV.score.b + ' B'); }
+  pvpCheckEnd();
+}
+function pvpHitBot(b, d) {
+  el.cross.classList.add('hit'); setTimeout(function () { el.cross.classList.remove('hit'); }, 90);
+  if (d >= 0.9) sfx.hit();
+  pvpBotHurt(b, d, 'a');
+}
+/* Melee: los bots del equipo contrario dentro del arco */
+function pvpPunch(cx, cz, fx, fz, w, dm) {
+  PV.bots.forEach(function (b) {
+    if (b.dead || b.team === 'a') return;
+    var dx = b.x - cx, dz = b.z - cz, d = Math.hypot(dx, dz);
+    if (d - 0.4 > w.range) return;
+    if (d > 1e-6 && (dx * fx + dz * fz) / d < w.arc) return;
+    pvpHitBot(b, w.dmg * dm);
+  });
+}
+/* Armas con proyectil: en PVP no hay proyectiles visibles contra los bots; se resuelven como disparos directos */
+function pvpFireProj(w, dm) {
+  var targets = occluders.slice(); pvpTargets(targets);
+  var n = w.type === 'pellets' ? w.pellets : 1, sp = w.spread || 0.02;
+  for (var q = 0; q < n; q++) {
+    dirv.copy(fwd).addScaledVector(xa, rnd(-sp, sp)).addScaledVector(ya, rnd(-sp, sp)).normalize();
+    raycaster.set(tmpC, dirv); raycaster.far = w.range || 45;
+    var hits = raycaster.intersectObjects(targets, false);
+    if (hits.length && hits[0].object.userData.bot) pvpHitBot(hits[0].object.userData.bot, w.dmg * dm);
+  }
+}
+function pvpCheckEnd() {
+  if (PV.score.a >= PVP_TARGET) pvpEnd('a');
+  else if (PV.score.b >= PVP_TARGET) pvpEnd('b');
+}
+function pvpEnd(w) {
+  if (G.state !== 'playing') return;
+  G.state = 'win'; mouseDown = false; P.down = true;
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('pvpResTit').textContent = w === 'a' ? 'GANA TU EQUIPO' : (w === 'b' ? 'GANAN LOS BOTS' : 'EMPATE');
+  $('pvpResSub').textContent = 'Equipo A ' + PV.score.a + ' · Equipo B ' + PV.score.b;
+  $('hud').hidden = true; $('pvpBoard').hidden = true; showOnly('ovPvp');
 }
 
 /* ---------------- Entrada ---------------- */
@@ -6744,6 +6976,13 @@ $('btnShapeBack').addEventListener('click', function () { showOnly('ovStart'); }
 $('btnBranchEasy').addEventListener('click', function () { pickBranch('easy'); });
 $('btnNew').addEventListener('click', function () { if (nameOk()) startStory(true); });
 $('btnSurv').addEventListener('click', function () { if (nameOk()) zombiesMenu(); });
+$('btnPvp').addEventListener('click', function () { if (nameOk()) pvpOpenLoad('start'); });
+$('btnPvpGo').addEventListener('click', pvpGo);
+$('btnPvpBack').addEventListener('click', pvpBack);
+$('btnPvpLoad').addEventListener('click', function () { pvpOpenLoad('esc'); });
+$('btnPvpAgain').addEventListener('click', pvpStart);
+$('btnPvpArsenal').addEventListener('click', function () { pvpOpenLoad('start'); });
+$('btnPvpMenu').addEventListener('click', toMenu);
 $('btnAgain').addEventListener('click', retry);
 $('btnBoard').addEventListener('click', function () { showOnly('ovBoard'); renderBoard(); });
 $('btnOnline').addEventListener('click', function () { if (nameOk()) netOpen(); });
@@ -6782,7 +7021,7 @@ function init() {
   $('nameIn').value = loadName(); nameUI(); netInit(); netDetect();
   applyStats(); initAmmo(); selectGun('grapadora'); renderWList();
   refreshMenu(); showOnly('ovStart'); syncCtrl();
-  $('btnStory').disabled = false; $('btnSurv').disabled = false;
+  $('btnStory').disabled = false; $('btnSurv').disabled = false; $('btnPvp').disabled = false;
   requestAnimationFrame(loop);
 }
 var fontsReady = new Promise(function (r) { setTimeout(r, 1500); });
