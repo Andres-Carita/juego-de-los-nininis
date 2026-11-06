@@ -4801,7 +4801,12 @@ function shoot() {
   curMuzzle.getWorldPosition(tmpV);
   /* Armas épicas y legendarias: destello de chispas de su color en cada disparo */
   var wri = RARITY_ORDER.indexOf(WEAPONS[G.wcur].rarity || 'comun');
-  if (wri >= 2) sparkBurst(tmpV, lookMat(rarityOf(G.wcur).hex, true), wri >= 3 ? 14 : 9, 5, 0.9);
+  if (wri >= 2) {
+    sparkBurst(tmpV, lookMat(rarityOf(G.wcur).hex, true), wri >= 3 ? 14 : 9, 5, 0.9);
+    /* Anillo de choque en la boca: se expande y se desvanece */
+    var shock = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.3, 28), new THREE.MeshBasicMaterial({ color: rarityOf(G.wcur).hex, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
+    shock.position.copy(tmpV); shock.lookAt(camera.position); scene.add(shock); fxRings.push({ m: shock, t: 0, r: wri >= 3 ? 1.2 : 0.8 });
+  }
   var dm = dmgMult() * papMult(G.wcur);
   if (w.type === 'hitscan' || w.type === 'spray') {
     var targets = occluders.slice(); for (var i = 0; i < G.enemies.length; i++) targets.push(G.enemies[i].paper);
@@ -6702,6 +6707,7 @@ function updateWeapon(dt) {
   /* Cambio de arma: la nueva sube desde abajo en unos 0,24 s (1 = abajo) */
   WM.raise = Math.max(0, WM.raise - dt / 0.24);
   var raise = ease(WM.raise);
+  var ri = RARITY_ORDER.indexOf(WEAPONS[G.wcur].rarity || 'comun');
   /* Balanceo del arma: sigue el giro con un ligero retraso */
   var sd = Math.exp(-dt * 9); P.swayX *= sd; P.swayY *= sd;
   var swx = clamp(P.swayX, -0.12, 0.12), swy = clamp(P.swayY, -0.12, 0.12);
@@ -6717,9 +6723,9 @@ function updateWeapon(dt) {
   if (INS.on) { INS.t += dt; INS.yaw += dt * 0.9; if (INS.t >= INS.dur) endInspect(); }
   /* En pantalla vertical el campo de visión es estrecho: el arma se acerca al centro para no salirse del encuadre */
   var lat = clamp(camera.aspect, 0.42, 1);
-  var nx = b[0] * lat + bb.x - swx * 0.12 + jit, ny = b[1] + bb.y + swy * 0.08 - 0.22 * low - 0.28 * raise + tap * 0.012 * low;
-  var nz = b[2] + G.recoil * 0.07 * kk - pk * 0.22 + 0.05 * low;
-  var nrx = G.recoil * 0.12 * kk - 0.75 * low - 0.6 * raise - pk * 0.7 + swy * 0.5 + bb.p + tap * 0.06 * low, nry = 0.04 + swx * 0.6, nrz = 0.35 * low + 0.3 * raise + swx * 0.4 + bb.r;
+  var nx = b[0] * lat + bb.x - swx * 0.12 + jit, ny = b[1] + bb.y + swy * 0.08 - 0.22 * low - 0.28 * raise + tap * 0.012 * low + (ri >= 3 ? Math.sin(G.t * 2.2) * 0.012 * (1 - INS.k) : 0);
+  var nz = b[2] + G.recoil * 0.07 * kk * (1 + 0.3 * ri) - pk * 0.22 + 0.05 * low;
+  var nrx = G.recoil * 0.12 * kk - 0.75 * low - 0.6 * raise - pk * 0.7 + swy * 0.5 + bb.p + tap * 0.06 * low, nry = 0.04 + swx * 0.6, nrz = 0.35 * low + 0.3 * raise + swx * 0.4 + bb.r + (G.reload > 0 && ri >= 2 ? Math.sin(rl * Math.PI * 2) * 0.35 * (ri - 1) : 0);
   /* Presentación: centro de la pantalla, girando sobre sí mismo */
   var s = ease(INS.k), irx = -0.12 + Math.sin(INS.t * 0.7) * 0.08, iry = INS.yaw, iz = -0.62 * g.scale.x / 0.8;
   g.position.set(nx + (0 - nx) * s, ny + (0 - ny) * s, nz + (iz - nz) * s);
@@ -7119,12 +7125,16 @@ function pvPeers(ch) {
   PV.myPeer = me;
   PV.peers = (ch.peers || []).filter(function (p) { return p.presence && p.presence.pv; });
   /* Anfitrión: quien entró antes (marca de tiempo de la presencia; a igualdad, el identificador) */
+  var prev = PV.hostPeer;
   var hp = null, hj = Infinity; PV.peers.forEach(function (p) { var j = +(p.presence.j) || Infinity; if (j < hj || (j === hj && (hp === null || p.peer < hp))) { hj = j; hp = p.peer; } });
   PV.hostPeer = hp; PV.host = !!me && me === hp;
   if (me) PV.myKey = 'p:' + me;
-  if (PV.on) {
-    var here = {}; PV.peers.forEach(function (p) { here[p.peer] = 1; });
-    if (!PV.host && PV.hostPeer && !here[PV.hostPeer]) { pvpStop(); toMenu(); showOnly('ovStart'); netMsg('El anfitrión ha salido de la partida.'); }
+  /* Si se ha ido el anfitrión a mitad de partida, la IA pasa a quien entró después (el siguiente) sin cortar la partida */
+  if (PV.on && prev && prev !== hp && !PV.peers.some(function (p) { return p.peer === prev; })) {
+    if (PV.host) {
+      PV.ents.forEach(function (e) { if (e.kind === 'ai') { e.x = e.tx; e.z = e.tz; e.yaw = e.tyaw; if (e.dead && e.respT <= 0) e.respT = PV_RESPAWN; } });
+      toast('EL ANFITRIÓN SE HA IDO · LLEVAS TÚ LA IA');
+    } else toast('EL ANFITRIÓN SE HA IDO · LA PARTIDA SIGUE');
   }
   pvRenderLobby();
 }
