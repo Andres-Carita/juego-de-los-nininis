@@ -3984,7 +3984,29 @@ function sparkBurst(p, mat, n, spd, scale) {
     G.fx.push({ m: m, vx: rnd(-s, s), vy: rnd(0.5, s * 1.5), vz: rnd(-s, s), life: 0.35, max: 0.35, spin: 0, grav: 9, base: scale || 1 });
   }
 }
+/* Disparo directo: una bala con la forma y el color de su arma viaja hasta el impacto, con un rastro de su color */
+function shotVisual(a, b, wk) {
+  var L = lookOf(wk), d = b.clone().sub(a), len = Math.max(0.05, d.length()), dir = d.clone().divideScalar(len), up = new THREE.Vector3(0, 1, 0);
+  var tr = new THREE.Mesh(new THREE.CylinderGeometry(0.012 * (0.6 + L.z), 0.012 * (0.6 + L.z), len, 5), new THREE.MeshBasicMaterial({ color: L.t, transparent: true, opacity: 0.9, depthWrite: false }));
+  tr.position.copy(a).addScaledVector(dir, len / 2); tr.quaternion.setFromUnitVectors(up, dir);
+  scene.add(tr); G.tracers.push({ line: tr, life: 0.12 });
+  var bm = new THREE.Mesh(lookGeo(L.s), lookMat(L.c, L.s === 'cube'));
+  bm.scale.setScalar(L.z * 0.7); bm.position.copy(a); bm.quaternion.setFromUnitVectors(up, dir);
+  scene.add(bm);
+  G.shots = G.shots || [];
+  G.shots.push({ m: bm, a: a.clone(), b: b.clone(), t: 0, dur: Math.min(0.16, len / 120), c: L.c });
+}
+function shotsTick(dt) {
+  if (!G.shots) return;
+  for (var i = G.shots.length - 1; i >= 0; i--) {
+    var s = G.shots[i]; s.t += dt;
+    var k = Math.min(1, s.t / s.dur);
+    s.m.position.lerpVectors(s.a, s.b, k);
+    if (k >= 1) { sparkBurst(s.b, lookMat(s.c, true), 6, 3, 0.8); scene.remove(s.m); G.shots.splice(i, 1); }
+  }
+}
 function updateFx(dt) {
+  shotsTick(dt);
   for (var i = G.fx.length - 1; i >= 0; i--) {
     var f = G.fx[i]; f.life -= dt;
     if (f.life <= 0) { scene.remove(f.m); G.fx.splice(i, 1); continue; }
@@ -4797,10 +4819,7 @@ function shoot() {
       else if (w.type === 'hitscan') sparkBurst(h.point, sparkMat, 5, 2, 1);
     } else { raycaster.ray.at(w.type === 'hitscan' ? 60 : w.range, tmpD); end = tmpD.clone(); }
     if (w.type === 'hitscan') {
-      var geo = new THREE.BufferGeometry().setFromPoints([tmpV.clone(), end]);
-      var line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: lookOf(G.wcur).t, transparent: true, opacity: 1 }));
-      scene.add(line); G.tracers.push({ line: line, life: 0.08 });
-      if (G.pvp) pvShotFx(tmpV, end, G.wcur);
+      if (G.pvp) pvShotFx(tmpV, end, G.wcur); else shotVisual(tmpV.clone(), end, G.wcur);
     } else {
       for (var b = 0; b < 2; b++) {
         var bit = lookBit(G.wcur); bit.position.copy(tmpV); scene.add(bit);
@@ -5682,8 +5701,11 @@ function wsRoom(code) {
   });
 }
 function netTransport(code) {
-  var viaClaude = window.claude && typeof window.claude.use === 'function' ? window.claude.use('room') : Promise.resolve(null);
-  return viaClaude.then(function (room) {
+  /* Si la sala de claude.ai no está disponible (no declarada o sin conexión), se prueba el servidor propio */
+  var viaClaude = null;
+  try { viaClaude = window.claude && typeof window.claude.use === 'function' ? Promise.resolve(window.claude.use('room')) : null; } catch (e) { viaClaude = null; }
+  var first = viaClaude ? viaClaude.catch(function () { return null; }) : Promise.resolve(null);
+  return first.then(function (room) {
     if (room) return room.join('nini-' + code);
     if (/^https?:\/\//.test(NINI_API)) return wsRoom(code);
     throw new Error('sin_red');
@@ -6156,6 +6178,7 @@ function clearWorld() {
   G.pickups.forEach(function (p) { scene.remove(p.g); }); G.pickups = [];
   G.fx.forEach(function (f) { scene.remove(f.m); }); G.fx = [];
   G.tracers.forEach(function (t) { scene.remove(t.line); }); G.tracers = [];
+  (G.shots || []).forEach(function (s) { scene.remove(s.m); }); G.shots = [];
   G.proj.forEach(function (p) { scene.remove(p.m); }); G.proj = [];
   G.eproj.forEach(function (p) { scene.remove(p.m); }); G.eproj = [];
   G.hazards.forEach(function (h) { scene.remove(h.m); }); G.hazards = [];
@@ -6983,10 +7006,7 @@ function pvHitEnt(e, d, bt, bkey) {
   if (pvAuth()) pvAIHurt(e, d, bt, bkey);
   else pvSend({ t: 'h', ai: e.key, d: d, bt: bt, bk: bkey });
 }
-function pvTracer(a, b, wk) {
-  var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.clone(), b.clone()]), new THREE.LineBasicMaterial({ color: lookOf(wk).t, transparent: true, opacity: 1 }));
-  scene.add(line); G.tracers.push({ line: line, life: 0.1 });
-}
+function pvTracer(a, b, wk) { shotVisual(a, b, wk); }
 /* Disparo visible para todos: tu trazo y el de la IA (la manda el anfitrión) */
 function pvShotFx(a, b, wk) {
   pvTracer(a, b, wk);
