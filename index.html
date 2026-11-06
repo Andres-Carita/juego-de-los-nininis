@@ -1935,22 +1935,33 @@ GUN_MODELS._fallback = function (M) {
 
 /* Grapadora roja de oficina: base, cuerpo, raíl, grapas en la nariz, ojos de juguete y pegatina amarilla */
 GUN_MODELS.grapadora = function (M) {
+  /* Grapadora de élite: cuerpo dorado con núcleo rojo, cartucho de grapas con neón, mandíbula que se abre al grapar,
+     tornillos de oro y un halo azul en la boca que late */
   var part = M.part, glow = M.glow, B = M.B, g = M.g;
-  part(B(0.14, 0.04, 0.46), 0x2a2e31, 0, -0.045, 0);
-  part(B(0.13, 0.07, 0.42), 0xc22d27, 0, 0, -0.02);
-  part(B(0.002, 0.045, 0.2), 0xffd21f, 0.0655, 0, -0.06);           /* pegatina lateral */
-  part(B(0.002, 0.045, 0.2), 0xffd21f, -0.0655, 0, -0.06);
-  part(B(0.035, 0.012, 0.42), 0xc8cfd3, 0.0, 0.04, -0.03);          /* raíl */
-  part(B(0.1, 0.05, 0.14), 0xa9b1b5, 0, 0.02, -0.27);               /* nariz */
-  part(B(0.07, 0.035, 0.16), 0x14181a, 0, -0.01, -0.29);
-  part(B(0.05, 0.012, 0.02), 0xdfe6ea, 0, -0.035, -0.355);          /* grapas asomando */
-  part(B(0.05, 0.012, 0.02), 0xdfe6ea, 0, -0.005, -0.355);
-  M.eye(-0.042, 0.05, 0.13, 0.024, g); M.eye(0.042, 0.05, 0.13, 0.024, g);
-  for (var i = 0; i < 4; i++) part(B(0.13, 0.12, 0.012), 0x1a1d20, 0, -0.06, 0.1 + i * 0.03);
-  part(B(0.12, 0.14, 0.08), 0x15191a, 0, -0.12, 0.2).rotation.x = -0.3;
-  part(B(0.04, 0.09, 0.05), 0x0f1213, 0, -0.13, 0.03).rotation.x = -0.25;
-  glow(B(0.02, 0.02, 0.02), 0x2fb8e8, 0.07, 0.035, 0.12);
-  M.muzzle(g, 0, 0, -0.37); M.base = [0.27, -0.25, -0.58];
+  part(B(0.15, 0.05, 0.48), 0xd9b24a, 0, -0.05, 0);
+  part(B(0.13, 0.075, 0.42), 0xb3141b, 0, 0.0, -0.02);
+  part(B(0.135, 0.018, 0.4), 0xf5d878, 0, 0.04, -0.02);              /* franja dorada */
+  part(B(0.035, 0.012, 0.44), 0xe7ecef, 0, 0.05, -0.03);             /* raíl cromado */
+  /* Cartucho de grapas: caja oscura con tiras de neón */
+  part(B(0.1, 0.06, 0.24), 0x1f2a36, 0, 0.085, 0.05);
+  part(B(0.104, 0.012, 0.242), 0xd9b24a, 0, 0.12, 0.05);
+  for (var i = 0; i < 4; i++) glow(B(0.07, 0.01, 0.012), 0x7fe8ff, 0, 0.122, -0.02 + i * 0.05);
+  /* Mandíbula: pivota desde atrás al disparar (ver updateWeapon) */
+  var jaw = new THREE.Group(); jaw.position.set(0, 0, -0.13); g.add(jaw); g.userData.jaw = jaw;
+  part(B(0.12, 0.03, 0.26), 0xd9b24a, 0, -0.01, -0.13, jaw);
+  part(B(0.1, 0.02, 0.06), 0x14181a, 0, -0.03, -0.28, jaw);          /* dientes */
+  /* Nariz dorada, boca oscura y anillo de oro */
+  part(B(0.1, 0.05, 0.12), 0xc9a13c, 0, 0.0, -0.3);
+  part(B(0.06, 0.03, 0.02), 0x0d0f10, 0, 0.0, -0.37);
+  part(M.T(0.05, 0.01, 10, 18), 0xffd87a, 0, 0, -0.37);
+  [[-0.05, 0.035, 0.18], [0.05, 0.035, 0.18], [-0.05, 0.035, -0.12], [0.05, 0.035, -0.12]].forEach(function (q) { part(M.S(0.012, 6, 5), 0xfff1b0, q[0], q[1], q[2]); });
+  /* Neón lateral */
+  glow(B(0.004, 0.02, 0.38), 0x2fb8e8, 0.0755, 0.0, -0.02);
+  glow(B(0.004, 0.02, 0.38), 0x2fb8e8, -0.0755, 0.0, -0.02);
+  g.userData.core = glow(B(0.03, 0.03, 0.03), 0x2fb8e8, 0.0, 0.02, 0.14);
+  /* Halo de la boca */
+  g.userData.halo = glowSprite(0x2fb8e8, 0.2, 0.7); g.userData.halo.position.set(0, 0, -0.4); g.add(g.userData.halo);
+  M.muzzle(g, 0, 0, -0.4); M.base = [0.27, -0.25, -0.58];
 };
 
 /* Leche de Raúl Becas: tanque de cartón con banda azul, vacas en la pared, ojos de juguete y boca con anillo de luz */
@@ -3996,6 +4007,12 @@ function shotVisual(a, b, wk) {
   G.shots = G.shots || [];
   G.shots.push({ m: bm, a: a.clone(), b: b.clone(), t: 0, dur: Math.min(0.16, len / 120), c: L.c });
 }
+/* Grapa expulsada por la boca de la grapadora: sale hacia arriba y a un lado, con giro, y cae */
+function ejectStaple() {
+  var m = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.008, 0.02), new THREE.MeshBasicMaterial({ color: 0xffd87a }));
+  curMuzzle.getWorldPosition(m.position); scene.add(m);
+  G.fx.push({ m: m, vx: xa.x * 1.6 + ya.x * 1.8, vy: xa.y * 1.6 + ya.y * 1.8, vz: xa.z * 1.6 + ya.z * 1.8, life: 0.8, max: 0.8, spin: 20, grav: 9, base: 1 });
+}
 function shotsTick(dt) {
   if (!G.shots) return;
   for (var i = G.shots.length - 1; i >= 0; i--) {
@@ -4808,6 +4825,7 @@ function shoot() {
     shock.position.copy(tmpV); shock.lookAt(camera.position); scene.add(shock); fxRings.push({ m: shock, t: 0, r: wri >= 3 ? 1.2 : 0.8 });
   }
   var dm = dmgMult() * papMult(G.wcur);
+  if (G.wcur === 'grapadora') ejectStaple();
   if (w.type === 'hitscan' || w.type === 'spray') {
     var targets = occluders.slice(); for (var i = 0; i < G.enemies.length; i++) targets.push(G.enemies[i].paper);
     if (G.pvp) pvpTargets(targets);
@@ -6740,6 +6758,13 @@ function updateWeapon(dt) {
     if (hv.t >= 0.12) { hg.visible = false; WM.holster = null; }
   }
   if (g.userData.bit) g.userData.bit.rotation.z += dt * (mouseDown && G.wcur === 'taladro' ? 45 : 6);
+  /* Grapadora: la mandíbula se abre con cada grapa, el núcleo late y el halo de la boca destella al disparar */
+  if (G.wcur === 'grapadora' && g.userData.jaw) {
+    var jk = clamp(G.recoil, 0, 1);
+    g.userData.jaw.rotation.x = -0.6 * jk;
+    if (g.userData.core) g.userData.core.scale.setScalar(0.9 + 0.35 * Math.sin(G.t * 6) + 0.6 * jk);
+    if (g.userData.halo) g.userData.halo.material.opacity = 0.45 + 0.25 * Math.sin(G.t * 5) + 0.4 * jk;
+  }
   if (guns.bao && guns.bao.userData.head) guns.bao.userData.head.rotation.x = -G.recoil * 0.45 + (G.reload > 0 ? Math.sin(G.t * 12) * 0.08 : 0);
   if (G.flash > 0) { G.flash -= dt; flashSprite.visible = true; flashSprite.material.rotation = rnd(0, 6); flashLight.intensity = 1.6; }
   else { flashSprite.visible = false; flashLight.intensity = 0; }
