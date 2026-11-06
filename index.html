@@ -2515,25 +2515,37 @@ function addGunFx(g, kind) {
   if (rs.aura) { fx.aura = glowSprite(rs.hex, 0.85, 0.2); fx.aura.position.set(0, 0, -0.15); g.add(fx.aura); }
   if (rs.orbit) { for (var i = 0; i < 6; i++) { var o = glowSprite(0xfff1b0, 0.07, 0.9); g.add(o); fx.orbit.push({ s: o, a: i * 1.047, sp: 1.4 + (i % 3) * 0.35 }); } }
   g.userData.fx = fx;
+  /* Marcas de nivel: tres piezas brillantes sobre el lomo del arma, una por nivel de mejora */
+  fx.pips = [];
+  for (var pi = 0; pi < 3; pi++) {
+    var pm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.12), new THREE.MeshBasicMaterial({ color: new THREE.Color(rs.hex).lerp(whiteC(), 0.35) }));
+    pm.position.set(0, 0.13, -0.08 - pi * 0.14); pm.visible = false; g.add(pm); fx.pips.push(pm);
+  }
+  /* Destello en la boca desde el nivel 2 */
+  fx.mz = glowSprite(rs.hex, 0.2, 0.8); fx.mz.visible = false; g.userData.muzzle.add(fx.mz);
   applyGunLook(g);
 }
 /* Aspecto según la rareza (fija) y el nivel de mejora: 1 brillo · 2 neón (borde claro y más grueso) · 3 luces (sprites). El tope es la rareza */
 function applyGunLook(g) {
   var fx = g && g.userData.fx; if (!fx) return;
   var L = G.pap[fx.k] | 0, vk = Math.min(L, fx.rs.cap), neon = vk >= 2, lights = vk >= 3;
-  /* Brillo suave: con más emisión el modelo se queda en una silueta plana de color y pierde sus piezas */
-  fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.03 * fx.ri + 0.06 * L); });
+  /* Cada nivel se nota: más emisión de color (sin llegar a una silueta plana), borde más grueso, piezas teñidas,
+     marcas en el lomo y destello en la boca. El tope lo pone la rareza (cap) */
+  fx.body.forEach(function (mt) { mt.emissive.setHex(fx.rs.hex).multiplyScalar(0.04 + 0.05 * fx.ri + 0.07 * vk); });
   if (fx.shellMat) { fx.shellMat.color.setHex(fx.rs.hex); if (neon) fx.shellMat.color.lerp(whiteC(), 0.3); }
-  fx.shells.forEach(function (sh) { sh.scale.setScalar(neon ? 1.1 + 0.02 * L : 1.06); });
-  fx.accents.forEach(function (m) { m.material.color.setHex(m.userData.c0).lerp(whiteC(), 0.15 * L); });
+  fx.shells.forEach(function (sh) { sh.scale.setScalar(1.05 + 0.04 * vk); });
+  var tint = new THREE.Color(fx.rs.hex);
+  fx.accents.forEach(function (m) { m.material.color.setHex(m.userData.c0).lerp(tint, 0.25 * vk); });
   fx.lights.forEach(function (o) { o.s.visible = lights; });
-  if (fx.aura) fx.aura.material.opacity = 0.18 + 0.1 * L;
+  fx.pips.forEach(function (p, i) { p.visible = i < vk; });
+  if (fx.mz) fx.mz.visible = vk >= 2;
+  if (fx.aura) fx.aura.material.opacity = 0.12 + 0.04 * vk;
 }
 /* Animación del arma en uso: órbita y pulso de la legendaria, y pulso de las luces */
 function animGunFx(g, dt) {
   var fx = g.userData.fx; if (!fx) return;
   var t = G.t;
-  if (fx.aura) fx.aura.material.opacity = (0.18 + 0.1 * (G.pap[fx.k] | 0)) * (0.75 + 0.25 * Math.sin(t * 3));
+  if (fx.aura) fx.aura.material.opacity = (0.12 + 0.04 * Math.min(G.pap[fx.k] | 0, fx.rs.cap)) * (0.75 + 0.25 * Math.sin(t * 3));
   for (var i = 0; i < fx.orbit.length; i++) { var o = fx.orbit[i]; o.a += dt * o.sp; o.s.position.set(Math.cos(o.a) * 0.3, Math.sin(o.a * 1.3) * 0.12 - 0.02, -0.1 + Math.sin(o.a) * 0.06); }
   for (var j = 0; j < fx.lights.length; j++) { var l = fx.lights[j]; if (l.s.visible && !l.mz) l.s.material.opacity = 0.6 + 0.35 * Math.sin(t * 5 + l.ph); }
 }
@@ -6835,8 +6847,10 @@ function pvpTick(dt) {
       var B = PV.bomb, S = B.site, mine = b.team === B.atk;
       var near = foe ? Math.hypot(foe.x - b.x, foe.z - b.z) : 1e9;
       /* Atacantes sin bomba: van al punto si no tienen enemigos cerca. Defensores: van a la bomba una vez plantada */
-      if (mine && !B.planted && near > 14) { tx = S.x; tz = S.z; stopD = 0.6; }
+      /* Atacantes: al punto directo, y solo paran si un enemigo está muy cerca. Defensores: se reúnen en el punto */
+      if (mine && !B.planted && near > 6) { tx = S.x; tz = S.z; stopD = 0.6; }
       else if (!mine && B.planted) { tx = S.x; tz = S.z; stopD = 0.6; }
+      else if (!mine && !B.planted && near > 30) { tx = S.x; tz = S.z; stopD = 4; }
     }
     if (tx === null) { if (!foe) return; tx = foe.x; tz = foe.z; }
     var dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 0.001;
@@ -7043,7 +7057,7 @@ function pvbTick(dt) {
   } else {
     B.bombT -= dt;
     if (B.atk !== 'a' && holdE && pNear) B.defP += dt / 7;
-    PV.bots.forEach(function (b) { if (!b.dead && b.team !== B.atk && Math.hypot(b.x - S.x, b.z - S.z) < 2.5) B.defP += dt / 8; });
+    PV.bots.forEach(function (b) { if (!b.dead && b.team !== B.atk && Math.hypot(b.x - S.x, b.z - S.z) < 2.5) B.defP += dt / 16; });
     if (B.defP >= 1) { pvbEndRound(B.atk === 'a' ? 'b' : 'a', 'bomba desactivada'); return; }
     if (B.bombT <= 0) { pvbEndRound(B.atk, 'la bomba ha explotado'); return; }
   }
