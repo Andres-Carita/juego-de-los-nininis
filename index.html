@@ -23,7 +23,9 @@
 .diffbtn:hover { transform: translateY(-2px); }
 
 /* Lobby de PVP */
-.pvLobby { max-width: min(980px, 96vw); max-height: 92vh; overflow: auto; }
+.pvLobby { max-width: min(980px, 96vw); max-height: 96vh; overflow: auto; }
+.pvLobby h1 { margin: 2px 0 6px; font-size: 40px; }
+.pvLobby .btnrow { margin-top: 6px; }
 .pvNet { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
 .pvJoin { display: flex; gap: 6px; }
 .pvJoin input { font: 16px "Special Elite", monospace; padding: 8px; width: 120px; text-transform: uppercase; background: #f1efe6; color: #14181a; border: 2px solid #14181a; }
@@ -39,7 +41,7 @@
 .pvChar span { font: 11px "Special Elite", monospace; color: #14181a; text-align: center; overflow-wrap: anywhere; }
 .pvChar.on { outline: 4px solid #e0382d; outline-offset: 1px; }
 .pvGun { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr); gap: 12px; align-items: center; }
-#pvPrev { width: 100%; height: 220px; background: radial-gradient(circle at 50% 40%, #2a3638, #0c1011); border: 2px solid #14181a; }
+#pvPrev { width: 100%; height: 150px; background: radial-gradient(circle at 50% 40%, #2a3638, #0c1011); border: 2px solid #14181a; }
 .pvName { font: 30px Anton, Impact, sans-serif; letter-spacing: .04em; }
 .pvRar { font: 13px "Special Elite", monospace; margin: 2px 0 6px; }
 .pvDesc { font: 14px "Special Elite", monospace; margin: 0 0 8px; opacity: .85; }
