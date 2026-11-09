@@ -570,6 +570,21 @@ body {
 .mainm .gh4 { top: 4%; height: 70%; }
 .mainm .gh img, .mainm .gh1 img, .mainm .gh2 img, .mainm .gh3 img { filter: grayscale(.15) contrast(1.3) brightness(.85) !important; }
 .mainm .gh4 img { filter: grayscale(1) contrast(1.3) brightness(.5) !important; }
+/* Menú principal: las cuatro fotos en cuadrícula 2x2 a la derecha, sin taparse entre ellas ni al texto */
+.mainm .mm-l { max-width: 40%; }
+.mainm .gh { width: 25%; height: 43%; opacity: 1; filter: none; }
+.mainm .gh1 { left: 48.5%; top: 4%; }
+.mainm .gh2 { left: 74%; top: 4%; }
+.mainm .gh3 { left: 48.5%; top: 50%; }
+.mainm .gh4 { left: 74%; top: 50%; }
+.mainm .gh4 img { filter: grayscale(.15) contrast(1.3) brightness(.85) !important; }
+/* Pantallas estrechas: el texto arriba y las cuatro fotos en cuadrícula 2x2 debajo */
+@media (max-width: 760px), (max-aspect-ratio: 1/1) {
+  .mainm .mm-l { max-width: 90%; }
+  .mainm .gh { width: 45%; height: 20.5%; }
+  .mainm .gh1 { left: 4%; top: 46%; } .mainm .gh2 { left: 51%; top: 46%; }
+  .mainm .gh3 { left: 4%; top: 67.5%; } .mainm .gh4 { left: 51%; top: 67.5%; }
+}
 </style>
 
 <div id="stage">
