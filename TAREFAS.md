@@ -6,10 +6,10 @@ Formato: `- [ ] tarefa — responsável — observação`. Quem termina marca `[
 ## Em andamento
 
 ## A fazer
-- [ ] Ícones das 3 primeiras armas (PNG com fundo transparente, estilo cartoon com contorno grosso) — GPT (gera com image_gen) + Claude (encaixa no jogo) — aguardando o usuário confirmar quais armas
 
 ## Pedidos de ajuda
 <!-- Exemplo: - [ ] @GPT: revisar o texto da tela inicial — de Claude -->
 
 ## Feito
+- [x] Ícones da trituradora, pizza e furadeira (armas/*.webp, 256 px) na loja e na inspeção — GPT gerou, Claude reduziu e encaixou (2026-11-11). Faltam ícones das outras armas.
 - [x] Estrutura de equipe de IAs (AGENTS.md, TAREFAS.md, agentes/, scripts/local.py); Qwen e GPT testados, Gemini estava lotado — Claude (2026-11-11)

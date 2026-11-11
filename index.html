@@ -258,6 +258,8 @@ body {
 .item { border: 2px solid var(--ink); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; background: #f8f6ee; min-width: 0; }
 .ihead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .icat { font-family: var(--disp); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #4b5552; }
+.item .iimg { width: 100%; height: 96px; object-fit: contain; }
+.insp-img { display: block; width: 72px; height: 72px; object-fit: contain; margin-bottom: 4px; }
 .iname { font-family: var(--disp); font-size: 20px; letter-spacing: .05em; line-height: 1.1; }
 .idesc { font-size: 13px; line-height: 1.35; flex: 1; }
 .pips { font-size: 14px; letter-spacing: .2em; color: var(--stamp); }
@@ -634,7 +636,7 @@ body {
     <div class="toast" id="toast"></div>
     <div class="insp" id="insp" hidden>
       <span class="c tl"></span><span class="c tr"></span><span class="c lb"></span><span class="c rb"></span>
-      <div class="insp-t"><span class="lab">Inspección</span><b id="inspName"></b><span class="rar" id="inspRar"></span><small>I o disparar para cerrar</small><span class="insp-bar"><i id="inspBar"></i></span></div>
+      <div class="insp-t"><span class="lab">Inspección</span><img class="insp-img" id="inspImg" alt="" hidden><b id="inspName"></b><span class="rar" id="inspRar"></span><small>I o disparar para cerrar</small><span class="insp-bar"><i id="inspBar"></i></span></div>
     </div>
   </div>
 
@@ -6828,13 +6830,16 @@ function endDialog() {
 }
 
 /* ---------------- Tienda ---------------- */
+/* Iconos de arma dibujados por el agente GPT (carpeta armas/); las demás armas aún no tienen */
+var WICON = { trituradora: 'armas/trituradora.webp', pizza: 'armas/pizza.webp', taladro: 'armas/taladro.webp' };
+function wIcon(k, cls) { return WICON[k] ? '<img class="' + cls + '" src="' + WICON[k] + '" alt="">' : ''; }
 function renderShop() {
   $('shopEur').textContent = G.euros;
   var w = '';
   WORDER.forEach(function (k) {
     var d = WEAPONS[k]; if (k === 'grapadora') return;
     var owned = !!G.owned[k], can = G.euros >= d.price;
-    w += '<div class="item" style="--rc:' + rarityOf(k).css + ';border-top:6px solid ' + rarityOf(k).css + '"><div class="ihead"><span class="rar">' + rarityOf(k).label + '</span><span class="icat">' + CAT_NAME[catOf(k)] + '</span></div><div class="iname">' + d.name + '</div><div class="idesc">' + d.desc + '</div>' +
+    w += '<div class="item" style="--rc:' + rarityOf(k).css + ';border-top:6px solid ' + rarityOf(k).css + '"><div class="ihead"><span class="rar">' + rarityOf(k).label + '</span><span class="icat">' + CAT_NAME[catOf(k)] + '</span></div>' + wIcon(k, 'iimg') + '<div class="iname">' + d.name + '</div><div class="idesc">' + d.desc + '</div>' +
       '<button class="buy' + (owned ? ' owned' : '') + '" data-w="' + k + '"' + ((owned || !can) ? ' disabled' : '') + '>' + (owned ? 'COMPRADA' : 'COMPRAR · ' + d.price + ' €') + '</button></div>';
   });
   $('shopW').innerHTML = w;
@@ -6924,6 +6929,7 @@ function startInspect() {
   INS.on = true; INS.t = 0;
   box.style.setProperty('--rc', rs.css);
   $('inspName').textContent = WEAPONS[k].name;
+  var ii = $('inspImg'); ii.hidden = !WICON[k]; if (WICON[k]) ii.src = WICON[k];
   $('inspRar').textContent = rs.label + (lv ? ' · NV ' + lv : '');
   box.hidden = false; sfx.inspect();
 }
