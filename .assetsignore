@@ -9,3 +9,5 @@ wrangler.toml
 .assetsignore
 *.md
 *.zip
+agentes
+scripts
