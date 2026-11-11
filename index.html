@@ -7221,7 +7221,7 @@ function pvpEnd(w) {
   if (G.state !== 'playing') return;
   G.state = 'win'; mouseDown = false; P.down = true;
   if (document.pointerLockElement) document.exitPointerLock();
-  $('pvpResTit').textContent = w === 'a' ? 'GANA TU EQUIPO' : (w === 'b' ? 'GANA EL OTRO EQUIPO' : 'EMPATE');
+  $('pvpResTit').textContent = (w === 'a' || w === 'b') ? (PV.me && w === PV.me.team ? 'GANA TU EQUIPO' : 'GANA EL OTRO EQUIPO') : 'EMPATE';
   $('pvpResSub').textContent = 'Equipo A ' + PV.score.a + ' · Equipo B ' + PV.score.b;
   $('hud').hidden = true; $('pvpBoard').hidden = true; showOnly('ovPvp');
 }
